@@ -134,7 +134,7 @@ func TestUninstallLeavesOtherLingeringAlone(t *testing.T) {
 	if !f.lingerOn || len(f.calls) != 0 {
 		t.Fatalf("calls %v", f.calls)
 	}
-	if out.String() != "Left lingering for alice as it was, since CC Babysitter did not turn it on.\n" {
+	if out.String() != "Left lingering for alice as it was, since CC Babysitter has no note that it turned it on.\n" {
 		t.Fatalf("got %q", out.String())
 	}
 }

@@ -56,7 +56,7 @@ func turnLingeringOn(out io.Writer, l lingering, stateDir, user string) {
 // other services of the user's own may need it.
 func releaseLingering(out io.Writer, l lingering, stateDir, user string) {
 	if !state.LingeringTurnedOn(stateDir) {
-		fmt.Fprintln(out, "Left lingering for", user, "as it was, since CC Babysitter did not turn it on.")
+		fmt.Fprintln(out, "Left lingering for", user, "as it was, since CC Babysitter has no note that it turned it on.")
 		return
 	}
 	if err := l.SetLingering(user, false); err != nil {

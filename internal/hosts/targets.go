@@ -48,8 +48,9 @@ func VisibleResumeCommand(id string, remoteControl bool) string {
 // ResumeCommandIn renders the command line that resumes id from the folder
 // it was started in. `claude --resume` looks a conversation up in the
 // project of the folder it runs from, so the command changes there first.
-// The folder is quoted for a POSIX shell; with no folder known, the bare
-// resume command is all there is to give.
+// The folder is quoted for PowerShell on Windows and for a POSIX shell
+// everywhere else; with no folder known, the bare resume command is all
+// there is to give.
 func ResumeCommandIn(cwd, id string) string {
 	return inFolder(cwd, VisibleResumeCommand(id, false))
 }
