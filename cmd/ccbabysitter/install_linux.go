@@ -53,7 +53,7 @@ func writeUnitAt(path, text string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, []byte(text), 0o644)
+	return writeDurable(path, []byte(text), 0o644)
 }
 
 func removeUnit() (string, error) {
