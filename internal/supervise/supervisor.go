@@ -607,15 +607,18 @@ func (s *Supervisor) checkAutostart() {
 	}
 	s.st.Settings.Autostart = installed
 	s.persist()
-	// On a server the login item is CC Babysitter's own systemd service,
-	// which installing CC Babysitter sets up, and the page does not speak
-	// of start at login there.
+	// On a Linux server the login item is CC Babysitter's own systemd
+	// service, which installing CC Babysitter sets up, and the page does
+	// not speak of start at login there. A Mac or Windows machine reached
+	// over SSH has no display either, but its login item still runs at
+	// login.
+	server := s.env.Headless && s.env.Platform == "linux"
 	switch {
-	case installed && s.env.Headless:
+	case installed && server:
 		s.logInfo("", "Set up as a service that starts at boot.")
 	case installed:
 		s.logInfo("", "Start at login was turned on outside CC Babysitter.")
-	case s.env.Headless:
+	case server:
 		s.logInfo("", "The service that starts CC Babysitter at boot was turned off outside CC Babysitter.")
 	default:
 		s.logInfo("", "Start at login was turned off outside CC Babysitter.")

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/buildinfo"
+	"ccbabysitter.dev/ccbabysitter/internal/hosts"
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
@@ -101,6 +102,24 @@ func TestOnAServerTheServiceIsNotAnOutsideChange(t *testing.T) {
 	}
 	if n := linesSaying(f, serviceOn); n != 1 {
 		t.Fatalf("want one line saying the service is set up, got %d", n)
+	}
+}
+
+// A Mac reached over SSH has no display, but its login item is a
+// LaunchAgent that runs at login, so it keeps the start-at-login lines.
+func TestAMacOverSSHKeepsTheStartAtLoginLines(t *testing.T) {
+	item := &loginItem{installed: false}
+	f, _ := autostartFixture(t, true, item)
+	f.d.Env = func() hosts.Env {
+		return hosts.Env{Platform: "darwin", Headless: true, CLIFound: true, CLIPresent: true}
+	}
+	New(*f.d)
+
+	if n := linesSaying(f, turnedOffOutside); n != 1 {
+		t.Fatalf("want the start-at-login line, got %d", n)
+	}
+	if n := linesSaying(f, serviceOff); n != 0 {
+		t.Fatalf("a Mac has no boot service, got %d lines", n)
 	}
 }
 
