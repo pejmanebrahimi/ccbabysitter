@@ -199,3 +199,10 @@ func TestShutdownEndsOpenStreamsPromptly(t *testing.T) {
 		t.Fatalf("shutdown waited %v for an open stream, well into a %v grace period", took, grace)
 	}
 }
+
+func TestFormatSSE(t *testing.T) {
+	got := string(formatSSE("view", []byte(`{"a":1}`)))
+	if want := "event: view\ndata: {\"a\":1}\n\n"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}

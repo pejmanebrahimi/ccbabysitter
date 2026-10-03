@@ -263,11 +263,7 @@ func (h *eventHub) serveHTTP(w http.ResponseWriter, r *http.Request) {
 // formatSSE renders one server-sent event. data is JSON and therefore
 // never contains a bare newline, so it always fits on a single data line.
 func formatSSE(event string, data []byte) []byte {
-	out := make([]byte, 0, len(data)+len(event)+16)
-	out = append(out, "event: "...)
-	out = append(out, event...)
-	out = append(out, "\ndata: "...)
+	out := []byte("event: " + event + "\ndata: ")
 	out = append(out, data...)
-	out = append(out, "\n\n"...)
-	return out
+	return append(out, "\n\n"...)
 }
