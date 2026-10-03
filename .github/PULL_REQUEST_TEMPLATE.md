@@ -1,6 +1,6 @@
 ## What and why
 
-<!-- What this changes, and why. Link the issue it comes from, if any. -->
+<!-- What this changes, and why. If it fixes an issue, write "Fixes #N". -->
 
 ## Tests run
 

@@ -30,10 +30,21 @@ body:
     validations:
       required: true
   - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What you did, step by step, starting from CC Babysitter running.
+      placeholder: |
+        1. Babysat a terminal session.
+        2. Closed the terminal window.
+        3. ...
+    validations:
+      required: true
+  - type: textarea
     id: what-happened
     attributes:
       label: What happened
-      description: What you did, step by step, and what CC Babysitter did.
+      description: What CC Babysitter did, or did not do.
     validations:
       required: true
   - type: textarea
