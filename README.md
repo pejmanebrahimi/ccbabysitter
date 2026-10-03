@@ -4,6 +4,11 @@ Shows every Claude Code session, and keeps the ones you choose alive, awake and 
 
 CC Babysitter is one local page for every Claude Code session on a machine, whatever app runs it: a terminal, a background session, Claude Desktop or VS Code. Babysit a session and CC Babysitter keeps the computer awake; if the session's app closes while you are away, the session carries on in the background with Remote Control, under the same id, so you can still reach it from your phone. It is one Go binary for macOS, Windows and Linux, the page is served on `127.0.0.1`, and there is nothing to install beside the executable.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/page-dark.png">
+  <img alt="CC Babysitter's page: two babysat sessions, one kept running in the background after Claude Desktop closed, four other running sessions with a Babysit button each, and the Activity panel explaining every step." src="docs/images/page-light.png">
+</picture>
+
 ## Why a babysitter?
 
 I left Claude Code working on my laptop overnight, with Remote Control on and "keep computer awake" ticked. Claude Desktop updated itself in the night and never came back, and I couldn't reach the session until morning. I'm not the only one: [1](https://github.com/anthropics/claude-code/issues/92933), [2](https://github.com/anthropics/claude-code/issues/95364), [3](https://github.com/anthropics/claude-code/issues/95491).
