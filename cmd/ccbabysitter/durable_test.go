@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -45,9 +46,41 @@ func TestWriteDurableIgnoresALeftoverTemporaryFile(t *testing.T) {
 	}
 }
 
-func TestWriteDurableLeavesTheOldFileWhenItCannotWrite(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "missing-folder", "unit")
-	if err := writeDurable(path, []byte("x"), 0o644); err == nil {
-		t.Fatal("writing into a folder that does not exist succeeded")
+// A write that fails must leave the file that was there exactly as it was,
+// which a plain truncate-and-write would not.
+func TestWriteDurableKeepsTheOldFileWhenTheWriteFails(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("folder permissions do not stop file creation the same way on Windows")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("root can write into a read-only folder")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "unit")
+	if err := os.WriteFile(path, []byte("old unit\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(dir, 0o700) })
+	if err := writeDurable(path, []byte("new unit\n"), 0o644); err == nil {
+		t.Fatal("writing into a read-only folder succeeded")
+	}
+	if got, _ := os.ReadFile(path); string(got) != "old unit\n" {
+		t.Fatalf("the old file was changed to %q", got)
+	}
+}
+
+// A folder flush that fails is reported, so the caller does not claim the
+// file is safely on disk.
+func TestWriteDurableReportsAFailedFolderFlush(t *testing.T) {
+	failed := errors.New("folder flush failed")
+	saved := syncDir
+	syncDir = func(string) error { return failed }
+	t.Cleanup(func() { syncDir = saved })
+	path := filepath.Join(t.TempDir(), "unit")
+	if err := writeDurable(path, []byte("x"), 0o644); !errors.Is(err, failed) {
+		t.Fatalf("err = %v, want the folder flush error", err)
 	}
 }
