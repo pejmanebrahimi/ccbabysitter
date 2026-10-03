@@ -25,9 +25,11 @@ func TestWriteDurableReplacesTheFile(t *testing.T) {
 		t.Fatalf("the temporary file was left behind: %v", err)
 	}
 	if runtime.GOOS != "windows" {
+		// The umask may take bits away from 0644 but never adds any, and
+		// the owner can always read and write.
 		fi, _ := os.Stat(path)
-		if fi.Mode().Perm() != 0o644 {
-			t.Fatalf("mode %v, want 0644", fi.Mode().Perm())
+		if m := fi.Mode().Perm(); m&^0o644 != 0 || m&0o600 != 0o600 {
+			t.Fatalf("mode %v, want 0644 less the umask", m)
 		}
 	}
 }
@@ -82,5 +84,25 @@ func TestWriteDurableReportsAFailedFolderFlush(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "unit")
 	if err := writeDurable(path, []byte("x"), 0o644); !errors.Is(err, failed) {
 		t.Fatalf("err = %v, want the folder flush error", err)
+	}
+}
+
+func TestRemoveDurableRemovesALeftoverTemporaryFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "unit")
+	for _, p := range []string{path, path + ".tmp"} {
+		if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := removeDurable(path); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{path, path + ".tmp"} {
+		if _, err := os.Stat(p); !os.IsNotExist(err) {
+			t.Fatalf("%s is still there: %v", p, err)
+		}
+	}
+	if err := removeDurable(path); err != nil {
+		t.Fatalf("removing a file that is already gone: %v", err)
 	}
 }

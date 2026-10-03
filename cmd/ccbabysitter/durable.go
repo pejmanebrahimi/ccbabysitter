@@ -40,3 +40,14 @@ func writeDurable(path string, data []byte, perm os.FileMode) error {
 	}
 	return syncDir(filepath.Dir(path))
 }
+
+// removeDurable removes the file at path and any temporary file a crash
+// during writeDurable left next to it. A file that is already gone is not
+// an error.
+func removeDurable(path string) error {
+	_ = os.Remove(path + ".tmp")
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}

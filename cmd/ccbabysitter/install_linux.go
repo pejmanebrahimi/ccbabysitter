@@ -61,7 +61,7 @@ func removeUnit() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+	if err := removeDurable(path); err != nil {
 		return "", err
 	}
 	return path, nil
