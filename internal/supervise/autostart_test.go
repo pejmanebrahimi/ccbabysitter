@@ -81,7 +81,45 @@ func linesSaying(f *fixture, msg string) int {
 const (
 	turnedOffOutside = "Start at login was turned off outside CC Babysitter."
 	turnedOnOutside  = "Start at login was turned on outside CC Babysitter."
+	serviceOn        = "Set up as a service that starts at boot."
+	serviceOff       = "The service that starts CC Babysitter at boot was turned off outside CC Babysitter."
 )
+
+// On a server the login item is CC Babysitter's own systemd service, which
+// installing it sets up, so finding it there is not an outside change.
+func TestOnAServerTheServiceIsNotAnOutsideChange(t *testing.T) {
+	item := &loginItem{installed: true}
+	f, _ := autostartFixture(t, false, item)
+	headless(f)
+	s := New(*f.d)
+
+	if !s.View().Settings.Autostart {
+		t.Fatal("the setting must follow the machine")
+	}
+	if n := linesSaying(f, turnedOnOutside); n != 0 {
+		t.Fatalf("a server must not say start at login was turned on outside, got %d lines", n)
+	}
+	if n := linesSaying(f, serviceOn); n != 1 {
+		t.Fatalf("want one line saying the service is set up, got %d", n)
+	}
+}
+
+func TestOnAServerAServiceTurnedOffIsSaidInServerWords(t *testing.T) {
+	item := &loginItem{installed: false}
+	f, _ := autostartFixture(t, true, item)
+	headless(f)
+	s := New(*f.d)
+
+	if s.View().Settings.Autostart {
+		t.Fatal("the setting must follow the machine")
+	}
+	if n := linesSaying(f, turnedOffOutside); n != 0 {
+		t.Fatalf("a server does not speak of start at login, got %d lines", n)
+	}
+	if n := linesSaying(f, serviceOff); n != 1 {
+		t.Fatalf("want one line saying the service was turned off, got %d", n)
+	}
+}
 
 func TestALoginItemRemovedByHandTurnsTheSettingOff(t *testing.T) {
 	item := &loginItem{installed: false}
