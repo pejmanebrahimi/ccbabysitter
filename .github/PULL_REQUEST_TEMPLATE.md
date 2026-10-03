@@ -1,6 +1,6 @@
 ## What and why
 
-<!-- What this changes, and why. If it fixes an issue, write "Fixes #N". -->
+<!-- What this changes, and why. If it fixes an issue, write "Fixes #N"; if it only relates to one, "Refs #N". -->
 
 ## Tests run
 

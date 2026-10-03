@@ -21,12 +21,12 @@ If you change `scripts/install.sh`, run `scripts/test-install.sh`. It builds CC 
 
 ## Issues
 
-- **Kinds.** An issue's kind is its label: `bug` for something that does not work as it should, `enhancement` for a new feature or an improvement, `question`, and `documentation`. `help wanted` and `good first issue` mark issues where outside help is welcome.
-- **Bugs** follow the bug report form: steps to reproduce, what happened, what you expected, versions and system, and the Activity lines. A bug that cannot be reproduced from the issue may get a request for more detail.
+- **Kinds.** An issue's kind is its label. The two issue forms give `bug`, for something that does not work as it should, and `enhancement`, for a new feature or an improvement. Maintainers also use `question` and `documentation`, and mark issues where outside help is welcome with `help wanted` and `good first issue`.
+- **Bugs** follow the bug report form: versions and system, steps to reproduce, what happened, what you expected, and the Activity lines. A bug that cannot be reproduced from the issue may get a request for more detail.
 - **Enhancements** say the problem first, then a short proposal. Once the approach is agreed, the issue gets a "Done when" checklist that the pull request is checked against. The details of how belong in the pull request.
 - **Big features** start as one issue where the approach is agreed. They are split into sub-issues only when the pieces ship separately.
 - **Milestones.** Issues that must be done before 1.0 are in the `1.0` milestone.
-- **Triage.** New issues are read and labelled within a few days. An issue waiting for information from its author for two weeks may be closed; it can be reopened when the information arrives. Closed issues say why: completed, not planned (with the reason), or duplicate (with a link).
+- **Triage.** New issues are usually read and labelled within a few days. An issue waiting for information from its author for two weeks may be closed; it can be reopened when the information arrives. Closed issues say why: completed, not planned (with the reason), or duplicate (with a link).
 
 ## Sending a change
 
@@ -34,7 +34,7 @@ If you change `scripts/install.sh`, run `scripts/test-install.sh`. It builds CC 
 - Keep pull requests small and focused on one thing. A small change is easier to review and quicker to merge.
 - For a larger change, or anything that changes what CC Babysitter does, open an issue first so we can agree on the approach before you spend time on it.
 - When a pull request fixes an issue, write `Fixes #N` in its description, so merging it closes the issue.
-- A change users will notice adds a line under `## Unreleased` in `docs/CHANGELOG.md`.
+- A change users will notice adds a line under `## Unreleased` in `docs/CHANGELOG.md`. A release renames that heading to `## X.Y.Z (date)`.
 - Keep to the hard rules in `README.md`: opt-in only, every automatic action explained, Claude's files read-only, loopback only, user mode only.
 - Shipped files are plain ASCII text: no curly quotes, long dashes or other characters outside ASCII. `go test ./...` checks this for the code, the documents, the scripts and the workflows.
 
