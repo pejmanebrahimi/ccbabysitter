@@ -87,7 +87,7 @@ func (d *Deps) stopCopyOrRefuse(ctx context.Context, copyID, id, cwd, original s
 	}
 	rmOut, rmErr := d.Runner.Run(ctx, "", hosts.RemoveArgs(copyID)...)
 	if rmErr != nil {
-		return Result{Message: fmt.Sprintf("Claude forked a copy %s that was stopped but could not be removed: %s. Remove it by hand: claude rm %s", copyID, why(rmOut, rmErr), copyID)}, false
+		return Result{Message: fmt.Sprintf("Claude forked a copy %s that was stopped but could not be removed: %s. Remove it by hand: `claude rm %s`.", copyID, why(rmOut, rmErr), copyID)}, false
 	}
 	return Result{}, true
 }
