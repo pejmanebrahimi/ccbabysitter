@@ -572,7 +572,7 @@ func (s *Supervisor) dedupe(ctx context.Context, w state.Watch, snap observe.Sna
 		if sayOnce(s.trouble.saidDedupe, w.SessionID, strings.Join(stuck, " ")) {
 			for _, short := range stuck {
 				s.logAuto(label, reason, "could not clean up the extra background copy "+short+": "+failures[short]+
-					". Remove it by hand with `claude stop "+short+" && claude rm "+short+"`")
+					". Remove it by hand: run `claude stop "+short+"`, then `claude rm "+short+"`")
 			}
 		}
 	} else {

@@ -403,3 +403,25 @@ func TestTheResumeToRunByHandStartsInTheFolder(t *testing.T) {
 		t.Fatalf("got %q, want it to end with %q", res.Message, want)
 	}
 }
+
+// A forked copy that cannot be stopped is given as two commands, one after
+// the other: Windows PowerShell 5.1 cannot run commands joined with &&.
+func TestAForkedCopyThatCannotBeStoppedIsGivenAsTwoCommands(t *testing.T) {
+	r := claude.NewFakeRunner(func(args []string) (string, error) {
+		if len(args) > 0 && args[0] == "stop" {
+			return "", errors.New("no such session")
+		}
+		return "", nil
+	})
+	d := &Deps{Runner: r}
+	res, ok := d.stopCopyOrRefuse(context.Background(), "abcd1234", "11112222-3333-4444-5555-666677778888", t.TempDir(), "11112222")
+	if ok {
+		t.Fatal("a copy that could not be stopped is not ok")
+	}
+	if strings.Contains(res.Message, "&&") {
+		t.Fatalf("the commands must not be joined with &&: %q", res.Message)
+	}
+	if !strings.Contains(res.Message, "run `claude stop abcd1234`, then `claude rm abcd1234`") {
+		t.Fatalf("the message must give both commands in order: %q", res.Message)
+	}
+}

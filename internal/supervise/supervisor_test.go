@@ -1387,8 +1387,11 @@ func TestDedupeRemovesEvenWhenTheStopFailedAndNamesBothCommands(t *testing.T) {
 	if said == "" {
 		t.Fatalf("the failure must be explained: %+v", f.d.Log.Recent(50, ""))
 	}
-	if !strings.Contains(said, "claude stop 99990000") || !strings.Contains(said, "claude rm 99990000") {
-		t.Fatalf("the entry must name both commands: %q", said)
+	if !strings.Contains(said, "run `claude stop 99990000`, then `claude rm 99990000`") {
+		t.Fatalf("the entry must name both commands, one after the other: %q", said)
+	}
+	if strings.Contains(said, "&&") {
+		t.Fatalf("Windows PowerShell 5.1 cannot run commands joined with &&: %q", said)
 	}
 	if n := countMessages(f, "could not clean up the extra background copy"); n != 1 {
 		t.Fatalf("the same trouble is said once, got %d lines", n)

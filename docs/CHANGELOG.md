@@ -5,6 +5,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 ## Unreleased
 
 - Fixed: on a server, Activity said "Start at login was turned on outside CC Babysitter." right after installing, although CC Babysitter set up its own service. It now says "Set up as a service that starts at boot.", and a service turned off by hand is described as the service, not as start at login.
+- Fixed: when a stray copy of a session could not be cleaned up, the page and Activity gave `claude stop X && claude rm X`, which Windows PowerShell 5.1 cannot run. They now give the two commands one after the other.
 
 ## 0.4.1 (2026-10-03)
 
