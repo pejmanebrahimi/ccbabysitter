@@ -157,6 +157,10 @@ func banner(version, pageURL string, headless bool, user, address, cliVersion, d
 // foregroundClosing ends the banner of a copy that serves in this terminal.
 const foregroundClosing = "Press Ctrl+C to quit. Babysat sessions keep running, but nothing restarts them and the computer may sleep."
 
+// serviceClosing ends the banner the background copy itself writes, to the
+// journal or nowhere, since it has no terminal to quit it in.
+const serviceClosing = "This is the background copy. Quit it with: ccbabysitter quit"
+
 // backgroundClosing ends what the launcher prints: the copy runs in the
 // background, whether it starts again by itself, and that the window can
 // be closed.

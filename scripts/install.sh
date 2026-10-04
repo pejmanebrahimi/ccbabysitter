@@ -229,10 +229,13 @@ knows_background() {
 }
 
 # mac_agent_running reports whether CC Babysitter's LaunchAgent runs in this
-# Mac's login, which a plain run then replaces with the version just
-# installed.
+# Mac's login, or is set to start at login, which a plain run then replaces
+# with the version just installed.
 mac_agent_running() {
 	[ "$os" = darwin ] || return 1
+	# An earlier version's LaunchAgent that is set to start at login is
+	# rewritten for the new version too, running or not.
+	[ -f "${HOME:-}/Library/LaunchAgents/com.ccbabysitter.plist" ] && return 0
 	has launchctl || return 1
 	launchctl print "gui/$(id -u)/com.ccbabysitter" 2>/dev/null | grep -q 'state = running'
 }

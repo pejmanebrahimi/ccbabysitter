@@ -272,7 +272,7 @@ func (c *Client) Stop(ctx context.Context, id string) (supervise.Result, error) 
 
 // olderCopyQuit is quit's refusal when the running copy is from before
 // quit existed, which answers the route with a plain 404 or 405.
-const olderCopyQuit = "The running CC Babysitter is an older version that cannot quit this way. Quit it with Ctrl+C where it runs, or on a server with: systemctl --user stop ccbabysitter"
+const olderCopyQuit = "The running CC Babysitter is an older version that cannot quit this way. Quit it with Ctrl+C in its window. If it was started at login, stop it on Linux with: systemctl --user stop ccbabysitter, on macOS with: launchctl bootout gui/$(id -u)/com.ccbabysitter, or on Windows by ending ccbabysitter.exe in Task Manager."
 
 // Quit asks the running copy to quit. Babysat sessions keep running. A
 // copy from before quit existed has answered, so it is running: it gets a
