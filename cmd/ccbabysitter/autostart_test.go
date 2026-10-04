@@ -233,3 +233,11 @@ func TestLaunchAgentPlistRunsTheServiceAndComesBackFromACrash(t *testing.T) {
 		t.Errorf("without a CLI or data home:\n%s", q)
 	}
 }
+
+// A line break in the data folder would end the Environment line and add a
+// line of the person's choosing to the unit: it is refused.
+func TestUnitFileRefusesALineBreakInTheDataHome(t *testing.T) {
+	if _, err := unitFile("/home/a/.local/bin/ccbabysitter", "", true, "/data\nExecStartPre=/bin/false"); err == nil {
+		t.Fatal("a data home with a line break was written into the unit")
+	}
+}

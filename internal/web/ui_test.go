@@ -1497,6 +1497,8 @@ func TestThePageCanQuit(t *testing.T) {
 	for _, want := range []string{
 		`"/api/quit"`,
 		"CC Babysitter has quit. Run ccbabysitter to start it again.",
+		// The last view a quitting copy sends must not hide the sentence.
+		`if (!quitHere) { show($("#reconnect"), false); }`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("app.js has no %q", want)
