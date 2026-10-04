@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -48,11 +49,10 @@ func backgroundPath() string {
 var errStillOwned = errors.New("started inside this window's job")
 
 // spawn starts the program at path as the service with these creation
-// flags and, when parent is set, as that process's child, and lets it go.
-// Only a failed start is an error. Tests replace it.
-var spawn = func(path string, flags uint32, parent syscall.Handle) error {
+// flags, and lets it go. Only a failed start is an error. Tests replace it.
+var spawn = func(path string, flags uint32) error {
 	cmd := exec.Command(path, "--service")
-	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flags, HideWindow: true, ParentProcess: parent}
+	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flags, HideWindow: true}
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -60,47 +60,106 @@ var spawn = func(path string, flags uint32, parent syscall.Handle) error {
 	return nil
 }
 
-// explorerHandle opens this user's Explorer for creating a child of it,
-// and the function that closes the handle. Tests replace it.
-var explorerHandle = func() (syscall.Handle, func(), error) {
+// viaExplorer asks this user's Explorer to start the program at path.
+// Explorer runs outside the job of the terminal or app that ran the
+// launcher, and so does what it starts. It is started without arguments:
+// the windowless program runs as the service by its name alone. Explorer's
+// exit code says nothing about whether the program started, so only a
+// failure to run explorer.exe at all is an error. Tests replace it.
+var viaExplorer = func(path string) error {
+	windir := os.Getenv("WINDIR")
+	if windir == "" {
+		windir = `C:\Windows`
+	}
+	err := exec.Command(filepath.Join(windir, "explorer.exe"), path).Run()
+	var exit *exec.ExitError
+	if errors.As(err, &exit) {
+		return nil
+	}
+	return err
+}
+
+// explorerWait is how long the launcher waits for the program Explorer was
+// asked to start to appear.
+const explorerWait = 10 * time.Second
+
+// outsideJob reports whether a copy of the program at path that started at
+// or after since is running outside this process's job, waiting up to
+// explorerWait for one to appear. Tests replace it.
+var outsideJob = func(path string, since time.Time) bool {
+	deadline := time.Now().Add(explorerWait)
+	for {
+		if startedOutsideJob(filepath.Base(path), since) {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+var (
+	kernel32           = syscall.NewLazyDLL("kernel32.dll")
+	procIsProcessInJob = kernel32.NewProc("IsProcessInJob")
+)
+
+// startedOutsideJob reports whether a process whose program is named name
+// started at or after since, give or take a second for the clock's grain,
+// and is not in this process's job.
+func startedOutsideJob(name string, since time.Time) bool {
 	snap, err := syscall.CreateToolhelp32Snapshot(syscall.TH32CS_SNAPPROCESS, 0)
 	if err != nil {
-		return 0, nil, err
+		return false
 	}
 	defer syscall.CloseHandle(snap)
 	var entry syscall.ProcessEntry32
 	entry.Size = uint32(unsafe.Sizeof(entry))
 	for err = syscall.Process32First(snap, &entry); err == nil; err = syscall.Process32Next(snap, &entry) {
-		if !strings.EqualFold(syscall.UTF16ToString(entry.ExeFile[:]), "explorer.exe") {
+		if !strings.EqualFold(syscall.UTF16ToString(entry.ExeFile[:]), name) {
 			continue
 		}
-		// PROCESS_CREATE_PROCESS: only this user's own Explorer opens.
-		h, err := syscall.OpenProcess(0x0080, false, entry.ProcessID)
-		if err == nil {
-			return h, func() { syscall.CloseHandle(h) }, nil
+		// PROCESS_QUERY_LIMITED_INFORMATION is enough for both questions.
+		h, err := syscall.OpenProcess(0x1000, false, entry.ProcessID)
+		if err != nil {
+			continue
+		}
+		var created, exited, kernel, user syscall.Filetime
+		timesErr := syscall.GetProcessTimes(h, &created, &exited, &kernel, &user)
+		var inJob int32
+		// A zero job handle asks about the job this process is in.
+		ok, _, _ := procIsProcessInJob.Call(uintptr(h), 0, uintptr(unsafe.Pointer(&inJob)))
+		syscall.CloseHandle(h)
+		if timesErr != nil || ok == 0 {
+			continue
+		}
+		if time.Unix(0, created.Nanoseconds()).Before(since.Add(-time.Second)) {
+			continue
+		}
+		if inJob == 0 {
+			return true
 		}
 	}
-	return 0, nil, errors.New("no Explorer of this user to start CC Babysitter under")
+	return false
 }
 
 // startBackground starts the windowless program at path as the service,
 // out of the job of the terminal or app that ran the launcher, which would
 // end it when that closes. A job that forbids breaking away refuses the
-// first try; the second starts it as a child of this user's Explorer,
-// outside that job; the last starts it anyway and reports errStillOwned.
+// first try, and refuses a start under another parent as well; the second
+// asks Explorer, outside that job, to start it, and checks that it then
+// runs outside the job; the last starts it anyway and reports
+// errStillOwned.
 var startBackground = func(path string) error {
 	const flags = createNewProcessGroup | detachedProcess
-	if spawn(path, flags|createBreakawayFromJob, 0) == nil {
+	if spawn(path, flags|createBreakawayFromJob) == nil {
 		return nil
 	}
-	if h, closeH, err := explorerHandle(); err == nil {
-		started := spawn(path, flags, h) == nil
-		closeH()
-		if started {
-			return nil
-		}
+	since := time.Now()
+	if viaExplorer(path) == nil && outsideJob(path, since) {
+		return nil
 	}
-	if err := spawn(path, flags, 0); err != nil {
+	if err := spawn(path, flags); err != nil {
 		return err
 	}
 	return errStillOwned

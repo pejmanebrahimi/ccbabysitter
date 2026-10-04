@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
+	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
@@ -173,46 +173,58 @@ func TestWindowsRefreshKeepsTheOldScriptWhenTheValueCannotBeWritten(t *testing.T
 }
 
 // Starting the windowless program tries to leave the launcher's job; when
-// that is refused it starts as Explorer's child; when that is refused too
-// it starts anyway and says the window still owns it.
+// that is refused it asks Explorer, which is outside the job, to start it,
+// and checks that it then runs outside the job; when that fails too it
+// starts it anyway and says the window still owns it.
 func TestStartBackgroundLeavesTheWindowsJob(t *testing.T) {
-	type try struct {
-		breakaway bool
-		parent    bool
+	type result struct {
+		spawns   []bool // whether each direct start asked to break away
+		explorer int
+		checked  int
+		err      error
 	}
-	run := func(refuse func(try) bool, explorerOK bool) ([]try, error) {
-		var tries []try
-		savedSpawn, savedExplorer := spawn, explorerHandle
-		t.Cleanup(func() { spawn, explorerHandle = savedSpawn, savedExplorer })
-		spawn = func(path string, flags uint32, parent syscall.Handle) error {
-			tr := try{flags&createBreakawayFromJob != 0, parent != 0}
-			tries = append(tries, tr)
-			if refuse(tr) {
+	run := func(refuseBreakaway, refuseAll, explorerFails, outside bool) result {
+		var r result
+		savedSpawn, savedExplorer, savedOutside := spawn, viaExplorer, outsideJob
+		t.Cleanup(func() { spawn, viaExplorer, outsideJob = savedSpawn, savedExplorer, savedOutside })
+		spawn = func(path string, flags uint32) error {
+			breakaway := flags&createBreakawayFromJob != 0
+			r.spawns = append(r.spawns, breakaway)
+			if refuseAll || (breakaway && refuseBreakaway) {
 				return errors.New("access denied")
 			}
 			return nil
 		}
-		explorerHandle = func() (syscall.Handle, func(), error) {
-			if !explorerOK {
-				return 0, nil, errors.New("no explorer")
+		viaExplorer = func(path string) error {
+			r.explorer++
+			if path != `C:\x\ccbabysitter-background.exe` {
+				t.Errorf("Explorer was asked to start %q", path)
 			}
-			return syscall.Handle(42), func() {}, nil
+			if explorerFails {
+				return errors.New("no explorer")
+			}
+			return nil
 		}
-		return tries, startBackground(`C:\x\ccbabysitter-background.exe`)
+		outsideJob = func(path string, since time.Time) bool {
+			r.checked++
+			return outside
+		}
+		r.err = startBackground(`C:\x\ccbabysitter-background.exe`)
+		return r
 	}
-	tries, err := run(func(try) bool { return false }, true)
-	if err != nil || len(tries) != 1 || !tries[0].breakaway {
-		t.Fatalf("breakaway allowed: %v %+v", err, tries)
+	if r := run(false, false, false, true); r.err != nil || len(r.spawns) != 1 || !r.spawns[0] || r.explorer != 0 {
+		t.Fatalf("breakaway allowed: %+v", r)
 	}
-	tries, err = run(func(tr try) bool { return tr.breakaway }, true)
-	if err != nil || len(tries) != 2 || !tries[1].parent {
-		t.Fatalf("breakaway refused: %v %+v", err, tries)
+	if r := run(true, false, false, true); r.err != nil || len(r.spawns) != 1 || r.explorer != 1 || r.checked != 1 {
+		t.Fatalf("breakaway refused, Explorer started it outside the job: %+v", r)
 	}
-	tries, err = run(func(tr try) bool { return tr.breakaway || tr.parent }, true)
-	if !errors.Is(err, errStillOwned) || len(tries) != 3 {
-		t.Fatalf("both refused: %v %+v", err, tries)
+	if r := run(true, false, false, false); !errors.Is(r.err, errStillOwned) || len(r.spawns) != 2 || r.spawns[1] {
+		t.Fatalf("Explorer's start not seen outside the job: %+v", r)
 	}
-	if _, err = run(func(try) bool { return true }, false); err == nil || errors.Is(err, errStillOwned) {
-		t.Fatalf("nothing could start: %v", err)
+	if r := run(true, false, true, true); !errors.Is(r.err, errStillOwned) || r.checked != 0 || len(r.spawns) != 2 {
+		t.Fatalf("Explorer could not be asked: %+v", r)
+	}
+	if r := run(true, true, true, false); r.err == nil || errors.Is(r.err, errStillOwned) {
+		t.Fatalf("nothing could start: %+v", r)
 	}
 }
