@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -225,6 +226,9 @@ func claimStateDir(stateDir string, createMs int64) (*state.Lock, error) {
 	return lock, nil
 }
 
+// bootTime is procs.BootTime, a variable so tests can replace it.
+var bootTime = procs.BootTime
+
 // clearPageURL is state.ClearPageURL, a variable only so a test can make
 // it fail.
 var clearPageURL = state.ClearPageURL
@@ -300,8 +304,8 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 		})
 	}
 
+	createMs, _ := realProcs.CreateTime(os.Getpid())
 	if !opts.Demo {
-		createMs, _ := realProcs.CreateTime(os.Getpid())
 		l, err := claimStateDir(stateDir, createMs)
 		if err != nil {
 			fmt.Fprintln(stdout, claimFailureLine(stateDir, err, !opts.Service))
@@ -320,8 +324,12 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 	log.Info("", fmt.Sprintf("%s %s start, pid %d, state %s", buildinfo.Name, version, os.Getpid(), stateDir))
 	if opts.Service {
 		// Why this background copy started: the launcher's note when it
-		// started it, otherwise the system at login or boot.
-		log.Info("", startedReason(state.TakeStartReason(stateDir), hosts.Headless()))
+		// started it; otherwise the system, again after the copy before
+		// it ended without cleaning up, or at login or boot.
+		prevMs, wasThere := state.TakeServiceRunning(stateDir)
+		_ = state.MarkServiceRunning(stateDir, createMs)
+		crashed := restartedAfterCrash(runtime.GOOS, prevMs, wasThere, bootTime())
+		log.Info("", startedReason(state.TakeStartReason(stateDir), hosts.Headless(), crashed))
 	}
 
 	// The page's access key, which every request must carry. A demo has its
@@ -530,6 +538,9 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 
 	wg.Wait()
 	_ = state.RemovePageURL(stateDir, pageURL)
+	if opts.Service {
+		state.ClearServiceRunning(stateDir)
+	}
 	release()
 	log.Info("", "quit")
 	return rc

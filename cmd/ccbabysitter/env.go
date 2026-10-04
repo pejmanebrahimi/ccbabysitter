@@ -176,17 +176,38 @@ func backgroundClosing(server, loginStart bool) string {
 	return "CC Babysitter runs in the background until you quit it or restart. Start at login is off. You can close this window."
 }
 
+// crashRestartReason is the first Activity line of a background copy that
+// launchd or systemd started again because the one before it ended without
+// cleaning up, such as after a crash.
+const crashRestartReason = "Started again by the system after CC Babysitter stopped unexpectedly."
+
 // startedReason is the background copy's first Activity line: the
-// launcher's note when it left one, and otherwise that the system started
-// it, at login on a desktop or at boot on a server.
-func startedReason(note string, server bool) string {
+// launcher's note when it left one; otherwise, when the copy before it
+// ended without cleaning up earlier in this boot, that the system started
+// it again; and otherwise that the system started it, at login on a
+// desktop or at boot on a server.
+func startedReason(note string, server, crashed bool) string {
 	switch {
 	case note != "":
 		return note
+	case crashed:
+		return crashRestartReason
 	case server:
 		return "Started at boot."
 	}
 	return "Started at login."
+}
+
+// restartedAfterCrash reports whether a background copy the system started
+// replaces one that ended without cleaning up earlier in this boot: the
+// earlier one left its note, made at prevMs, after the computer booted at
+// bootSec, seconds since the Unix epoch. Only launchd and systemd restart
+// it; Windows starts it only at login. A boot time of zero is unknown.
+func restartedAfterCrash(goos string, prevMs int64, wasThere bool, bootSec uint64) bool {
+	if goos == "windows" || !wasThere || bootSec == 0 {
+		return false
+	}
+	return prevMs/1000 >= int64(bootSec)
 }
 
 // olderThanVerified reports whether a detected CLI version is earlier than

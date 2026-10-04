@@ -3,6 +3,7 @@ package state
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +14,9 @@ const (
 	// loginStartFile notes that the launcher turned start at login on
 	// once, so a later choice to turn it off is respected.
 	loginStartFile = "login-start-offered"
+	// serviceRunningFile holds the creation time of the background copy
+	// that runs now, removed when it ends cleanly.
+	serviceRunningFile = "service-running"
 )
 
 // WriteStartReason notes why the launcher is about to start the background
@@ -43,6 +47,32 @@ func MarkLoginStartOffered(dir string) error {
 func LoginStartOffered(dir string) bool {
 	info, err := os.Stat(filepath.Join(dir, loginStartFile))
 	return err == nil && info.Mode().IsRegular()
+}
+
+// MarkServiceRunning notes that the background copy created at createMs,
+// milliseconds since the Unix epoch, runs now.
+func MarkServiceRunning(dir string, createMs int64) error {
+	return writeNote(dir, serviceRunningFile, strconv.FormatInt(createMs, 10))
+}
+
+// ClearServiceRunning removes that note, as the background copy ends
+// cleanly.
+func ClearServiceRunning(dir string) {
+	_ = os.Remove(filepath.Join(dir, serviceRunningFile))
+}
+
+// TakeServiceRunning returns the creation time an earlier background copy
+// noted and removes the note. ok is true only when there was one, which
+// means that copy did not end cleanly.
+func TakeServiceRunning(dir string) (createMs int64, ok bool) {
+	path := filepath.Join(dir, serviceRunningFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0, false
+	}
+	_ = os.Remove(path)
+	createMs, err = strconv.ParseInt(strings.TrimSpace(string(data)), 10, 64)
+	return createMs, err == nil
 }
 
 // writeNote writes one line as the file name in dir, whole or not at all.

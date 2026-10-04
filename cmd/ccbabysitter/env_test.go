@@ -244,14 +244,46 @@ func TestBannerEndsWithItsClosingLine(t *testing.T) {
 }
 
 func TestStartedReason(t *testing.T) {
-	if got := startedReason("Started in the background by ccbabysitter.", false); got != "Started in the background by ccbabysitter." {
+	if got := startedReason("Started in the background by ccbabysitter.", false, true); got != "Started in the background by ccbabysitter." {
 		t.Fatalf("a launcher's note is kept: %q", got)
 	}
-	if got := startedReason("", false); got != "Started at login." {
+	if got := startedReason("", false, false); got != "Started at login." {
 		t.Fatalf("desktop: %q", got)
 	}
-	if got := startedReason("", true); got != "Started at boot." {
+	if got := startedReason("", true, false); got != "Started at boot." {
 		t.Fatalf("server: %q", got)
+	}
+	for _, server := range []bool{false, true} {
+		if got := startedReason("", server, true); got != crashRestartReason {
+			t.Fatalf("restarted after a crash, server %v: %q", server, got)
+		}
+	}
+}
+
+// A background copy that ended without cleaning up, earlier in this boot,
+// was restarted by launchd or systemd. One from before this boot ended
+// with the computer, and the new one started at login or boot. Windows
+// never restarts it, so there it is always login.
+func TestRestartedAfterCrash(t *testing.T) {
+	const boot = 1_000_000 // seconds
+	cases := []struct {
+		goos     string
+		prevMs   int64
+		wasThere bool
+		boot     uint64
+		want     bool
+	}{
+		{"darwin", (boot + 60) * 1000, true, boot, true},
+		{"linux", (boot + 60) * 1000, true, boot, true},
+		{"darwin", (boot - 60) * 1000, true, boot, false},
+		{"darwin", (boot + 60) * 1000, false, boot, false},
+		{"windows", (boot + 60) * 1000, true, boot, false},
+		{"darwin", (boot + 60) * 1000, true, 0, false},
+	}
+	for _, c := range cases {
+		if got := restartedAfterCrash(c.goos, c.prevMs, c.wasThere, c.boot); got != c.want {
+			t.Errorf("restartedAfterCrash(%+v) = %v", c, got)
+		}
 	}
 }
 
