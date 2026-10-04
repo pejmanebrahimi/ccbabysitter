@@ -29,9 +29,13 @@ type launchOptions struct {
 	// Install is the install subcommand: a server unit that starts at
 	// boot, lingering on, and start at login on whatever was chosen before.
 	Install bool
-	// Headless is whether this machine has no display, such as a server
-	// reached over ssh.
+	// Headless is whether this machine has no display here, such as a
+	// machine reached over ssh: the start information then says how to
+	// connect, and no page is opened.
 	Headless bool
+	// Server is whether the unit starts at boot with lingering rather than
+	// at login: a Linux machine with no display.
+	Server bool
 	// NoOpen keeps the launcher from opening the page.
 	NoOpen bool
 }
@@ -125,7 +129,7 @@ func startInBackground(out io.Writer, sc serviceControl, stateDir string, o laun
 // running after the person logs out.
 func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOptions, d launchDeps) int {
 	user, address := currentUserAndAddress(stateDir)
-	desktop := !o.Install && !o.Headless
+	desktop := !o.Install && !o.Server
 	if !o.Install && sc.Installed() {
 		desktop = keptKind(sc, stateDir, user, desktop)
 	}

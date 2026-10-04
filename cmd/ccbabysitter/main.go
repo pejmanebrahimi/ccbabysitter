@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -79,7 +80,8 @@ func run(args []string) int {
 				fmt.Fprintln(os.Stderr, "--port only applies with --foreground, since the background copy picks its own port.")
 				return 2
 			}
-			o := launchOptions{Headless: hosts.Headless(), NoOpen: opts.NoOpen}
+			headless := hosts.Headless()
+			o := launchOptions{Headless: headless, Server: runtime.GOOS == "linux" && headless, NoOpen: opts.NoOpen}
 			if rc, foreground := startInBackground(os.Stdout, sc, state.DefaultDir(), o, realLaunchDeps()); !foreground {
 				return rc
 			}

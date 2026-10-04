@@ -29,7 +29,7 @@ func TestSetupTurnsLingeringOnAndNotesIt(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "ccbabysitter")
 	var out strings.Builder
 	f := &fakeService{usable: true, writeOK: true, startOK: true}
-	if rc, _ := startInBackground(&out, f, dir, launchOptions{Headless: true, NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt("http://127.0.0.1:47391"))); rc != 0 {
+	if rc, _ := startInBackground(&out, f, dir, launchOptions{Headless: true, Server: true, NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt("http://127.0.0.1:47391"))); rc != 0 {
 		t.Fatalf("rc %d, out %q", rc, out.String())
 	}
 	if !f.did("linger on") || !f.lingerOn {
@@ -41,7 +41,7 @@ func TestSetupTurnsLingeringOnAndNotesIt(t *testing.T) {
 
 	// Every later run finds it on, leaves it alone and keeps the note.
 	f.calls = nil
-	if rc, _ := startInBackground(&out, &fakeService{usable: true, installed: true, active: true, enableOK: true, refreshOK: true, startOK: true, lingerOn: true}, dir, launchOptions{Headless: true, NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt("http://127.0.0.1:47391"))); rc != 0 {
+	if rc, _ := startInBackground(&out, &fakeService{usable: true, installed: true, active: true, enableOK: true, refreshOK: true, startOK: true, lingerOn: true}, dir, launchOptions{Headless: true, Server: true, NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt("http://127.0.0.1:47391"))); rc != 0 {
 		t.Fatalf("rc %d", rc)
 	}
 	if !state.LingeringTurnedOn(dir) {
@@ -72,7 +72,7 @@ func TestSetupDoesNotNoteLingeringItCouldNotAskAbout(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "ccbabysitter")
 	var out strings.Builder
 	f := &fakeService{usable: true, writeOK: true, startOK: true, lingerErr: errors.New("exit status 1")}
-	if rc, _ := startInBackground(&out, f, dir, launchOptions{Headless: true, NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt("http://127.0.0.1:47391"))); rc != 0 {
+	if rc, _ := startInBackground(&out, f, dir, launchOptions{Headless: true, Server: true, NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt("http://127.0.0.1:47391"))); rc != 0 {
 		t.Fatalf("rc %d, out %q", rc, out.String())
 	}
 	if !f.did("linger on") {
@@ -90,7 +90,7 @@ func TestSetupReportsLingeringItCouldNotTurnOn(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "ccbabysitter")
 	var out strings.Builder
 	f := &fakeService{usable: true, writeOK: true, startOK: true, setLingerErr: errors.New("exit status 1")}
-	rc, _ := startInBackground(&out, f, dir, launchOptions{Headless: true, NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt("http://127.0.0.1:47391")))
+	rc, _ := startInBackground(&out, f, dir, launchOptions{Headless: true, Server: true, NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt("http://127.0.0.1:47391")))
 	if rc != 0 {
 		t.Fatalf("rc %d, out %q", rc, out.String())
 	}

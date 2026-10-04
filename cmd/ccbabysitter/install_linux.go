@@ -276,7 +276,7 @@ func (systemdControl) SetLingering(user string, on bool) error {
 // answer shows up as the systemctl step that failed, never as a run in
 // this terminal.
 func runInstall(out io.Writer) int {
-	o := launchOptions{Install: true, Headless: hosts.Headless(), NoOpen: true}
+	o := launchOptions{Install: true, Headless: hosts.Headless(), Server: true, NoOpen: true}
 	return runLauncher(out, newServiceControl(), state.DefaultDir(), o, realLaunchDeps())
 }
 

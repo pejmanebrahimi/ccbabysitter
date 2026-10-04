@@ -114,7 +114,7 @@ func TestLauncherOnAServerLingersAndOpensNothing(t *testing.T) {
 	f := okService()
 	d := &fakeDeps{view: desktopView()}
 	var out strings.Builder
-	if rc := runLauncher(&out, f, dir, launchOptions{Headless: true}, d.deps(answeringAt(pageAt))); rc != 0 {
+	if rc := runLauncher(&out, f, dir, launchOptions{Headless: true, Server: true}, d.deps(answeringAt(pageAt))); rc != 0 {
 		t.Fatalf("rc %d", rc)
 	}
 	if !f.did("write server") || !f.did("linger on") || len(d.opened) != 0 {
@@ -305,7 +305,7 @@ func TestLauncherPageCarriesTheKey(t *testing.T) {
 		return waitForPage(stateDir, time.Second, 10*time.Millisecond, keyedPageState(stateDir))
 	}
 	var out strings.Builder
-	if rc := runLauncher(&out, f, dir, launchOptions{Headless: true}, (&fakeDeps{view: desktopView()}).deps(wait)); rc != 0 {
+	if rc := runLauncher(&out, f, dir, launchOptions{Headless: true, Server: true}, (&fakeDeps{view: desktopView()}).deps(wait)); rc != 0 {
 		t.Fatalf("rc %d, out %q", rc, out.String())
 	}
 	if want := "then open " + ts.URL + "/?token=" + key + " in its browser"; !strings.Contains(out.String(), want) {
@@ -366,7 +366,7 @@ func TestLauncherOverSSHKeepsADesktopUnit(t *testing.T) {
 	f := okService()
 	f.installed, f.active, f.unitKnown, f.unitDesktop = true, true, true, true
 	var out strings.Builder
-	if rc := runLauncher(&out, f, dir, launchOptions{Headless: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt(pageAt))); rc != 0 {
+	if rc := runLauncher(&out, f, dir, launchOptions{Headless: true, Server: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt(pageAt))); rc != 0 {
 		t.Fatalf("rc %d", rc)
 	}
 	if !f.did("refresh desktop") || f.did("refresh server") || f.did("linger on") || f.did("restart") {
@@ -386,5 +386,18 @@ func TestLauncherMovesAnOldDesktopUnitToTheGraphicalSession(t *testing.T) {
 	}
 	if !f.did("refresh desktop") {
 		t.Fatalf("calls %q", f.calls)
+	}
+}
+
+// A Mac reached over ssh is headless for the banner and the browser, but
+// its LaunchAgent is a desktop's: no lingering, and it starts at login.
+func TestLauncherHeadlessIsNotAServer(t *testing.T) {
+	f := okService()
+	var out strings.Builder
+	if rc := runLauncher(&out, f, keyedDir(t), launchOptions{Headless: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt(pageAt))); rc != 0 {
+		t.Fatalf("rc %d", rc)
+	}
+	if !f.did("write desktop") || f.did("linger on") || !strings.Contains(out.String(), "ssh -L") || !strings.Contains(out.String(), "when you log in") {
+		t.Fatalf("calls %q\n%s", f.calls, out.String())
 	}
 }
