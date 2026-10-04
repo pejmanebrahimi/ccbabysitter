@@ -114,3 +114,22 @@ func TestLockMalformedFileIsReclaimed(t *testing.T) {
 		l.Release()
 	}
 }
+
+func TestHolderNamesTheLiveProcess(t *testing.T) {
+	dir := t.TempDir()
+	if _, _, ok := Holder(dir); ok {
+		t.Fatal("a holder with no lock")
+	}
+	l, err := Acquire(dir, 1234)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid, createMs, ok := Holder(dir)
+	if !ok || pid != os.Getpid() || createMs != 1234 {
+		t.Fatalf("holder %d %d %v", pid, createMs, ok)
+	}
+	l.Release()
+	if _, _, ok := Holder(dir); ok {
+		t.Fatal("a holder after release")
+	}
+}

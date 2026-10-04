@@ -513,6 +513,20 @@ func (r *Real) Tree(pid int) (TreeStats, bool) {
 // ExeContains reports whether any process on the system has an executable
 // path containing substr. The comparison is case-sensitive. It reads from
 // the same cached table Tree uses, so it can be as stale as tableTTL.
+// Exe is the program of the process with this pid and creation time, and
+// ok is false when that exact process is not alive or its program cannot
+// be read.
+func (r *Real) Exe(pid int, createMs int64) (string, bool) {
+	if !r.Exists(pid, createMs) {
+		return "", false
+	}
+	info, ok := r.getTable(true)[pid]
+	if !ok || info.exe == "" {
+		return "", false
+	}
+	return info.exe, true
+}
+
 func (r *Real) ExeContains(substr string) bool {
 	table := r.getTable(false)
 

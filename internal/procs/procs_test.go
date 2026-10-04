@@ -3,6 +3,7 @@ package procs
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"testing"
@@ -483,5 +484,27 @@ func TestFakeParent(t *testing.T) {
 	f.SetParent(5, 4)
 	if p, ok := f.Parent(5); !ok || p != 4 {
 		t.Fatalf("Parent = %d, %v", p, ok)
+	}
+}
+
+// Exe names the program of an exact process: the pid and its creation
+// time, so a reused pid is never mistaken for it.
+func TestRealExe(t *testing.T) {
+	r := NewReal()
+	pid := os.Getpid()
+	ct, ok := r.CreateTime(pid)
+	if !ok {
+		t.Fatal("own create time")
+	}
+	exe, ok := r.Exe(pid, ct)
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok || filepath.Base(exe) != filepath.Base(self) {
+		t.Fatalf("Exe = %q, %v, want %q", exe, ok, self)
+	}
+	if _, ok := r.Exe(pid, ct-3600_000); ok {
+		t.Fatal("a wrong creation time named a program")
 	}
 }

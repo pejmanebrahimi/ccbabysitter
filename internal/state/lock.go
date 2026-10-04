@@ -103,6 +103,19 @@ func readLock(path string) (data []byte, held bool) {
 	return data, pidAlive(pid, createMs)
 }
 
+// Holder names the process that holds dir's lock, by its pid and creation
+// time, and ok is false when the lock is not held by a live process.
+func Holder(dir string) (pid int, createMs int64, ok bool) {
+	data, held := readLock(lockPath(dir))
+	if !held {
+		return 0, 0, false
+	}
+	fields := strings.Fields(string(data))
+	pid, _ = strconv.Atoi(fields[0])
+	createMs, _ = strconv.ParseInt(fields[1], 10, 64)
+	return pid, createMs, true
+}
+
 // IsHeld reports whether a lock file exists and its recorded process is
 // still alive. A file that does not parse as "<pid> <createMs>" is treated
 // as stale, not held.
