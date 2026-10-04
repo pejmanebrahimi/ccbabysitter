@@ -323,10 +323,12 @@ func TestStatusJSONWhenStopped(t *testing.T) {
 	}
 }
 
-func TestNotRunningOnAServerNamesTheService(t *testing.T) {
-	env := controlEnv{stateDir: t.TempDir(), headless: true, self: func(supervise.View) (int, bool) { return 0, false }}
+// Not running, every system gives the same way to start it: a plain run,
+// which sets the service up again even after uninstall removed it.
+func TestNotRunningSaysToRunCCBabysitter(t *testing.T) {
+	env := controlEnv{stateDir: t.TempDir(), self: func(supervise.View) (int, bool) { return 0, false }}
 	_, _, errOut := runCmd(t, env, "list")
-	if !strings.Contains(errOut, "systemctl --user start ccbabysitter") {
+	if !strings.Contains(errOut, "Start it with: ccbabysitter") || strings.Contains(errOut, "systemctl") {
 		t.Fatalf("%q", errOut)
 	}
 }

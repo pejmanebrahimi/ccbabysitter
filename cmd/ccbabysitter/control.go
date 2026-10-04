@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/client"
-	"ccbabysitter.dev/ccbabysitter/internal/hosts"
 	"ccbabysitter.dev/ccbabysitter/internal/procs"
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 	"ccbabysitter.dev/ccbabysitter/internal/supervise"
@@ -33,7 +31,6 @@ const (
 type controlEnv struct {
 	stateDir string
 	self     func(v supervise.View) (int, bool) // real: client.FindSelf(v, os.Getpid(), procs.NewReal())
-	headless bool                               // real: runtime.GOOS == "linux" && hosts.Headless()
 	stdout   io.Writer
 	stderr   io.Writer
 }
@@ -48,9 +45,8 @@ func realControlEnv() controlEnv {
 		self: func(v supervise.View) (int, bool) {
 			return client.FindSelf(v, os.Getpid(), procs.NewReal())
 		},
-		headless: runtime.GOOS == "linux" && hosts.Headless(),
-		stdout:   os.Stdout,
-		stderr:   os.Stderr,
+		stdout: os.Stdout,
+		stderr: os.Stderr,
 	}
 }
 
@@ -434,9 +430,6 @@ func (env controlEnv) failErr(asJSON, isStatus bool, word string, err error) int
 	switch {
 	case errors.Is(err, client.ErrNotRunning):
 		msg := "CC Babysitter is not running. Start it with: ccbabysitter"
-		if env.headless {
-			msg = "CC Babysitter is not running. Start its service with: systemctl --user start ccbabysitter"
-		}
 		if isStatus && asJSON {
 			fmt.Fprintln(env.stderr, msg)
 			env.writeJSON(notRunningDoc{Schema: 1})
