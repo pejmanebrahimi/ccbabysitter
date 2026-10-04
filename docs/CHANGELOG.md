@@ -5,6 +5,10 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 ## Unreleased
 
 - New: `ccbabysitter quit` and a Quit button in the page's settings stop CC Babysitter. Babysat sessions keep running, but nothing brings them back until you run `ccbabysitter` again. Activity says "asked to quit", followed by ", from the command line" when the command asked.
+- Changed: on Linux, desktop and server alike, `ccbabysitter` starts CC Babysitter in the background through the systemd user manager and gives the terminal back. Start at login is turned on the first time, also for anyone upgrading, and stays off once you turn it off. Run `ccbabysitter --foreground` to keep it in the terminal instead. `--port` now only applies with `--foreground`.
+- Changed: running `ccbabysitter` while it already runs in the background prints the start information again and opens the page.
+- Changed: on a Linux desktop, CC Babysitter starts with the graphical session, so it sees the desktop. Turning start at login off keeps the systemd unit, so `ccbabysitter` can still start it; `ccbabysitter uninstall` removes it.
+- Changed: the install script restarts a background copy that is already running on a Linux desktop, so it runs the new version.
 
 ## 0.4.2 (2026-10-03)
 

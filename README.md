@@ -38,7 +38,7 @@ Either command downloads the binary of the latest release for your system and pr
 - On macOS and Linux it goes to `~/.local/bin/ccbabysitter`. When that folder is not on your PATH, the script prints the line to add to your shell's profile.
 - On Windows it goes to `%LOCALAPPDATA%\Programs\CCBabysitter\ccbabysitter.exe`, and that folder is added to your user Path.
 
-On a Linux machine with no display, such as a server you reach over ssh, the script then runs CC Babysitter once when your systemd user manager is available: it sets itself up as a service and prints how to connect from your laptop. Everywhere else the script prints how to start it. Run the same command again to update. On Windows, quit CC Babysitter first: Windows does not let a running program be replaced, so the script stops and asks you to.
+On a Linux machine with no display, such as a server you reach over ssh, the script then runs CC Babysitter once when your systemd user manager is available: it sets itself up as a service and prints how to connect from your laptop. On a Linux desktop where CC Babysitter already runs in the background, the script runs it once too, which restarts it on the new version. Everywhere else the script prints how to start it. Run the same command again to update. On Windows, quit CC Babysitter first: Windows does not let a running program be replaced, so the script stops and asks you to.
 
 Three environment variables change what the scripts do: `CCBABYSITTER_VERSION` installs a given release, such as `v0.4.0`, instead of the latest, `CCBABYSITTER_INSTALL_DIR` installs into another folder, and `CCBABYSITTER_DOWNLOAD_URL` is a base address to download from instead of GitHub releases, for mirrors (it skips the HTTPS pin, so use an `https://` address). On macOS and Linux:
 
@@ -73,9 +73,9 @@ go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest
 ### Desktop
 
 1. Install with the one-line command for your system, under Install above.
-2. Run the command the installer printed, usually `ccbabysitter`. Its page opens in your browser. The page's address includes a key that only your account can read, and `ccbabysitter status` shows that address again.
+2. Run the command the installer printed, usually `ccbabysitter`. Its page opens in your browser. The page's address includes a key that only your account can read, and `ccbabysitter status` shows that address again. On Linux, CC Babysitter then runs in the background, starts again when you log in, and gives the terminal back. On macOS and Windows it runs in that terminal for now.
 3. Switch Remote Control on in the session you want to keep: `/rc` in a terminal, or the switch in Claude Desktop or VS Code. Then press Babysit on its card.
-4. Optional: in Settings, turn on start at login so it survives a restart.
+4. On macOS and Windows, optional: in Settings, turn on start at login so it survives a restart. On Linux it is on already.
 5. Walk away. If the app dies, the session carries on in the background. Reach it from the Claude app on your phone.
 
 ### Server
@@ -104,6 +104,7 @@ Preview. CC Babysitter is early: it has been tested by hand, and there are no au
 - WSL is not supported.
 - The binaries are not signed, so Windows SmartScreen and macOS may warn before they run one.
 - A babysat session whose app you quit on purpose is currently started again in the background, just as if the app had crashed. Unbabysit it first if you mean to end it.
+- On a Linux desktop whose session has no `graphical-session.target`, such as some window managers started by hand, CC Babysitter does not start by itself at login. A plain `ccbabysitter` still starts it in the background.
 
 Behaviour and settings may change before 1.0. Please report problems as [issues](https://github.com/pejmanebrahimi/ccbabysitter/issues). What changed in each version is in `docs/CHANGELOG.md`.
 
@@ -120,7 +121,7 @@ On a server with no display the same page is the session manager. A plain `ccbab
 - If the session's app closes, starts the session again as a background session with Remote Control, under the same id, with `claude --bg --resume`.
 - Lets you unbabysit while the session is still in its own app. Once the background copy carries it, you stop the copy instead with `claude stop`, which keeps the conversation.
 - Says before you babysit when a background copy could not start: the Claude Code CLI must trust the folder, so run `claude` there once, and it never starts in your home folder.
-- Offers, in the same dialog, to start CC Babysitter at login so the promise survives a restart. A server needs no such offer, since a plain `ccbabysitter` run there sets up the service.
+- Offers, in the same dialog, to start CC Babysitter at login so the promise survives a restart, when that is off. On Linux a plain `ccbabysitter` turns it on the first time it runs.
 - Stops babysitting a session that ended before anything was said in it, and says so in Activity: Claude saves a conversation only after the first message, so there is nothing to bring back.
 - Waits 90 seconds after it starts on a machine with a display before starting anything in the background, so apps that restore their own sessions at login, Claude Desktop in particular, go first.
 - Gives every background session a Copy button for `claude attach <short>`, and on a server a second one for the same command run over `ssh` from another machine. A background copy stopped from the page keeps both on its Not running row, until CC Babysitter restarts.
@@ -133,17 +134,18 @@ On a server with no display the same page is the session manager. A plain `ccbab
 - **Claude's files are read-only.** Sessions are controlled only through the `claude` CLI.
 - **Claude Desktop and VS Code are never modified or opened.**
 - **Loopback only.** The page is served on `127.0.0.1`, requests that come from other web pages are refused, and every request must carry the page's key, which only your account can read.
-- **User mode only.** No admin rights, no services except the systemd user unit you ask for.
+- **User mode only.** No admin rights, ever. The only thing CC Babysitter adds to your system is its own start-at-login entry in your user account: a systemd user unit on Linux, a LaunchAgent on macOS, a Windows Startup entry. On Linux it is on by default, and you can turn it off on the page or with `ccbabysitter settings autostart off`.
 - **One folder of state** (`%LOCALAPPDATA%\CCBabysitter` on Windows, the XDG data directory elsewhere: `~/.local/share/ccbabysitter`, or `$XDG_DATA_HOME/ccbabysitter` when that is set).
 
 ## Usage
 
 ```
-ccbabysitter                 start CC Babysitter. On a Linux server, set it up as a service that starts at boot
-ccbabysitter --no-open       run in this terminal and do not open a browser
+ccbabysitter                 start CC Babysitter. On Linux it runs in the background and starts at login
+ccbabysitter --foreground    run in this terminal until Ctrl+C
+ccbabysitter --no-open       start it without opening the page
 ccbabysitter --demo          scripted sessions, touches nothing real
-ccbabysitter --port N        prefer this port for the page, 47391 by default, else a random free port
-ccbabysitter install         on Linux, the same: set it up as a service that starts at boot
+ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
+ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
 ccbabysitter uninstall       reverse install
 ccbabysitter reset           delete the state folder after confirmation
 ccbabysitter version         print the name and version
@@ -165,9 +167,9 @@ On a Linux server, `ccbabysitter` prints the command to connect from your laptop
 
 ## Start at login
 
-Settings has "Start CC Babysitter when I log in". This appears only on a machine with a display. The login entry points at the binary where it is at that moment, so keep the binary where the install script put it, or somewhere else it will stay, such as `~/bin`; a copy in a temporary folder is refused.
+On Linux, `ccbabysitter` runs CC Babysitter in the background through the systemd user manager, writing the unit `~/.config/systemd/user/ccbabysitter.service` the first time, and turns start at login on that first time, also when you upgrade from an earlier version. On a desktop the unit starts with your graphical session, after it, so CC Babysitter sees the desktop. On a server it starts at boot and keeps running after you log out. Turn it off in Settings or with `ccbabysitter settings autostart off`: CC Babysitter keeps running until you quit it or restart, and a later `ccbabysitter` leaves it off. Every run, and `ccbabysitter install`, writes the unit again when it no longer matches this binary, such as after you move the binary, and restarts a running copy when its unit changed or it is another version. A copy already running with the right unit and version is left running. `ccbabysitter install` always turns start at boot on.
 
-On a Linux server, `ccbabysitter` writes the systemd unit the first time it runs. Every later run, and `ccbabysitter install`, enables it again, writes it again when it no longer matches this binary, such as after you move the binary, and restarts a running service when its unit changed or it is another version. A service already running with the right unit and version is left running.
+On macOS and Windows, Settings has "Start CC Babysitter when I log in", which appears only on a machine with a display. The login entry points at the binary where it is at that moment, so keep the binary where the install script put it, or somewhere else it will stay, such as `~/bin`; a copy in a temporary folder is refused.
 
 ## Uninstall
 
@@ -182,7 +184,7 @@ macOS:
 
 Linux:
 
-1. Run `ccbabysitter uninstall`. It stops and disables the systemd user service and removes `~/.config/systemd/user/ccbabysitter.service`, however the unit was written: by a plain run on a server, by `ccbabysitter install`, or by "Start CC Babysitter when I log in". It turns lingering off for your user only when CC Babysitter turned it on, which it notes in the file `lingering-turned-on` in the state folder; lingering that was already on is left on, since other services of yours may need it. Skip this step if none of those happened.
+1. Run `ccbabysitter uninstall`. It stops and disables the systemd user service and removes `~/.config/systemd/user/ccbabysitter.service`, however the unit was written: by a plain `ccbabysitter`, by `ccbabysitter install`, or by "Start CC Babysitter when I log in". It turns lingering off for your user only when CC Babysitter turned it on, which it notes in the file `lingering-turned-on` in the state folder; lingering that was already on is left on, since other services of yours may need it. Skip this step if none of those happened.
 2. Quit any copy still running in a terminal with `ccbabysitter quit` or Ctrl+C.
 3. Run `ccbabysitter reset` to delete the state folder, `~/.local/share/ccbabysitter` (or `$XDG_DATA_HOME/ccbabysitter`).
 4. Delete the binary: `rm ~/.local/bin/ccbabysitter`, or wherever `command -v ccbabysitter` says it is.

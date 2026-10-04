@@ -11,11 +11,12 @@ import (
 const usage = `CC Babysitter keeps Claude Code sessions alive and reachable.
 
 Run it:
-  ccbabysitter                 start CC Babysitter. On a Linux server, set it up as a service that starts at boot
-  ccbabysitter --no-open       run in this terminal and do not open a browser
+  ccbabysitter                 start CC Babysitter. On Linux it runs in the background and starts at login
+  ccbabysitter --foreground    run in this terminal until Ctrl+C
+  ccbabysitter --no-open       start it without opening the page
   ccbabysitter --demo          scripted sessions, touches nothing real
-  ccbabysitter --port N        prefer this port for the page, 47391 by default, else a random free port
-  ccbabysitter install         on Linux, the same: set it up as a service that starts at boot
+  ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
+  ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
   ccbabysitter uninstall       reverse install
   ccbabysitter reset           delete the state folder after confirmation
   ccbabysitter version         print the name and version
@@ -246,7 +247,7 @@ With --json: {"schema":1,"entries":[{"time":"RFC 3339","level":"...","session":"
 		`Shows the settings, or changes one. These are the page's settings.
   autostart      on or off     start CC Babysitter when you log in
   auto-babysit   on or off     babysit every new background session on a server
-  open-browser   on or off     open the page when CC Babysitter starts
+  open-browser   on or off     open the page when you run ccbabysitter
   theme          auto, dark or light`,
 		"",
 		`Text, one line each: autostart: on, auto-babysit: on, open-browser: on, theme: auto.
@@ -272,9 +273,10 @@ With --json: {"schema":1,"ok":true,"message":"..."}.`,
 `),
 	"install": `ccbabysitter install
 
-On Linux, sets CC Babysitter up as a systemd user service that starts at boot, and
-starts it. Running ccbabysitter on a Linux server does the same. On macOS and
-Windows it says that install is for Linux servers and exits with 2.
+On Linux, sets CC Babysitter up as a systemd user service that starts at boot and
+keeps running after you log out, and starts it, whether or not the machine has a
+display. Running ccbabysitter on a Linux server does the same. On macOS and
+Windows it says that install is for Linux and exits with 2.
 
 Example:
   ccbabysitter install
@@ -282,8 +284,8 @@ Example:
 
 	"uninstall": `ccbabysitter uninstall
 
-Reverses install: stops and disables the service and removes its file. The state
-folder stays. On macOS and Windows it exits with 2, since install did nothing there.
+On Linux, stops and disables the service, however it was set up, and removes its
+file. The state folder stays. On macOS and Windows it exits with 2.
 
 Example:
   ccbabysitter uninstall

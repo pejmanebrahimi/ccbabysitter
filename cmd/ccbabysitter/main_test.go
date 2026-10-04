@@ -63,7 +63,7 @@ func TestUsageSaysPageWithoutParentheses(t *testing.T) {
 		t.Fatalf("no parentheses or semicolons in the usage:\n%s", out)
 	}
 	for _, want := range []string{"the page", "by default", "47391", "random free port",
-		"start CC Babysitter. On a Linux server, set it up as a service that starts at boot"} {
+		"start CC Babysitter. On Linux it runs in the background and starts at login", "--foreground"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("missing %q in\n%s", want, out)
 		}

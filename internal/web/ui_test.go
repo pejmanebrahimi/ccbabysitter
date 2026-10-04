@@ -1334,7 +1334,7 @@ func TestSettingsSaveOnChange(t *testing.T) {
 	}
 	desktop := between(t, index, `<div class="fieldset" id="set-desktop">`, "</div>")
 	for _, want := range []string{`id="set-autostart"`, `id="set-autostart-note"`, `id="set-open-browser"`,
-		"Start CC Babysitter when I log in", "Open this page in a browser when CC Babysitter starts"} {
+		"Start CC Babysitter when I log in", "Open this page in a browser when you run ccbabysitter"} {
 		if !strings.Contains(desktop, want) {
 			t.Errorf("the desktop settings do not hold %s", want)
 		}
