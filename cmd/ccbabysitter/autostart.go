@@ -110,11 +110,13 @@ func refuseTemporaryBinary(path, tempDir string) error {
 // claude CLI's folder first when it is known, and XDG_DATA_HOME when the
 // launcher has one, so the copy uses the same state folder.
 func launchAgentPlist(binPath, cliPath, dataHome string) string {
-	pathValue := servicePath
+	// Homebrew's folders on Apple Silicon, where a claude CLI installed
+	// with npm finds its node, come before the system's.
+	pathValue := "/opt/homebrew/bin:/opt/homebrew/sbin:" + servicePath
 	if cliPath != "" {
 		// The plist is only ever read by launchd, so the path is a macOS
 		// one whatever this was built for, and path takes it apart.
-		pathValue = path.Dir(cliPath) + ":" + servicePath
+		pathValue = path.Dir(cliPath) + ":" + pathValue
 	}
 	env := "\t\t<key>PATH</key>\n\t\t<string>" + xmlEscape(pathValue) + "</string>\n"
 	if dataHome != "" {

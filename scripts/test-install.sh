@@ -168,6 +168,7 @@ new_case() {
 	printf '#!/bin/sh\nexit 1\n' >"$c/shim/pgrep"
 	printf '#!/bin/sh\nexit 0\n' >"$c/shim/xdg-open"
 	shim_systemctl 0
+	shim_launchctl ""
 	chmod 755 "$c/shim/pgrep" "$c/shim/xdg-open"
 	: >"$c/fake.log"
 	path="$c/shim:$base_path"
@@ -179,6 +180,17 @@ new_case() {
 shim_systemctl() {
 	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >>"%s"\ncase " $* " in *" is-active "*) exit %s ;; esac\nexit %s\n' "$c/systemctl.log" "${2:-3}" "$1" >"$c/shim/systemctl"
 	chmod 755 "$c/shim/systemctl"
+}
+
+# shim_launchctl STATE makes launchctl print a job in that state, such as
+# running, or, with an empty STATE, fail as for a job that is not loaded.
+shim_launchctl() {
+	if [ -n "$1" ]; then
+		printf '#!/bin/sh\nprintf "%%s\\n" "$*" >>"%s"\nprintf "com.ccbabysitter = {\\n\\tstate = %s\\n}\\n"\n' "$c/launchctl.log" "$1" >"$c/shim/launchctl"
+	else
+		printf '#!/bin/sh\nprintf "%%s\\n" "$*" >>"%s"\nexit 113\n' "$c/launchctl.log" >"$c/shim/launchctl"
+	fi
+	chmod 755 "$c/shim/launchctl"
 }
 
 # shim_uname OS MACHINE makes uname report another system.
@@ -646,6 +658,19 @@ case_linux_desktop_running() {
 	expect_clean
 }
 
+# A Mac whose background copy runs as the LaunchAgent: a plain run
+# replaces it with the new version, and opens no page.
+case_mac_running() {
+	new_case mac-running
+	shim_uname Darwin arm64
+	shim_launchctl running
+	run_install CCBABYSITTER_DOWNLOAD_URL="$url/fake"
+	expect_status 0
+	expect_fake_calls "argc=1 args=version;argc=1 args=--no-open stdin=0;"
+	expect_no_out "Start it with"
+	expect_clean
+}
+
 # 15. A Mac reached over SSH is not set up as a service either.
 case_mac_ssh() {
 	new_case mac-ssh
@@ -795,7 +820,7 @@ for t in case_default_dir case_hint_bash case_hint_sh case_hint_fish case_hint_o
 	case_linux_no_display case_linux_ssh case_linux_ssh_tty case_linux_no_opener \
 	case_linux_no_user_manager case_linux_no_systemctl case_linux_invocation_id \
 	case_stdin_pipe case_stdin_pipe_service case_stdin_redirect \
-	case_linux_desktop case_linux_desktop_running case_mac_ssh case_default_url case_fallbacks case_relative_dir \
+	case_linux_desktop case_linux_desktop_running case_mac_running case_mac_ssh case_default_url case_fallbacks case_relative_dir \
 	case_no_home case_cut_short; do
 	check "$t"
 done

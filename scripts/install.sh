@@ -220,6 +220,15 @@ service_ready() {
 	systemctl --user show-environment >/dev/null 2>&1
 }
 
+# mac_agent_running reports whether CC Babysitter's LaunchAgent runs in this
+# Mac's login, which a plain run then replaces with the version just
+# installed.
+mac_agent_running() {
+	[ "$os" = darwin ] || return 1
+	has launchctl || return 1
+	launchctl print "gui/$(id -u)/com.ccbabysitter" 2>/dev/null | grep -q 'state = running'
+}
+
 already_running() {
 	has pgrep || return 1
 	pgrep -x -u "$(id -u)" ccbabysitter >/dev/null 2>&1
@@ -292,6 +301,15 @@ main() {
 			"$dest" --no-open </dev/null
 			exit $?
 		fi
+	fi
+
+	if mac_agent_running; then
+		# A Mac's background copy, the LaunchAgent: a plain run restarts it
+		# on the new version and prints where its page is, without opening
+		# it again.
+		say ""
+		"$dest" --no-open </dev/null
+		exit $?
 	fi
 
 	say ""

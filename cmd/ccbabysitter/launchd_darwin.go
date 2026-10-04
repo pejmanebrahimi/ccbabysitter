@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
 	"ccbabysitter.dev/ccbabysitter/internal/state"
@@ -140,26 +141,42 @@ func (launchdControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bo
 	return true, true
 }
 
-// Start loads the LaunchAgent, which starts it, or starts it when it is
-// loaded but not running, as after a quit.
-func (launchdControl) Start(out io.Writer, desktop bool) bool {
-	verb, args := "bootstrap", []string{"bootstrap", launchdDomain(), installedPath()}
+// launchdUnloadWait is how long a reload waits for launchd to finish
+// unloading the job before loading it again; loading too soon fails.
+var launchdUnloadWait = 3 * time.Second
+
+// loadFailedHint follows a failure to load the LaunchAgent: the usual cause
+// is that it was switched off under Login Items.
+const loadFailedHint = "If CC Babysitter is switched off in System Settings, General, Login Items, switch it on there, or run ccbabysitter --foreground."
+
+// Start loads the LaunchAgent, which starts it. A job that is still loaded
+// but not running, as after a quit, is reloaded instead, so launchd reads
+// the plist as it is now rather than a definition it still holds.
+func (c launchdControl) Start(out io.Writer, desktop bool) bool {
 	if _, err := runLaunchctl("print", launchdJob()); err == nil {
-		verb, args = "kickstart", []string{"kickstart", launchdJob()}
+		return c.Restart(out, desktop)
 	}
-	if text, err := runLaunchctl(args...); err != nil {
-		fmt.Fprintf(out, "launchctl %s failed: %s %s\n", verb, err, strings.TrimSpace(text))
-		return false
-	}
-	return true
+	return bootstrapAgent(out)
 }
 
-// Restart unloads the LaunchAgent and loads it again, so launchd reads a
-// plist written since it was loaded.
+// Restart unloads the LaunchAgent, waits for launchd to let it go, and
+// loads it again, so launchd reads a plist written since it was loaded.
 func (launchdControl) Restart(out io.Writer, desktop bool) bool {
 	_, _ = runLaunchctl("bootout", launchdJob())
+	deadline := time.Now().Add(launchdUnloadWait)
+	for {
+		if _, err := runLaunchctl("print", launchdJob()); err != nil || !time.Now().Before(deadline) {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return bootstrapAgent(out)
+}
+
+// bootstrapAgent loads the plist there is into this login's GUI domain.
+func bootstrapAgent(out io.Writer) bool {
 	if text, err := runLaunchctl("bootstrap", launchdDomain(), installedPath()); err != nil {
-		fmt.Fprintf(out, "launchctl bootstrap failed: %s %s\n", err, strings.TrimSpace(text))
+		fmt.Fprintf(out, "launchctl bootstrap failed: %s %s\n%s\n", err, strings.TrimSpace(text), loadFailedHint)
 		return false
 	}
 	return true

@@ -9,7 +9,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 - Changed: running `ccbabysitter` while it already runs in the background prints the start information again and opens the page.
 - Changed: on a Linux desktop, CC Babysitter starts with the graphical session, so it sees the desktop. Turning start at login off keeps the systemd unit, so `ccbabysitter` can still start it; `ccbabysitter uninstall` removes it.
 - Changed: the install script restarts a background copy that is already running on a Linux desktop, so it runs the new version.
-- Changed: on macOS, `ccbabysitter` starts CC Babysitter in the background as a user LaunchAgent and gives the terminal back. Start at login is turned on the first time, also for anyone upgrading. Logging in no longer opens the page, and CC Babysitter starts again if it crashes. `ccbabysitter uninstall` now works on macOS: it stops the LaunchAgent and removes its plist.
+- Changed: on macOS, `ccbabysitter` starts CC Babysitter in the background as a user LaunchAgent and gives the terminal back. Start at login is turned on the first time, also for anyone upgrading. Logging in no longer opens the page, and CC Babysitter starts again if it crashes. `ccbabysitter uninstall` now works on macOS: it stops the LaunchAgent and removes its plist. The install script restarts a LaunchAgent that is already running, so it runs the new version, and a login started by an earlier version's LaunchAgent runs the new binary as the background copy.
 
 ## 0.4.2 (2026-10-03)
 

@@ -197,7 +197,7 @@ func TestLauncherSaysWhenTheCopyNeverAnswers(t *testing.T) {
 	f := okService()
 	f.installed, f.active = true, true
 	var out strings.Builder
-	if rc := runLauncher(&out, f, keyedDir(t), launchOptions{}, (&fakeDeps{}).deps(neverAnswering)); rc != 1 || out.String() != "CC Babysitter did not start. See: journalctl --user -u ccbabysitter\n" {
+	if rc := runLauncher(&out, f, keyedDir(t), launchOptions{}, (&fakeDeps{}).deps(neverAnswering)); rc != 1 || out.String() != notStartedLine()+"\n" {
 		t.Fatalf("rc %d, out %q", rc, out.String())
 	}
 }
@@ -315,19 +315,19 @@ func TestLauncherPageCarriesTheKey(t *testing.T) {
 
 func TestLaunches(t *testing.T) {
 	for _, c := range []struct {
-		name string
-		opts serveOptions
-		inv  string
-		want bool
+		name   string
+		opts   serveOptions
+		system bool
+		want   bool
 	}{
-		{"plain", serveOptions{}, "", true},
-		{"--no-open", serveOptions{NoOpen: true}, "", true},
-		{"--foreground", serveOptions{Foreground: true}, "", false},
-		{"--demo", serveOptions{Demo: true}, "", false},
-		{"--service", serveOptions{Service: true}, "", false},
-		{"started by systemd", serveOptions{}, "4d1c0a5b", false},
+		{"plain", serveOptions{}, false, true},
+		{"--no-open", serveOptions{NoOpen: true}, false, true},
+		{"--foreground", serveOptions{Foreground: true}, false, false},
+		{"--demo", serveOptions{Demo: true}, false, false},
+		{"--service", serveOptions{Service: true}, false, false},
+		{"started by the service manager", serveOptions{}, true, false},
 	} {
-		if got := launches(c.opts, c.inv); got != c.want {
+		if got := launches(c.opts, c.system); got != c.want {
 			t.Errorf("%s: %v", c.name, got)
 		}
 	}

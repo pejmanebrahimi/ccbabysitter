@@ -181,7 +181,7 @@ func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOpti
 		page, ok = d.wait(stateDir)
 	}
 	if !ok {
-		fmt.Fprintln(out, notStartedLine)
+		fmt.Fprintln(out, notStartedLine())
 		return 1
 	}
 
@@ -248,8 +248,7 @@ func keptKind(sc serviceControl, stateDir, user string, desktop bool) bool {
 
 // launches reports whether a run of the default command is the launcher:
 // not the service itself, not the demo, not asked to stay in the
-// foreground, and not started by systemd, which marks what it starts with
-// INVOCATION_ID.
-func launches(opts serveOptions, invocationID string) bool {
-	return !opts.Service && !opts.Demo && !opts.Foreground && invocationID == ""
+// foreground, and not started by the system's service manager.
+func launches(opts serveOptions, startedBySystem bool) bool {
+	return !opts.Service && !opts.Demo && !opts.Foreground && !startedBySystem
 }

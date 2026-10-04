@@ -26,9 +26,8 @@ const (
 )
 
 const (
-	noServiceLine  = "Could not set CC Babysitter up as a service here, so it runs only while this terminal stays open."
-	notStartedLine = "CC Babysitter did not start. See: journalctl --user -u ccbabysitter"
-	otherCopyLine  = "CC Babysitter is already running in another terminal. Quit it there with Ctrl+C, then run ccbabysitter again."
+	noServiceLine = "Could not set CC Babysitter up as a service here, so it runs only while this terminal stays open."
+	otherCopyLine = "CC Babysitter is already running in another terminal. Quit it there with Ctrl+C, then run ccbabysitter again."
 )
 
 // serviceControl is the systemd user unit, and the user's lingering, as

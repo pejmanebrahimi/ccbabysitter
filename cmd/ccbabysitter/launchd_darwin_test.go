@@ -31,6 +31,10 @@ func useFakeLaunchctl(t *testing.T) *fakeLaunchctl {
 	runLaunchctl = func(args ...string) (string, error) {
 		key := strings.Join(args, " ")
 		f.calls = append(f.calls, key)
+		// A bootout unloads the job, as launchd does.
+		if args[0] == "bootout" {
+			f.answers["print "+job()] = notLoaded
+		}
 		a := f.answers[key]
 		return a.out, a.err
 	}
@@ -119,10 +123,13 @@ func TestLaunchdStartBootstrapsOrKickstarts(t *testing.T) {
 		t.Fatalf("not loaded: %q", got)
 	}
 
+	// Loaded but not running, as after a quit: it is unloaded and loaded
+	// again, so launchd reads the plist as it is now, never an old
+	// definition it still holds.
 	f.calls = nil
 	f.answers["print "+job()] = fakeAnswer{"state = not running\n", nil}
 	(launchdControl{}).Start(&out, true)
-	if got := strings.Join(f.calls, "; "); got != "print "+job()+"; kickstart "+job() {
+	if got := strings.Join(f.calls, "; "); !strings.HasPrefix(got, "print "+job()+"; bootout "+job()+"; ") || !strings.HasSuffix(got, "; bootstrap "+domain()+" "+offPath()) || strings.Contains(got, "kickstart") {
 		t.Fatalf("loaded: %q", got)
 	}
 }
@@ -136,7 +143,7 @@ func TestLaunchdRestartReloadsThePlist(t *testing.T) {
 	if !(launchdControl{}).Restart(&out, true) {
 		t.Fatalf("restart failed: %s", out.String())
 	}
-	if got := strings.Join(f.calls, "; "); got != "bootout "+job()+"; bootstrap "+domain()+" "+offPath() {
+	if got := strings.Join(f.calls, "; "); got != "bootout "+job()+"; print "+job()+"; bootstrap "+domain()+" "+offPath() {
 		t.Fatalf("restart: %q", got)
 	}
 }
@@ -196,5 +203,54 @@ func TestDarwinUninstallRemovesBothPlists(t *testing.T) {
 	}
 	if len(f.calls) != 1 || f.calls[0] != "bootout "+job() {
 		t.Fatalf("calls %q", f.calls)
+	}
+}
+
+// A LaunchAgent switched off under Login Items cannot be loaded: the
+// failure says where to switch it back on, and how to run without it.
+func TestLaunchdLoadFailureSaysWhatToDo(t *testing.T) {
+	launchdHome(t)
+	f := useFakeLaunchctl(t)
+	var out strings.Builder
+	(launchdControl{}).Write(&out, true)
+	out.Reset()
+	f.answers["print "+job()] = notLoaded
+	f.answers["bootstrap "+domain()+" "+offPath()] = fakeAnswer{"Bootstrap failed: 5: Input/output error", errors.New("exit status 5")}
+	if (launchdControl{}).Start(&out, true) {
+		t.Fatal("a failed bootstrap counted as started")
+	}
+	for _, want := range []string{"Input/output error", "Login Items", "ccbabysitter --foreground"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("no %q in %q", want, out.String())
+		}
+	}
+}
+
+// launchd starts the LaunchAgent's program with launchd as its parent and
+// XPC_SERVICE_NAME set to the label; that run is the service, even when an
+// earlier version's plist starts it with no --service. A program the
+// service starts in turn inherits XPC_SERVICE_NAME but not the parent.
+func TestStartedByLaunchd(t *testing.T) {
+	saved := parentPID
+	t.Cleanup(func() { parentPID = saved })
+	t.Setenv("XPC_SERVICE_NAME", "com.ccbabysitter")
+	parentPID = func() int { return 1 }
+	if !startedByServiceManager() {
+		t.Fatal("the LaunchAgent's own run was not seen")
+	}
+	parentPID = func() int { return 4242 }
+	if startedByServiceManager() {
+		t.Fatal("a child of the service counted as the service")
+	}
+	parentPID = func() int { return 1 }
+	t.Setenv("XPC_SERVICE_NAME", "com.apple.Terminal")
+	if startedByServiceManager() {
+		t.Fatal("another job counted as the service")
+	}
+}
+
+func TestNotStartedLineOnMacOSNeedsNoJournal(t *testing.T) {
+	if line := notStartedLine(); strings.Contains(line, "journalctl") || !strings.Contains(line, "launchctl print") {
+		t.Fatalf("%q", line)
 	}
 }

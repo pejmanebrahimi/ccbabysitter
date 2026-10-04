@@ -66,7 +66,10 @@ func run(args []string) int {
 		}
 	}
 
-	opts, err := parseServeFlags(args, stdoutToJournal())
+	// A run the system's service manager started is the background copy,
+	// whatever its flags: it serves, prints no key and opens no browser.
+	system := startedByServiceManager()
+	opts, err := parseServeFlags(args, stdoutToJournal() || system)
 	if err != nil {
 		printUsage(os.Stderr)
 		return 2
@@ -74,7 +77,7 @@ func run(args []string) int {
 	// A plain run hands CC Babysitter to the system's service manager and
 	// gives the terminal back, where there is one to hand it to. Elsewhere,
 	// and with --foreground, it serves in this terminal.
-	if launches(opts, os.Getenv("INVOCATION_ID")) {
+	if launches(opts, system) {
 		if sc := newServiceControl(); sc != nil {
 			if opts.PortSet {
 				fmt.Fprintln(os.Stderr, "--port only applies with --foreground, since the background copy picks its own port.")
