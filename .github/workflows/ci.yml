@@ -44,6 +44,16 @@ jobs:
         shell: bash
         run: go test ${{ runner.os != 'Windows' && '-race' || '' }} ./...
 
+      # install.ps1 has no test harness; Windows PowerShell 5.1, the one
+      # every Windows has, at least has to read it.
+      - name: Parse the Windows install script
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $errors = $null
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content -Raw scripts/install.ps1), [ref]$errors)
+          if ($errors) { $errors; exit 1 }
+
       - name: Check formatting
         if: runner.os == 'Linux'
         shell: bash
@@ -90,4 +100,9 @@ jobs:
             out="$out_dir/ccbabysitter-$os-$arch$ext"
             GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$out" ./cmd/ccbabysitter
             echo "Built $out"
+            if [ "$os" = windows ]; then
+              out="$out_dir/ccbabysitter-background-$os-$arch$ext"
+              GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -H windowsgui" -o "$out" ./cmd/ccbabysitter
+              echo "Built $out"
+            fi
           done

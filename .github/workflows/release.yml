@@ -80,6 +80,13 @@ jobs:
             out="dist/ccbabysitter-$os-$arch$ext"
             GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$out" ./cmd/ccbabysitter
             echo "Built $out"
+            # On Windows the background copy is the same code built as a
+            # GUI program, so Windows opens no console window for it.
+            if [ "$os" = windows ]; then
+              out="dist/ccbabysitter-background-$os-$arch$ext"
+              GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -H windowsgui" -o "$out" ./cmd/ccbabysitter
+              echo "Built $out"
+            fi
           done
 
       - name: Checksums

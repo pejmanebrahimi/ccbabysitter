@@ -2,9 +2,12 @@
 #
 #   irm https://ccbabysitter.dev/install.ps1 | iex
 #
-# It downloads the release program for this machine, checks it against the
-# release's checksums.txt, puts it in %LOCALAPPDATA%\Programs\CCBabysitter
-# and adds that folder to your user Path. It needs no admin rights.
+# It downloads the release programs for this machine, ccbabysitter.exe and
+# the windowless ccbabysitter-background.exe that runs in the background,
+# checks them against the release's checksums.txt, puts them in
+# %LOCALAPPDATA%\Programs\CCBabysitter and adds that folder to your user
+# Path. A CC Babysitter that is running is asked to quit first and started
+# again in the background afterwards. It needs no admin rights.
 #
 # Settings, read from the environment:
 #   CCBABYSITTER_VERSION       release tag to install, such as v0.4.0
@@ -26,7 +29,7 @@ function Install-CCBabysitter {
     $ProgressPreference = 'SilentlyContinue'
 
     $repoUrl = 'https://github.com/pejmanebrahimi/ccbabysitter'
-    $runningMessage = 'CC Babysitter is running. Quit it (Ctrl+C in its window), then run this again.'
+    $runningMessage = 'CC Babysitter is running and could not be asked to quit. Quit it (Ctrl+C in its window, or ccbabysitter quit), then run this again.'
 
     # Test-FileLocked reports whether an exception, or one inside it, is a
     # sharing or lock violation: the file is open in another program.
@@ -69,6 +72,9 @@ function Install-CCBabysitter {
         }
     }
     $asset = "ccbabysitter-windows-$arch.exe"
+    # The background copy is the same program built for Windows to show no
+    # console window, installed beside ccbabysitter.exe.
+    $bgAsset = "ccbabysitter-background-windows-$arch.exe"
 
     if ($env:CCBABYSITTER_DOWNLOAD_URL) {
         $base = $env:CCBABYSITTER_DOWNLOAD_URL.TrimEnd('/')
@@ -96,69 +102,36 @@ function Install-CCBabysitter {
         $dir = $dir.TrimEnd('\')
     }
     $dest = Join-Path $dir 'ccbabysitter.exe'
+    $bgDest = Join-Path $dir 'ccbabysitter-background.exe'
 
-    $tmp = Join-Path ([IO.Path]::GetTempPath()) ('ccbabysitter-' + [Guid]::NewGuid().ToString('N'))
-    New-Item -ItemType Directory -Path $tmp -Force | Out-Null
-    $part = $null
-    $bak = "$dest.bak"
-    $moved = $false
-    try {
-        $file = Join-Path $tmp $asset
-        $sums = Join-Path $tmp 'checksums.txt'
-        Write-Host "Downloading $asset from $base"
-        foreach ($pair in @(@("$base/$asset", $file), @("$base/checksums.txt", $sums))) {
-            try {
-                Invoke-WebRequest -UseBasicParsing -Uri $pair[0] -OutFile $pair[1]
-            } catch {
-                throw "Could not download $($pair[0]): $(Get-Reason $_.Exception)"
-            }
-        }
-
-        $want = $null
-        foreach ($line in Get-Content -LiteralPath $sums) {
-            $fields = $line.Trim() -split '\s+'
-            if ($fields.Count -ge 2 -and ($fields[1] -ceq $asset -or $fields[1] -ceq "*$asset")) {
-                $want = $fields[0].ToLowerInvariant()
-                break
-            }
-        }
-        if (-not $want) {
-            throw "checksums.txt has no line for $asset, so the download cannot be checked. Nothing was installed."
-        }
-        $got = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($got -ne $want) {
-            throw "The download of $asset does not match its checksum (expected $want, got $got). Nothing was installed."
-        }
-
-        # The new copy is written beside the old one under a temporary
-        # name. The old ccbabysitter.exe is then moved aside to
-        # ccbabysitter.exe.bak and the new copy moved into place; if that
-        # move fails, the old copy is moved back. The .bak is kept until
-        # the installed program has run (see below), so a failed install
-        # never loses the old program or leaves a broken
-        # ccbabysitter.exe behind.
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-        $part = Join-Path $dir ('.ccbabysitter-' + [Guid]::NewGuid().ToString('N') + '.part')
+    # Replace-File puts the new copy at $src in place of $target: written
+    # beside it under a temporary name, the old one moved aside to .bak,
+    # the new one moved into place, and the old one moved back if that
+    # fails. It returns whether there is a .bak to delete or put back.
+    function Replace-File($src, $target) {
+        $bak = "$target.bak"
+        $part = Join-Path (Split-Path -Parent $target) ('.ccbabysitter-' + [Guid]::NewGuid().ToString('N') + '.part')
+        $moved = $false
         try {
-            [IO.File]::Copy($file, $part, $true)
-            if (Test-Path -LiteralPath $dest) {
+            [IO.File]::Copy($src, $part, $true)
+            if (Test-Path -LiteralPath $target) {
                 # Windows keeps a running program's file open, so it can
                 # be neither written nor moved. Opening it for writing
                 # finds that out while the old copy is still whole.
-                [IO.File]::Open($dest, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None).Close()
+                [IO.File]::Open($target, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None).Close()
                 if (Test-Path -LiteralPath $bak) {
                     [IO.File]::Delete($bak)
                 }
-                [IO.File]::Move($dest, $bak)
+                [IO.File]::Move($target, $bak)
                 $moved = $true
             }
             try {
-                [IO.File]::Move($part, $dest)
+                [IO.File]::Move($part, $target)
             } catch {
                 $failure = $_
                 if ($moved) {
                     try {
-                        [IO.File]::Move($bak, $dest)
+                        [IO.File]::Move($bak, $target)
                         $moved = $false
                     } catch {
                         throw "$(Get-Reason $failure.Exception). The old copy could not be put back and is at $bak"
@@ -170,17 +143,96 @@ function Install-CCBabysitter {
             if (Test-FileLocked $_.Exception) {
                 throw $runningMessage
             }
-            throw "Could not install ${dest}: $(Get-Reason $_.Exception)"
+            throw "Could not install ${target}: $(Get-Reason $_.Exception)"
+        } finally {
+            if (Test-Path -LiteralPath $part) {
+                Remove-Item -LiteralPath $part -Force -ErrorAction SilentlyContinue
+            }
+        }
+        return $moved
+    }
+
+    # Restore-File puts the .bak of $target back, for an install that did
+    # not work out.
+    function Restore-File($target) {
+        $bak = "$target.bak"
+        if (Test-Path -LiteralPath $target) {
+            [IO.File]::Delete($target)
+        }
+        [IO.File]::Move($bak, $target)
+    }
+
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) ('ccbabysitter-' + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+    $moved = $false
+    $bgMoved = $false
+    $wasRunning = $false
+    try {
+        $sums = Join-Path $tmp 'checksums.txt'
+        $files = @{}
+        foreach ($name in @($asset, $bgAsset)) {
+            $files[$name] = Join-Path $tmp $name
+        }
+        Write-Host "Downloading $asset and $bgAsset from $base"
+        foreach ($pair in @(@("$base/$asset", $files[$asset]), @("$base/$bgAsset", $files[$bgAsset]), @("$base/checksums.txt", $sums))) {
+            try {
+                Invoke-WebRequest -UseBasicParsing -Uri $pair[0] -OutFile $pair[1]
+            } catch {
+                throw "Could not download $($pair[0]): $(Get-Reason $_.Exception)"
+            }
+        }
+
+        foreach ($name in @($asset, $bgAsset)) {
+            $want = $null
+            foreach ($line in Get-Content -LiteralPath $sums) {
+                $fields = $line.Trim() -split '\s+'
+                if ($fields.Count -ge 2 -and ($fields[1] -ceq $name -or $fields[1] -ceq "*$name")) {
+                    $want = $fields[0].ToLowerInvariant()
+                    break
+                }
+            }
+            if (-not $want) {
+                throw "checksums.txt has no line for $name, so the download cannot be checked. Nothing was installed."
+            }
+            $got = (Get-FileHash -LiteralPath $files[$name] -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($got -ne $want) {
+                throw "The download of $name does not match its checksum (expected $want, got $got). Nothing was installed."
+            }
+        }
+
+        # A running CC Babysitter keeps its program files open, so it is
+        # asked to quit first, and started again in the background once
+        # the new version is in place. A copy from before quit existed
+        # stays running, and the replace below then says to quit it.
+        if (Test-Path -LiteralPath $dest) {
+            & $dest status *> $null
+            if ($LASTEXITCODE -eq 0) {
+                $wasRunning = $true
+                & $dest quit *> $null
+                $deadline = (Get-Date).AddSeconds(10)
+                do {
+                    Start-Sleep -Milliseconds 300
+                    & $dest status *> $null
+                } while ($LASTEXITCODE -eq 0 -and (Get-Date) -lt $deadline)
+            }
+        }
+
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        $bgMoved = Replace-File $files[$bgAsset] $bgDest
+        try {
+            $moved = Replace-File $files[$asset] $dest
+        } catch {
+            if ($bgMoved) {
+                try { Restore-File $bgDest } catch { }
+            }
+            throw
         }
     } finally {
-        if ($part -and (Test-Path -LiteralPath $part)) {
-            Remove-Item -LiteralPath $part -Force -ErrorAction SilentlyContinue
-        }
         Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    # The old copy is deleted only now that the new one has run. If it
-    # does not run, the old one is put back as well as it can be.
+    # The old copies are deleted only now that the new program has run. If
+    # it does not run, the old ones are put back as well as they can be.
     $installed = $null
     $runs = $false
     try {
@@ -190,21 +242,21 @@ function Install-CCBabysitter {
         $runs = $false
     }
     if (-not $runs) {
-        if ($moved) {
+        if ($moved -or $bgMoved) {
             try {
-                [IO.File]::Delete($dest)
-                [IO.File]::Move($bak, $dest)
+                if ($moved) { Restore-File $dest }
+                if ($bgMoved) { Restore-File $bgDest }
             } catch {
-                throw "$dest was installed but does not run on this machine, and the old copy could not be put back. It is at $bak"
+                throw "$dest was installed but does not run on this machine, and the old copy could not be put back. It is at $dest.bak"
             }
             throw "$dest was installed but does not run on this machine, so the old copy was put back."
         }
         throw "$dest was installed but does not run on this machine."
     }
-    if ($moved) {
-        Remove-Item -LiteralPath $bak -Force -ErrorAction SilentlyContinue
+    foreach ($target in @($dest, $bgDest)) {
+        Remove-Item -LiteralPath "$target.bak" -Force -ErrorAction SilentlyContinue
     }
-    Write-Host "Installed $installed to $dest"
+    Write-Host "Installed $installed to $dir"
 
     # The user Path is read and written as stored, so entries such as
     # %USERPROFILE%\bin keep their variables rather than being expanded.
@@ -236,7 +288,13 @@ function Install-CCBabysitter {
     }
 
     Write-Host ''
-    Write-Host 'Start it with: ccbabysitter'
+    if ($wasRunning) {
+        # The new version runs in the background again, and prints where
+        # its page is, without opening it.
+        & $dest --no-open
+    } else {
+        Write-Host 'Start it with: ccbabysitter'
+    }
 }
 
 Install-CCBabysitter
