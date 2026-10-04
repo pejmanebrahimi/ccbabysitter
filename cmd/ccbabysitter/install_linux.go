@@ -149,6 +149,7 @@ func (systemdControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bo
 			fmt.Fprintln(out, "systemctl --user reenable ccbabysitter failed:", err)
 			return true, false
 		}
+		flushStartLinks(path)
 	}
 	return true, true
 }
@@ -207,6 +208,9 @@ func (systemdControl) Enable(out io.Writer) bool {
 	if err := runSystemctl("enable", "--now", "ccbabysitter"); err != nil {
 		fmt.Fprintln(out, "systemctl --user enable --now ccbabysitter failed:", err)
 		return false
+	}
+	if unit, err := systemdUnitPath(); err == nil {
+		flushStartLinks(unit)
 	}
 	return true
 }

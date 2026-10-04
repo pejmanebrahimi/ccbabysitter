@@ -72,3 +72,31 @@ func TestAutostartInstalledSeesEitherLink(t *testing.T) {
 		t.Error("installed with no link at all")
 	}
 }
+
+// systemctl enable and disable change a link in a wants folder and flush
+// nothing, so a power cut right after turning start at login on could lose
+// the link, and CC Babysitter would not start at the next boot. Both wants
+// folders that exist, and the unit's own folder that holds them, are
+// flushed afterwards.
+func TestStartLinksAreFlushed(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	unit, err := systemdUnitPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wants := filepath.Join(filepath.Dir(unit), "graphical-session.target.wants")
+	if err := os.MkdirAll(wants, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var flushed []string
+	saved := syncDir
+	syncDir = func(dir string) error { flushed = append(flushed, dir); return nil }
+	t.Cleanup(func() { syncDir = saved })
+
+	flushStartLinks(unit)
+	want := []string{wants, filepath.Dir(unit)}
+	if len(flushed) != 2 || flushed[0] != want[0] || flushed[1] != want[1] {
+		t.Fatalf("flushed %q, want %q", flushed, want)
+	}
+}

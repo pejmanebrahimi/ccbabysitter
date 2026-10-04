@@ -31,6 +31,7 @@ func installAutostartLinux(enable bool) (string, error) {
 		if err := runSystemctl("disable", "ccbabysitter"); err != nil {
 			return "", err
 		}
+		flushStartLinks(unit)
 		_ = runSystemctl("daemon-reload")
 		return link, nil
 	}
@@ -49,6 +50,7 @@ func installAutostartLinux(enable bool) (string, error) {
 	if err := runSystemctl("enable", "ccbabysitter"); err != nil {
 		return "", err
 	}
+	flushStartLinks(unit)
 	return enableLink(unit), nil
 }
 
@@ -67,6 +69,22 @@ func enableLink(unit string) string {
 		}
 	}
 	return filepath.Join(filepath.Dir(unit), wantsFolders[0], filepath.Base(unit))
+}
+
+// flushStartLinks flushes the wants folders that exist, and the unit's own
+// folder that holds them, after systemctl enabled or disabled the unit.
+// systemctl flushes nothing, so without this a power cut right after
+// turning start at login on could lose the new link, and CC Babysitter
+// would not start at the very boot it was turned on for. A failed flush
+// changes nothing that was done, so it is not an error.
+func flushStartLinks(unit string) {
+	for _, folder := range wantsFolders {
+		dir := filepath.Join(filepath.Dir(unit), folder)
+		if on, _ := pathPresent(dir); on {
+			_ = syncDir(dir)
+		}
+	}
+	_ = syncDir(filepath.Dir(unit))
 }
 
 // autostartInstalledLinux reports whether the user unit is enabled, judged
