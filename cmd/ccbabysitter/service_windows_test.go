@@ -245,3 +245,12 @@ func TestWindowsUninstallForgetsTheLoginStartChoice(t *testing.T) {
 		t.Fatalf("the choice is still remembered after uninstall:\n%s", out.String())
 	}
 }
+
+// Without its windowless program, as after go install, the launcher names
+// the missing program and says it runs only in this terminal.
+func TestWindowsUnusableLineNamesTheBackgroundProgram(t *testing.T) {
+	line := (windowsControl{}).UnusableLine()
+	if !strings.Contains(line, backgroundExe) || !strings.Contains(line, "only while this terminal stays open") {
+		t.Fatalf("%q", line)
+	}
+}

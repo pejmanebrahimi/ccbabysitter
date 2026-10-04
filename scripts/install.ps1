@@ -281,6 +281,11 @@ function Install-CCBabysitter {
             if ($quitAsked -and $_.Exception.Message -eq $runningMessage) {
                 throw 'CC Babysitter was asked to quit and is still letting go of its files. Run this again in a moment.'
             }
+            # It answers, but is a version from before quit existed, so
+            # only Ctrl+C in its window stops it.
+            if ($wasRunning -and -not $quitAsked -and $_.Exception.Message -eq $runningMessage) {
+                throw 'CC Babysitter is running in a window, and this version of it cannot be asked to quit. Quit it with Ctrl+C in its window, then run this again.'
+            }
             throw
         }
     } finally {

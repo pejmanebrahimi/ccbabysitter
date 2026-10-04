@@ -698,6 +698,22 @@ case_mac_agent_stopped() {
 	expect_clean
 }
 
+# A Mac with an earlier version's LaunchAgent whose copy runs in a
+# terminal instead: a plain run would only refuse, so the script leaves it
+# and says to quit and start it, and the install itself succeeds.
+case_mac_terminal_copy() {
+	new_case mac-terminal-copy
+	shim_uname Darwin arm64
+	printf '#!/bin/sh\nexit 0\n' >"$c/shim/pgrep"
+	mkdir -p "$c/home/Library/LaunchAgents"
+	: >"$c/home/Library/LaunchAgents/com.ccbabysitter.plist"
+	run_install CCBABYSITTER_DOWNLOAD_URL="$url/fake"
+	expect_status 0
+	expect_fake_calls "argc=1 args=version;argc=2 args=help quit stdin=0;"
+	expect_out "CC Babysitter is already running. Quit it and start it again to use the new version."
+	expect_clean
+}
+
 # 15. A Mac reached over SSH is not set up as a service either.
 case_mac_ssh() {
 	new_case mac-ssh
@@ -847,7 +863,7 @@ for t in case_default_dir case_hint_bash case_hint_sh case_hint_fish case_hint_o
 	case_linux_no_display case_linux_ssh case_linux_ssh_tty case_linux_no_opener \
 	case_linux_no_user_manager case_linux_no_systemctl case_linux_invocation_id \
 	case_stdin_pipe case_stdin_pipe_service case_stdin_redirect \
-	case_linux_desktop case_linux_desktop_running case_linux_desktop_running_older case_mac_running case_mac_agent_stopped case_mac_ssh case_default_url case_fallbacks case_relative_dir \
+	case_linux_desktop case_linux_desktop_running case_linux_desktop_running_older case_mac_running case_mac_agent_stopped case_mac_terminal_copy case_mac_ssh case_default_url case_fallbacks case_relative_dir \
 	case_no_home case_cut_short; do
 	check "$t"
 done

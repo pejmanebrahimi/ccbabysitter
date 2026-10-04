@@ -183,6 +183,12 @@ func (windowsControl) Usable() bool {
 	return on
 }
 
+// UnusableLine says why there is no background copy: the windowless
+// program is not beside this one, as after go install.
+func (windowsControl) UnusableLine() string {
+	return backgroundExe + " is not beside this program, as after go install, so CC Babysitter runs only while this terminal stays open."
+}
+
 // Installed is always true: there is nothing to install beyond the
 // windowless program, which Usable checks for.
 func (windowsControl) Installed() bool { return true }

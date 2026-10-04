@@ -30,6 +30,13 @@ const (
 	otherCopyLine = "CC Babysitter is already running in another terminal. Quit it there with Ctrl+C, then run ccbabysitter again."
 )
 
+// unusableReasoner is a serviceControl that can say in its own words why
+// it cannot be used, for the line the launcher prints instead of
+// noServiceLine.
+type unusableReasoner interface {
+	UnusableLine() string
+}
+
 // serviceControl is the systemd user unit, and the user's lingering, as
 // far as the launcher needs them. The real one runs systemctl and loginctl;
 // tests use a fake so they never touch the real service manager, lingering

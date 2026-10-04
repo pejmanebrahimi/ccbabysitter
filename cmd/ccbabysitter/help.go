@@ -245,7 +245,7 @@ With --json: {"schema":1,"entries":[{"time":"RFC 3339","level":"...","session":"
 	"settings": controlPage(
 		"ccbabysitter settings [NAME VALUE]",
 		`Shows the settings, or changes one. These are the page's settings.
-  autostart      on or off     start CC Babysitter when you log in
+  autostart      on or off     start CC Babysitter when you log in, or at boot on a server
   auto-babysit   on or off     babysit every new background session on a server
   open-browser   on or off     open the page when you run ccbabysitter
   theme          auto, dark or light`,

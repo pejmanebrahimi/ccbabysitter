@@ -245,6 +245,15 @@ already_running() {
 	pgrep -x -u "$(id -u)" ccbabysitter >/dev/null 2>&1
 }
 
+# mac_terminal_copy reports whether a copy runs on this Mac outside the
+# LaunchAgent, as an earlier version did in a terminal. A plain run would
+# only refuse while it runs, so it is left for the person to quit.
+mac_terminal_copy() {
+	already_running || return 1
+	has launchctl || return 0
+	! launchctl print "gui/$(id -u)/com.ccbabysitter" 2>/dev/null | grep -q 'state = running'
+}
+
 main() {
 	set -u
 	trap cleanup EXIT
@@ -314,7 +323,7 @@ main() {
 		fi
 	fi
 
-	if mac_agent_running && knows_background; then
+	if mac_agent_running && knows_background && ! mac_terminal_copy; then
 		# A Mac's background copy, the LaunchAgent: a plain run restarts it
 		# on the new version and prints where its page is, without opening
 		# it again.

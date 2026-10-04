@@ -406,3 +406,17 @@ func TestLauncherHeadlessIsNotAServer(t *testing.T) {
 		t.Fatalf("calls %q\n%s", f.calls, out.String())
 	}
 }
+
+// A service control that knows why it cannot be used says so in its own
+// words, such as a Windows copy without its windowless program.
+type reasonedService struct{ fakeService }
+
+func (r *reasonedService) UnusableLine() string { return "No background program here." }
+
+func TestStartInBackgroundSaysWhyItCannot(t *testing.T) {
+	var out strings.Builder
+	rc, foreground := startInBackground(&out, &reasonedService{fakeService{usable: false}}, t.TempDir(), launchOptions{}, (&fakeDeps{}).deps(neverAnswering))
+	if !foreground || rc != 0 || out.String() != "No background program here.\n" {
+		t.Fatalf("rc %d, foreground %v, %q", rc, foreground, out.String())
+	}
+}

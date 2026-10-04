@@ -100,7 +100,11 @@ func realLaunchDeps() launchDeps {
 // caller serves in this terminal as before.
 func startInBackground(out io.Writer, sc serviceControl, stateDir string, o launchOptions, d launchDeps) (rc int, foreground bool) {
 	if !sc.Usable() {
-		fmt.Fprintln(out, noServiceLine)
+		line := noServiceLine
+		if r, ok := sc.(unusableReasoner); ok {
+			line = r.UnusableLine()
+		}
+		fmt.Fprintln(out, line)
 		return 0, true
 	}
 	return runLauncher(out, sc, stateDir, o, d), false
