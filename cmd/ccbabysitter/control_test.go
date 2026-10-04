@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -683,5 +684,18 @@ func TestQuitAgainstAnOlderCopySaysHowToQuitIt(t *testing.T) {
 	code, out, _ := runCmd(t, env, "quit", "--json")
 	if doc := oneJSON(t, out); code != 1 || doc["ok"] != false {
 		t.Fatalf("quit --json against an older copy = %d %v", code, doc)
+	}
+}
+
+func TestClientLaunchURL(t *testing.T) {
+	env, e, ts := testEnv(t)
+	e.view.URL = ts.URL
+	c, err := client.New(env.stateDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := c.LaunchURL(context.Background())
+	if err != nil || !strings.HasPrefix(u, ts.URL+"/?token=") || strings.Contains(u, state.ReadPageKey(env.stateDir)) {
+		t.Fatalf("LaunchURL = %q, %v", u, err)
 	}
 }

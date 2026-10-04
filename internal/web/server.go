@@ -143,6 +143,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/settings", s.handlePutSettings)
 
 	mux.HandleFunc("POST /api/quit", s.handleQuit)
+	mux.HandleFunc("POST /api/launch", s.handleLaunch)
 
 	mux.HandleFunc("GET /api/activity", s.handleActivity)
 }
@@ -308,6 +309,16 @@ func (s *Server) handleQuit(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 	quit()
+}
+
+// handleLaunch answers a one-time address to open the page with, for the
+// program that opens a browser on it: the launcher. The key itself never
+// goes on that program's command line.
+func (s *Server) handleLaunch(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, struct {
+		OK  bool   `json:"ok"`
+		URL string `json:"url"`
+	}{true, s.LaunchURL(s.engine.View().URL)})
 }
 
 // settingChanges names each setting, other than start at login, that

@@ -677,3 +677,29 @@ func TestQuitWithoutAHookIsRefused(t *testing.T) {
 		t.Fatalf("quit without a hook = %d %+v", r.StatusCode, res)
 	}
 }
+
+// The launcher asks the running copy for a one-time address to open the
+// page with, so the key never reaches the program that opens a browser.
+func TestLaunchHandsOutAOneTimeAddress(t *testing.T) {
+	ts, e, s := newTS(t)
+	e.view.URL = ts.URL
+	r := postJSON(t, ts.URL+"/api/launch", "{}")
+	var got struct {
+		OK  bool   `json:"ok"`
+		URL string `json:"url"`
+	}
+	decodeBody(t, r, &got)
+	if r.StatusCode != http.StatusOK || !got.OK {
+		t.Fatalf("launch = %d %+v", r.StatusCode, got)
+	}
+	launchToken(t, ts, got.URL)
+
+	resp := doPlainRequest(t, http.MethodGet, got.URL, nil, "")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("first use: %d", resp.StatusCode)
+	}
+	if c := keyCookie(t, ts, resp); c == nil || c.Value != s.session {
+		t.Fatalf("first use set %v, want this run's session", resp.Cookies())
+	}
+}

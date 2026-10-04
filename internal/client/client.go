@@ -288,6 +288,22 @@ func (c *Client) Quit(ctx context.Context) (supervise.Result, error) {
 	return result(status, data)
 }
 
+// LaunchURL asks the running copy for a one-time address to open its page
+// with in a browser.
+func (c *Client) LaunchURL(ctx context.Context) (string, error) {
+	status, data, err := c.send(ctx, c.actionTimeout, http.MethodPost, "/api/launch", struct{}{})
+	if err != nil {
+		return "", err
+	}
+	var doc struct {
+		URL string `json:"url"`
+	}
+	if status != http.StatusOK || json.Unmarshal(data, &doc) != nil || doc.URL == "" {
+		return "", ErrNotRunning
+	}
+	return doc.URL, nil
+}
+
 // Activity is the Activity panel, newest first, at most n entries.
 func (c *Client) Activity(ctx context.Context, n int) ([]state.Entry, error) {
 	status, data, err := c.send(ctx, c.viewTimeout, http.MethodGet, fmt.Sprintf("/api/activity?n=%d", n), nil)

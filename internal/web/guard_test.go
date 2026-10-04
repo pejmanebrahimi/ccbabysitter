@@ -1050,3 +1050,24 @@ func TestAnotherPageCannotQuit(t *testing.T) {
 		t.Errorf("no key: %d, hook called %v", resp.StatusCode, called)
 	}
 }
+
+// Another web page cannot get a launch address.
+func TestAnotherPageCannotGetALaunchAddress(t *testing.T) {
+	ts, _, _ := newTS(t)
+	for name, headers := range map[string]map[string]string{
+		"cross-site":     {"Content-Type": "application/json", "Sec-Fetch-Site": "cross-site"},
+		"foreign origin": {"Content-Type": "application/json", "Origin": "http://evil.example"},
+	} {
+		resp := doRequest(t, http.MethodPost, ts.URL+"/api/launch", headers, "{}")
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden || strings.Contains(string(body), "token=") {
+			t.Errorf("%s: %d %q", name, resp.StatusCode, body)
+		}
+	}
+	resp := doPlainRequest(t, http.MethodPost, ts.URL+"/api/launch", map[string]string{"Content-Type": "application/json"}, "{}")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("no key: %d", resp.StatusCode)
+	}
+}
