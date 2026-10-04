@@ -27,27 +27,6 @@ func TestLaunchAgentPlistEscapesPath(t *testing.T) {
 	}
 }
 
-func TestStartupCmdContents(t *testing.T) {
-	got, err := startupCmd(`C:\Users\dev\ws\ccbabysitter.exe`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{"@echo off", `start "" "C:\Users\dev\ws\ccbabysitter.exe"`} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("missing %q in\n%s", want, got)
-		}
-	}
-}
-
-func TestStartupCmdRefusesUnsafePath(t *testing.T) {
-	if _, err := startupCmd(`C:\Users\dev\ws\has"quote.exe`); err == nil {
-		t.Fatal("expected refusal for a path containing a quote")
-	}
-	if _, err := startupCmd(`C:\Users\dev\ws\100%.exe`); err == nil {
-		t.Fatal("expected refusal for a path containing a percent sign")
-	}
-}
-
 // hostPath turns a slash-separated absolute path into one this OS reads as
 // absolute, on drive C: on Windows, since refuseTemporaryBinary takes paths
 // apart with the host's own separator, the way the real ones arrive.

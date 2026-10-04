@@ -158,18 +158,6 @@ func xmlEscape(s string) string {
 	return b.String()
 }
 
-// startupCmd is the two line script the Windows Startup folder runs at
-// login. It refuses a path holding a double quote or a percent sign,
-// since either could make the script do something other than start the
-// named program: a quote would end the quoted argument early, and cmd.exe
-// expands a percent-delimited name as an environment variable.
-func startupCmd(binPath string) (string, error) {
-	if strings.ContainsAny(binPath, `"%`) {
-		return "", fmt.Errorf("the executable path cannot be quoted safely for a startup script: %q", binPath)
-	}
-	return "@echo off\nstart \"\" \"" + binPath + "\"\n", nil
-}
-
 // servicePath is the PATH the systemd user unit runs with, after the
 // folder holding the claude CLI. A user service otherwise gets systemd's
 // own default, which leaves out ~/.local/bin, where the official

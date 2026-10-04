@@ -14,8 +14,8 @@ func TestTheBackgroundProgramIsTheService(t *testing.T) {
 	t.Cleanup(func() { exeName = saved })
 	for name, want := range map[string]bool{
 		`C:\Users\a\AppData\Local\Programs\CCBabysitter\ccbabysitter-background.exe`: true,
-		`C:\x\CCBABYSITTER-BACKGROUND.EXE`:                                          true,
-		`C:\x\ccbabysitter.exe`:                                                     false,
+		`C:\x\CCBABYSITTER-BACKGROUND.EXE`:                                           true,
+		`C:\x\ccbabysitter.exe`:                                                      false,
 	} {
 		exeName = func() string { return name }
 		if got := startedByServiceManager(); got != want {
