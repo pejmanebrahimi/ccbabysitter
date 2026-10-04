@@ -2,7 +2,7 @@
 
 Shows every Claude Code session, and keeps the ones you choose alive, awake and reachable.
 
-CC Babysitter is one local page for every Claude Code session on a machine, whatever app runs it: a terminal, a background session, Claude Desktop or VS Code. Babysit a session and CC Babysitter keeps the computer awake; if the session's app closes while you are away, the session carries on in the background with Remote Control, under the same id, so you can still reach it from your phone. It is one Go binary for macOS, Windows and Linux, the page is served on `127.0.0.1`, and there is nothing to install beside the executable.
+CC Babysitter is one local page for every Claude Code session on a machine, whatever app runs it: a terminal, a background session, Claude Desktop or VS Code. Babysit a session and CC Babysitter keeps the computer awake; if the session's app closes while you are away, the session carries on in the background with Remote Control, under the same id, so you can still reach it from your phone. It is one Go binary for macOS, Windows and Linux, plus a windowless copy of it on Windows, the page is served on `127.0.0.1`, and there is nothing else to install.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/page-dark.png">
@@ -120,7 +120,7 @@ On a server with no display the same page is the session manager. A plain `ccbab
 - If the session's app closes, starts the session again as a background session with Remote Control, under the same id, with `claude --bg --resume`.
 - Lets you unbabysit while the session is still in its own app. Once the background copy carries it, you stop the copy instead with `claude stop`, which keeps the conversation.
 - Says before you babysit when a background copy could not start: the Claude Code CLI must trust the folder, so run `claude` there once, and it never starts in your home folder.
-- Offers, in the same dialog, to start CC Babysitter at login so the promise survives a restart, when that is off. On Linux a plain `ccbabysitter` turns it on the first time it runs.
+- Offers, in the same dialog, to start CC Babysitter at login so the promise survives a restart, when that is off. A plain `ccbabysitter` turns it on the first time it runs.
 - Stops babysitting a session that ended before anything was said in it, and says so in Activity: Claude saves a conversation only after the first message, so there is nothing to bring back.
 - Waits 90 seconds after it starts on a machine with a display before starting anything in the background, so apps that restore their own sessions at login, Claude Desktop in particular, go first.
 - Gives every background session a Copy button for `claude attach <short>`, and on a server a second one for the same command run over `ssh` from another machine. A background copy stopped from the page keeps both on its Not running row, until CC Babysitter restarts.
@@ -145,7 +145,7 @@ ccbabysitter --no-open       start it without opening the page
 ccbabysitter --demo          scripted sessions, touches nothing real
 ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
 ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
-ccbabysitter uninstall       stop it and remove it from the background and from start at login
+ccbabysitter uninstall       stop it and remove it from start at login
 ccbabysitter reset           delete the state folder after confirmation
 ccbabysitter version         print the name and version
 

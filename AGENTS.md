@@ -6,11 +6,11 @@ To use CC Babysitter rather than change it (list sessions, babysit one, babysit 
 
 ## What this is
 
-A single Go binary that keeps Claude Code sessions alive and reachable. It watches every Claude Code session on the machine, and for a session the user babysits it keeps the computer awake and, if the session's app dies, starts the same session again in the background with Remote Control (`claude --bg --resume`). It serves a local page on `127.0.0.1` to see and control all this. A plain `ccbabysitter` starts it in the background and gives the terminal back: as a systemd user unit on Linux, a LaunchAgent on macOS, and a windowless second program on Windows, each starting again at login, or at boot on a Linux server.
+A single Go binary that keeps Claude Code sessions alive and reachable. It watches every Claude Code session on the machine, and for a session the user babysits it keeps the computer awake and, if the session's app dies, starts the same session again in the background with Remote Control (`claude --bg --resume`). It serves a local page on `127.0.0.1` to see and control all this. Where the system allows it, a plain `ccbabysitter` starts it in the background and gives the terminal back: as a systemd user unit on Linux, a LaunchAgent on macOS, and a windowless second program on Windows, each starting again at login, or at boot on a Linux server.
 
 ## Layout
 
-- `cmd/ccbabysitter`: the command line, serving the page, the Linux service install, start at login.
+- `cmd/ccbabysitter`: the command line, the launcher that starts CC Babysitter in the background and the service code for each system (systemd, launchd, the Windows Run key and windowless program), serving the page, start at login. On Windows the same code is also built as `ccbabysitter-background.exe`, the windowless background copy.
 - `internal/client`: the client the control commands (`list`, `babysit`, `stop`, ...) use to talk to the running copy through the same local API as the page.
 - `internal/claude`: reads Claude Code's own session files and parses the `claude` CLI's output. Read-only.
 - `internal/hosts`: the apps a session can live in (terminal, background, Claude Desktop, VS Code), what is installed, and the exact `claude` command lines the program runs.
