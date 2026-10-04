@@ -144,7 +144,7 @@ func TestUnitEnvironmentQuoting(t *testing.T) {
 // mustUnitFile is unitFile for a path that is known to be writable.
 func mustUnitFile(t *testing.T, binPath, cliPath string) string {
 	t.Helper()
-	u, err := unitFile(binPath, cliPath)
+	u, err := unitFile(binPath, cliPath, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,11 +170,30 @@ func TestUnitExecStartQuoting(t *testing.T) {
 		}
 	}
 	bin := "/home/a\nb/ccbabysitter"
-	_, err := unitFile(bin, "")
+	_, err := unitFile(bin, "", false)
 	if err == nil {
 		t.Fatal("a path with a line break was accepted")
 	}
 	if !strings.Contains(err.Error(), fmt.Sprintf("%q", bin)) {
 		t.Errorf("the error does not name the path: %v", err)
+	}
+}
+
+// A desktop unit starts with the graphical session, after it, when the
+// display variables are in the user manager; a server unit starts at boot.
+func TestUnitFileTargetsTheGraphicalSessionOnADesktop(t *testing.T) {
+	desktop, err := unitFile("/home/a/.local/bin/ccbabysitter", "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(desktop, "After=graphical-session.target\n") || !strings.Contains(desktop, "WantedBy=graphical-session.target\n") || strings.Contains(desktop, "default.target") {
+		t.Fatalf("desktop unit:\n%s", desktop)
+	}
+	server, err := unitFile("/home/a/.local/bin/ccbabysitter", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(server, "WantedBy=default.target\n") || strings.Contains(server, "graphical-session") {
+		t.Fatalf("server unit:\n%s", server)
 	}
 }

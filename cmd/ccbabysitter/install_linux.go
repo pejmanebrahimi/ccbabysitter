@@ -34,14 +34,14 @@ func serviceInstalled() bool {
 	return err == nil
 }
 
-// writeUnit writes the user unit that starts binPath, with the folder of
-// the claude CLI found now put on its PATH.
-func writeUnit(binPath string) (string, error) {
+// writeUnit writes the user unit that starts binPath, for a desktop or a
+// server, with the folder of the claude CLI found now put on its PATH.
+func writeUnit(binPath string, desktop bool) (string, error) {
 	path, err := systemdUnitPath()
 	if err != nil {
 		return "", err
 	}
-	text, err := unitFile(binPath, claude.FindCLI())
+	text, err := unitFile(binPath, claude.FindCLI(), desktop)
 	if err != nil {
 		return "", err
 	}
@@ -100,7 +100,7 @@ func (sc systemdControl) Install(out io.Writer) bool {
 		fmt.Fprintln(out, "could not resolve this program's own path:", err)
 		return false
 	}
-	if _, err := writeUnit(bin); err != nil {
+	if _, err := writeUnit(bin, false); err != nil {
 		fmt.Fprintln(out, "could not write the service file:", err)
 		return false
 	}
@@ -125,7 +125,7 @@ func (systemdControl) RefreshUnit(out io.Writer) (rewritten, ok bool) {
 		fmt.Fprintln(out, "could not find the service file:", err)
 		return false, false
 	}
-	want, err := unitFile(bin, claude.FindCLI())
+	want, err := unitFile(bin, claude.FindCLI(), false)
 	if err != nil {
 		fmt.Fprintln(out, "could not write the service file:", err)
 		return false, false

@@ -14,7 +14,7 @@ func TestUnitEnabledFollowsTheWantsLink(t *testing.T) {
 	if autostartInstalled == nil {
 		t.Fatal("the check must be set on this platform")
 	}
-	unit, err := writeUnit("/home/dev/.local/bin/ccbabysitter")
+	unit, err := writeUnit("/home/dev/.local/bin/ccbabysitter", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,5 +47,28 @@ func TestUnitEnabledReportsOtherErrors(t *testing.T) {
 	}
 	if _, err := autostartInstalled(); err == nil {
 		t.Fatal("expected an error")
+	}
+}
+
+func TestAutostartInstalledSeesEitherLink(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	user := filepath.Join(home, ".config", "systemd", "user")
+	for _, target := range []string{"default.target.wants", "graphical-session.target.wants"} {
+		dir := filepath.Join(user, target)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		link := filepath.Join(dir, "ccbabysitter.service")
+		if err := os.WriteFile(link, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if on, err := autostartInstalledLinux(); err != nil || !on {
+			t.Errorf("%s: installed = %v, %v", target, on, err)
+		}
+		os.Remove(link)
+	}
+	if on, _ := autostartInstalledLinux(); on {
+		t.Error("installed with no link at all")
 	}
 }

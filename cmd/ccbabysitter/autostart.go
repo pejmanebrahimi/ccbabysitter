@@ -141,15 +141,18 @@ func startupCmd(binPath string) (string, error) {
 // not find it.
 const servicePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-// unitFile is the systemd user unit that starts binPath, used both by the
-// install subcommand, a plain run on a Linux server and the Linux
-// autostart toggle. It passes --service, which serves in the foreground
-// and never opens a browser, since a systemd user unit can start before
-// the desktop session (and so before there is anywhere to open a browser)
-// is up. When
-// cliPath, the claude CLI found at install time, is known, the unit puts
-// its folder first on PATH; without one there is no Environment line and
-// the unit gets systemd's default.
+// unitFile is the systemd user unit that starts binPath, used by the
+// launcher, the install subcommand and the Linux start at login toggle. It
+// passes --service, which serves in the foreground of the unit and never
+// opens a browser. When cliPath, the claude CLI found when the unit is
+// written, is known, the unit puts its folder first on PATH; without one
+// there is no Environment line and the unit gets systemd's default.
+//
+// A desktop unit is wanted by, and ordered after, graphical-session.target,
+// which systemd reaches once a graphical session is running and its
+// display variables are in the user manager, so the copy it starts sees the
+// desktop. A server unit is wanted by default.target and starts at boot,
+// with lingering on.
 //
 // A binPath holding a line break cannot be written into a unit at all, so
 // it is an error naming the path.
@@ -159,7 +162,7 @@ const servicePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bi
 // daemon that hosts them, are started from the service and so live in its
 // group, and they must outlive it, since nothing but a confirmed Stop may
 // close a session.
-func unitFile(binPath, cliPath string) (string, error) {
+func unitFile(binPath, cliPath string, desktop bool) (string, error) {
 	exec, err := unitExecStart(binPath)
 	if err != nil {
 		return "", err
@@ -171,10 +174,14 @@ func unitFile(binPath, cliPath string) (string, error) {
 		// it apart.
 		env = unitEnvironment("PATH="+path.Dir(cliPath)+":"+servicePath) + "\n"
 	}
+	after, wantedBy := "After=network-online.target\n", "default.target"
+	if desktop {
+		after += "After=graphical-session.target\n"
+		wantedBy = "graphical-session.target"
+	}
 	return `[Unit]
 Description=CC Babysitter: keeps Claude Code sessions alive and remote-controlled
-After=network-online.target
-
+` + after + `
 [Service]
 ` + env + `ExecStart=` + exec + ` --service
 Restart=on-failure
@@ -182,7 +189,7 @@ RestartSec=5
 KillMode=process
 
 [Install]
-WantedBy=default.target
+WantedBy=` + wantedBy + `
 `, nil
 }
 
