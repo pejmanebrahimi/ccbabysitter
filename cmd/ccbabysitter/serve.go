@@ -254,6 +254,11 @@ func shouldOpenBrowser(noOpen, headless, autoOpen bool) bool {
 // everything down cleanly once ctx is canceled. It returns the process
 // exit code.
 func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
+	// A quit from the page or the command line cancels this context, which
+	// shuts everything down exactly as Ctrl+C does.
+	ctx, quitServe := context.WithCancel(ctx)
+	defer quitServe()
+
 	version := buildinfo.Version
 
 	stateDir := state.DefaultDir()
@@ -435,6 +440,7 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 		defer stopDemo()
 	}
 
+	srv.OnQuit(quitServe)
 	httpServer := &http.Server{Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	// An event stream holds its connection open indefinitely and has
 	// nothing in the request to notice a shutdown through, so it is told

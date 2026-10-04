@@ -518,3 +518,60 @@ func TestClaimFailsPlainlyWhenTheOldAddressStays(t *testing.T) {
 		t.Fatalf("held: %q", got)
 	}
 }
+
+// A quit through the API shuts serve down as Ctrl+C does, even with an
+// event stream open: serve returns 0, and well within the shutdown grace
+// period, so the open stream did not hold the shutdown up. (The demo
+// deletes its own state folder as serve returns, so the saved address is
+// not checked here; removing it is the same code as after Ctrl+C.)
+func TestServeQuitsThroughTheAPI(t *testing.T) {
+	out := &syncWriter{}
+	done := make(chan int, 1)
+	dirCh := make(chan string, 1)
+	go func() {
+		done <- serve(context.Background(), serveOptions{Demo: true, NoOpen: true, Port: 0, onStateDir: func(d string) { dirCh <- d }}, out)
+	}()
+	stateDir := <-dirCh
+	keyed := waitForPageURL(t, out)
+	url, _, _ := strings.Cut(keyed, "/?")
+	key := state.ReadPageKey(stateDir)
+
+	stream, err := http.NewRequest(http.MethodGet, url+"/api/events", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream.Header.Set("Authorization", "token "+key)
+	streamResp, err := http.DefaultClient.Do(stream)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer streamResp.Body.Close()
+
+	req, err := http.NewRequest(http.MethodPost, url+"/api/quit", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "token "+key)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("quit = %d", resp.StatusCode)
+	}
+	answered := time.Now()
+
+	select {
+	case rc := <-done:
+		if rc != 0 {
+			t.Fatalf("serve returned %d after a quit", rc)
+		}
+		if took := time.Since(answered); took >= shutdownGrace/2 {
+			t.Fatalf("serve took %v to return after a quit; an open stream held the shutdown up", took)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("serve did not return after a quit")
+	}
+}
