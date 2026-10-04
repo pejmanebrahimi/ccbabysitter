@@ -653,3 +653,35 @@ func TestQuitWhenNotRunningIsExit3(t *testing.T) {
 		t.Fatalf("quit with nothing running = %d, want 3", code)
 	}
 }
+
+// A running copy from before quit existed answers /api/quit with a plain
+// 404. That copy is running, so quit must not say it is not: it says the
+// running copy is too old to quit this way and how to quit it instead.
+func TestQuitAgainstAnOlderCopySaysHowToQuitIt(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/quit" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte(`{"version":"0.4.2"}`))
+	}))
+	t.Cleanup(ts.Close)
+	dir := t.TempDir()
+	if _, err := state.PageKey(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.SavePageURL(dir, ts.URL); err != nil {
+		t.Fatal(err)
+	}
+	holdLock(t, dir)
+	env := controlEnv{stateDir: dir}
+
+	code, _, errOut := runCmd(t, env, "quit")
+	if code != 1 || strings.Contains(errOut, "not running") || !strings.Contains(errOut, "older version") || !strings.Contains(errOut, "Ctrl+C") {
+		t.Fatalf("quit against an older copy = %d %q", code, errOut)
+	}
+	code, out, _ := runCmd(t, env, "quit", "--json")
+	if doc := oneJSON(t, out); code != 1 || doc["ok"] != false {
+		t.Fatalf("quit --json against an older copy = %d %v", code, doc)
+	}
+}
