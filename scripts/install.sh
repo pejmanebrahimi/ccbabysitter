@@ -220,6 +220,14 @@ service_ready() {
 	systemctl --user show-environment >/dev/null 2>&1
 }
 
+# knows_background reports whether the program just installed runs in the
+# background when started plainly, which versions from 0.5 do and know
+# the quit command. An older release, installed by this newer script, is
+# left for the person to start.
+knows_background() {
+	"$dest" help quit >/dev/null 2>&1
+}
+
 # mac_agent_running reports whether CC Babysitter's LaunchAgent runs in this
 # Mac's login, which a plain run then replaces with the version just
 # installed.
@@ -293,7 +301,7 @@ main() {
 			"$dest" </dev/null
 			exit $?
 		fi
-		if systemctl --user is-active --quiet ccbabysitter >/dev/null 2>&1; then
+		if systemctl --user is-active --quiet ccbabysitter >/dev/null 2>&1 && knows_background; then
 			# A desktop's background copy: a plain run restarts it on the
 			# new version and prints where its page is, without opening it
 			# again.
@@ -303,7 +311,7 @@ main() {
 		fi
 	fi
 
-	if mac_agent_running; then
+	if mac_agent_running && knows_background; then
 		# A Mac's background copy, the LaunchAgent: a plain run restarts it
 		# on the new version and prints where its page is, without opening
 		# it again.

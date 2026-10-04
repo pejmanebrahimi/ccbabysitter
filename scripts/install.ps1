@@ -162,6 +162,43 @@ function Install-CCBabysitter {
         [IO.File]::Move($bak, $target)
     }
 
+    # Invoke-Quiet runs the installed program and returns its exit code,
+    # with its output thrown away. Windows PowerShell 5.1 turns a line a
+    # program writes to stderr into an error, which this script's Stop
+    # preference would end on, so that preference is relaxed in here.
+    function Invoke-Quiet($exe, [string[]]$arguments) {
+        $ErrorActionPreference = 'Continue'
+        & $exe @arguments *> $null
+        return $LASTEXITCODE
+    }
+
+    # Test-Writable reports whether every file in $paths that exists can be
+    # opened for writing, which a running program's file cannot.
+    function Test-Writable([string[]]$paths) {
+        foreach ($path in $paths) {
+            if (-not (Test-Path -LiteralPath $path)) {
+                continue
+            }
+            try {
+                [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None).Close()
+            } catch {
+                return $false
+            }
+        }
+        return $true
+    }
+
+    # Get-Sum is the checksum checksums.txt gives for $name, or nothing.
+    function Get-Sum($sums, $name) {
+        foreach ($line in Get-Content -LiteralPath $sums) {
+            $fields = $line.Trim() -split '\s+'
+            if ($fields.Count -ge 2 -and ($fields[1] -ceq $name -or $fields[1] -ceq "*$name")) {
+                return $fields[0].ToLowerInvariant()
+            }
+        }
+        return $null
+    }
+
     $tmp = Join-Path ([IO.Path]::GetTempPath()) ('ccbabysitter-' + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $tmp -Force | Out-Null
     $moved = $false
@@ -169,28 +206,27 @@ function Install-CCBabysitter {
     $wasRunning = $false
     try {
         $sums = Join-Path $tmp 'checksums.txt'
+        try {
+            Invoke-WebRequest -UseBasicParsing -Uri "$base/checksums.txt" -OutFile $sums
+        } catch {
+            throw "Could not download $base/checksums.txt: $(Get-Reason $_.Exception)"
+        }
+        # Releases before 0.5 have no windowless program: those install
+        # ccbabysitter.exe alone, as they always did.
+        $names = @($asset)
+        if (Get-Sum $sums $bgAsset) {
+            $names += $bgAsset
+        }
         $files = @{}
-        foreach ($name in @($asset, $bgAsset)) {
+        foreach ($name in $names) {
             $files[$name] = Join-Path $tmp $name
-        }
-        Write-Host "Downloading $asset and $bgAsset from $base"
-        foreach ($pair in @(@("$base/$asset", $files[$asset]), @("$base/$bgAsset", $files[$bgAsset]), @("$base/checksums.txt", $sums))) {
+            Write-Host "Downloading $name from $base"
             try {
-                Invoke-WebRequest -UseBasicParsing -Uri $pair[0] -OutFile $pair[1]
+                Invoke-WebRequest -UseBasicParsing -Uri "$base/$name" -OutFile $files[$name]
             } catch {
-                throw "Could not download $($pair[0]): $(Get-Reason $_.Exception)"
+                throw "Could not download $base/${name}: $(Get-Reason $_.Exception)"
             }
-        }
-
-        foreach ($name in @($asset, $bgAsset)) {
-            $want = $null
-            foreach ($line in Get-Content -LiteralPath $sums) {
-                $fields = $line.Trim() -split '\s+'
-                if ($fields.Count -ge 2 -and ($fields[1] -ceq $name -or $fields[1] -ceq "*$name")) {
-                    $want = $fields[0].ToLowerInvariant()
-                    break
-                }
-            }
+            $want = Get-Sum $sums $name
             if (-not $want) {
                 throw "checksums.txt has no line for $name, so the download cannot be checked. Nothing was installed."
             }
@@ -199,26 +235,31 @@ function Install-CCBabysitter {
                 throw "The download of $name does not match its checksum (expected $want, got $got). Nothing was installed."
             }
         }
+        $withBackground = $files.ContainsKey($bgAsset)
 
         # A running CC Babysitter keeps its program files open, so it is
         # asked to quit first, and started again in the background once
-        # the new version is in place. A copy from before quit existed
-        # stays running, and the replace below then says to quit it.
-        if (Test-Path -LiteralPath $dest) {
-            & $dest status *> $null
-            if ($LASTEXITCODE -eq 0) {
+        # the new version is in place. The wait is for the files to be
+        # let go, not only for the page to stop answering. A copy from
+        # before quit existed does not know the command and stays running,
+        # and the replace below then says to quit it by hand.
+        if ($withBackground -and (Test-Path -LiteralPath $dest)) {
+            if ((Invoke-Quiet $dest @('status')) -eq 0) {
                 $wasRunning = $true
-                & $dest quit *> $null
-                $deadline = (Get-Date).AddSeconds(10)
-                do {
-                    Start-Sleep -Milliseconds 300
-                    & $dest status *> $null
-                } while ($LASTEXITCODE -eq 0 -and (Get-Date) -lt $deadline)
+                Write-Host 'Asking CC Babysitter to quit, to replace it.'
+                if ((Invoke-Quiet $dest @('quit')) -eq 0) {
+                    $deadline = (Get-Date).AddSeconds(15)
+                    while (-not (Test-Writable @($dest, $bgDest)) -and (Get-Date) -lt $deadline) {
+                        Start-Sleep -Milliseconds 300
+                    }
+                }
             }
         }
 
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
-        $bgMoved = Replace-File $files[$bgAsset] $bgDest
+        if ($withBackground) {
+            $bgMoved = Replace-File $files[$bgAsset] $bgDest
+        }
         try {
             $moved = Replace-File $files[$asset] $dest
         } catch {
@@ -291,6 +332,7 @@ function Install-CCBabysitter {
     if ($wasRunning) {
         # The new version runs in the background again, and prints where
         # its page is, without opening it.
+        $ErrorActionPreference = 'Continue'
         & $dest --no-open
     } else {
         Write-Host 'Start it with: ccbabysitter'

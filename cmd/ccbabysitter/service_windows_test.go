@@ -3,10 +3,14 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
 // windowsProgram puts the program and, when background is set, the
@@ -107,5 +111,36 @@ func TestWindowsRefreshFollowsAMovedProgram(t *testing.T) {
 	var out strings.Builder
 	if rewritten, ok := (windowsControl{}).RefreshUnit(&out, true); !rewritten || !ok {
 		t.Fatalf("rewritten %v ok %v", rewritten, ok)
+	}
+}
+
+// After a reboot the saved page address may be stale, and another
+// account's server may listen on its port by now: uninstall sends the key
+// nowhere unless a live copy holds the state folder's lock.
+func TestWindowsUninstallSendsNoKeyToAStaleAddress(t *testing.T) {
+	t.Setenv("LOCALAPPDATA", t.TempDir())
+	t.Setenv("APPDATA", t.TempDir())
+	windowsProgram(t, true)
+	useFakeReg(t)
+	var seen []string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = append(seen, r.URL.String()+" "+r.Header.Get("Authorization"))
+	}))
+	t.Cleanup(ts.Close)
+	dir := state.DefaultDir()
+	if _, err := state.PageKey(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.SavePageURL(dir, ts.URL); err != nil {
+		t.Fatal(err)
+	}
+	// A lock left by a copy that is gone.
+	if err := os.WriteFile(filepath.Join(dir, "ccbabysitter.lock"), []byte("999999 1"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var out strings.Builder
+	runUninstall(&out)
+	if len(seen) != 0 {
+		t.Fatalf("the stale address was sent %q", seen)
 	}
 }

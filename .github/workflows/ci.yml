@@ -106,3 +106,62 @@ jobs:
               echo "Built $out"
             fi
           done
+
+  # install.ps1 has no harness of its own, and there is no Windows to try it
+  # on by hand for every change: this installs a fresh build with Windows
+  # PowerShell 5.1, the one every Windows has, starts CC Babysitter in the
+  # background, then installs again over the running copy, the way an
+  # update does, and checks it runs afterwards.
+  windows-install:
+    name: install on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Build the Windows release files
+        shell: bash
+        run: |
+          d="$RUNNER_TEMP/rel"
+          mkdir -p "$d"
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$d/ccbabysitter-windows-amd64.exe" ./cmd/ccbabysitter
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -H windowsgui" -o "$d/ccbabysitter-background-windows-amd64.exe" ./cmd/ccbabysitter
+          (cd "$d" && sha256sum ccbabysitter-* > checksums.txt && cat checksums.txt)
+
+      - name: Install, start in the background, and update over it
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $rel = Join-Path $env:RUNNER_TEMP 'rel'
+          $server = Start-Process -FilePath python -ArgumentList '-m', 'http.server', '8765', '--bind', '127.0.0.1' -WorkingDirectory $rel -PassThru -WindowStyle Hidden
+          Start-Sleep -Seconds 3
+          $env:CCBABYSITTER_DOWNLOAD_URL = 'http://127.0.0.1:8765'
+          $env:CCBABYSITTER_INSTALL_DIR = Join-Path $env:RUNNER_TEMP 'ccb'
+          $ccb = Join-Path $env:CCBABYSITTER_INSTALL_DIR 'ccbabysitter.exe'
+          try {
+            Write-Host '--- fresh install'
+            powershell -NoProfile -File scripts/install.ps1
+            if ($LASTEXITCODE -ne 0) { throw 'the fresh install failed' }
+            if (-not (Test-Path (Join-Path $env:CCBABYSITTER_INSTALL_DIR 'ccbabysitter-background.exe'))) { throw 'no windowless program was installed' }
+            Write-Host '--- start in the background'
+            & $ccb --no-open
+            if ($LASTEXITCODE -ne 0) { throw 'ccbabysitter did not start in the background' }
+            & $ccb status
+            if ($LASTEXITCODE -ne 0) { throw 'not running after the start' }
+            Write-Host '--- update over the running copy'
+            powershell -NoProfile -File scripts/install.ps1
+            if ($LASTEXITCODE -ne 0) { throw 'the update failed' }
+            & $ccb status
+            if ($LASTEXITCODE -ne 0) { throw 'not running after the update' }
+            & $ccb activity -n 10
+            Write-Host '--- quit'
+            & $ccb quit
+            if ($LASTEXITCODE -ne 0) { throw 'quit failed' }
+          } finally {
+            Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+          }

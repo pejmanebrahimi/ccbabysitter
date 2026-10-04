@@ -95,6 +95,11 @@ func setRunValue() error {
 // reports the Run value it set or deleted.
 func installAutostartWindows(enable bool) (string, error) {
 	name := runKey + `\` + runValue
+	if enable && !(windowsControl{}).Usable() {
+		// Without the windowless program, as after go install, a Run value
+		// would name a missing file and nothing would start at login.
+		return "", fmt.Errorf("start at login needs %s beside ccbabysitter.exe, which the install script installs", backgroundExe)
+	}
 	if err := removeLegacyScript(); err != nil {
 		return "", err
 	}

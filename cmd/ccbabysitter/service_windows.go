@@ -160,6 +160,7 @@ func (windowsControl) Start(out io.Writer, desktop bool) bool {
 // folder go, and starts it again.
 func (c windowsControl) Restart(out io.Writer, desktop bool) bool {
 	stateDir := state.DefaultDir()
+	state.SetPIDChecker(procs.NewReal().Exists)
 	if cl, err := client.New(stateDir, ""); err == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		_, _ = cl.Quit(ctx)

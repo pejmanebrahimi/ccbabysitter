@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/client"
+	"ccbabysitter.dev/ccbabysitter/internal/procs"
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
@@ -23,6 +24,9 @@ func runInstall(out io.Writer) int {
 // removes an earlier version's Startup script. The state folder stays.
 func runUninstall(out io.Writer) int {
 	stateDir := state.DefaultDir()
+	// The page's key goes only to a copy whose lock names a live process,
+	// never to a stale address another account may listen on by now.
+	state.SetPIDChecker(procs.NewReal().Exists)
 	if cl, err := client.New(stateDir, ""); err == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		if res, err := cl.Quit(ctx); err == nil && res.OK {

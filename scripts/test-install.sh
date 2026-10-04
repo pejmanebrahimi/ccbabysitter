@@ -653,7 +653,7 @@ case_linux_desktop_running() {
 	shim_systemctl 0 0
 	run_install CCBABYSITTER_DOWNLOAD_URL="$url/fake" DISPLAY= WAYLAND_DISPLAY=wayland-0
 	expect_status 0
-	expect_fake_calls "argc=1 args=version;argc=1 args=--no-open stdin=0;"
+	expect_fake_calls "argc=1 args=version;argc=2 args=help quit stdin=0;argc=1 args=--no-open stdin=0;"
 	expect_no_out "Start it with"
 	expect_clean
 }
@@ -666,8 +666,22 @@ case_mac_running() {
 	shim_launchctl running
 	run_install CCBABYSITTER_DOWNLOAD_URL="$url/fake"
 	expect_status 0
-	expect_fake_calls "argc=1 args=version;argc=1 args=--no-open stdin=0;"
+	expect_fake_calls "argc=1 args=version;argc=2 args=help quit stdin=0;argc=1 args=--no-open stdin=0;"
 	expect_no_out "Start it with"
+	expect_clean
+}
+
+# A release from before background mode, installed by this script over a
+# running background copy, has no quit command: it is left for the person
+# to start, rather than run where it would serve in the foreground.
+case_linux_desktop_running_older() {
+	new_case linux-desktop-running-older
+	shim_uname Linux x86_64
+	shim_systemctl 0 0
+	run_install CCBABYSITTER_DOWNLOAD_URL="$url/fake" DISPLAY= WAYLAND_DISPLAY=wayland-0 FAKE_EXIT=2
+	expect_status 0
+	expect_fake_calls "argc=1 args=version;argc=2 args=help quit stdin=0;"
+	expect_out "Start it with:"
 	expect_clean
 }
 
@@ -820,7 +834,7 @@ for t in case_default_dir case_hint_bash case_hint_sh case_hint_fish case_hint_o
 	case_linux_no_display case_linux_ssh case_linux_ssh_tty case_linux_no_opener \
 	case_linux_no_user_manager case_linux_no_systemctl case_linux_invocation_id \
 	case_stdin_pipe case_stdin_pipe_service case_stdin_redirect \
-	case_linux_desktop case_linux_desktop_running case_mac_running case_mac_ssh case_default_url case_fallbacks case_relative_dir \
+	case_linux_desktop case_linux_desktop_running case_linux_desktop_running_older case_mac_running case_mac_ssh case_default_url case_fallbacks case_relative_dir \
 	case_no_home case_cut_short; do
 	check "$t"
 done

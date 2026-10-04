@@ -69,6 +69,7 @@ func TestRunValueStartsTheBackgroundProgram(t *testing.T) {
 // earlier version wrote, which opened a console window at every login.
 func TestStartAtLoginOnSetsTheRunValue(t *testing.T) {
 	appData := windowsHome(t)
+	dir := windowsProgram(t, true)
 	script := legacyScript(t, appData)
 	f := useFakeReg(t)
 	path, err := installAutostartWindows(true)
@@ -78,7 +79,7 @@ func TestStartAtLoginOnSetsTheRunValue(t *testing.T) {
 	if path != runKey+`\CCBabysitter` {
 		t.Fatalf("reported %q", path)
 	}
-	want := `add ` + runKey + ` /v CCBabysitter /t REG_SZ /d "C:\Programs\CCBabysitter\ccbabysitter-background.exe" --service /f`
+	want := `add ` + runKey + ` /v CCBabysitter /t REG_SZ /d "` + filepath.Join(dir, backgroundExe) + `" --service /f`
 	if len(f.calls) != 1 || f.calls[0] != want {
 		t.Fatalf("calls %q, want %q", f.calls, want)
 	}
@@ -112,5 +113,26 @@ func TestStartAtLoginIsOnWithTheValueOrTheOldScript(t *testing.T) {
 	legacyScript(t, appData)
 	if on, err := autostartInstalledWindows(); err != nil || !on {
 		t.Fatalf("the old script is there: %v %v", on, err)
+	}
+}
+
+// A copy installed with go install has no windowless program: start at
+// login is refused, rather than a Run value naming a missing file, and an
+// earlier version's working Startup script is kept.
+func TestStartAtLoginNeedsTheBackgroundProgram(t *testing.T) {
+	appData := windowsHome(t)
+	windowsProgram(t, false)
+	script := legacyScript(t, appData)
+	f := useFakeReg(t)
+	if _, err := installAutostartWindows(true); err == nil || !strings.Contains(err.Error(), backgroundExe) {
+		t.Fatalf("err %v", err)
+	}
+	if _, err := os.Stat(script); err != nil {
+		t.Fatal("the working Startup script was removed")
+	}
+	for _, c := range f.calls {
+		if strings.HasPrefix(c, "add ") {
+			t.Fatalf("a Run value was written: %q", f.calls)
+		}
 	}
 }
