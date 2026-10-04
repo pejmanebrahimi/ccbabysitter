@@ -116,6 +116,12 @@ func TestParseServeFlags(t *testing.T) {
 	if _, err := parseServeFlags([]string{"--no-open", "extra"}, false); err == nil {
 		t.Fatal("a stray argument is refused")
 	}
+	if opts, _ := parseServeFlags([]string{"--foreground"}, false); !opts.Foreground || opts.PortSet {
+		t.Fatalf("--foreground: %+v", opts)
+	}
+	if opts, _ := parseServeFlags([]string{"--port", "5000"}, false); !opts.PortSet || opts.Port != 5000 {
+		t.Fatalf("--port: %+v", opts)
+	}
 }
 
 // A command's help flag shows its page and runs nothing: install and

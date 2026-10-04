@@ -40,6 +40,12 @@ type serveOptions struct {
 	NoOpen bool
 	Demo   bool
 	Port   int
+	// Foreground keeps a plain run serving in this terminal instead of
+	// handing CC Babysitter to the system's service manager.
+	Foreground bool
+	// PortSet is whether --port was given, which only a run that serves in
+	// this terminal can use.
+	PortSet bool
 	// Service is set when the systemd unit runs this copy, or anything else
 	// whose output goes to the systemd journal. Its output goes
 	// to the journal, which other accounts may be able to read and which

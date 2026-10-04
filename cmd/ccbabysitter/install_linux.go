@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
+	"ccbabysitter.dev/ccbabysitter/internal/hosts"
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
@@ -92,15 +93,15 @@ func (systemdControl) Active() bool {
 	return runSystemctl("is-active", "--quiet", "ccbabysitter") == nil
 }
 
-// Install writes the unit and has systemd read it, then enables and
-// starts it as Enable does.
-func (sc systemdControl) Install(out io.Writer) bool {
+// Write writes the unit, for a desktop or a server, and has systemd read
+// it. It starts nothing.
+func (systemdControl) Write(out io.Writer, desktop bool) bool {
 	bin, err := resolvedExecutablePath()
 	if err != nil {
 		fmt.Fprintln(out, "could not resolve this program's own path:", err)
 		return false
 	}
-	if _, err := writeUnit(bin, false); err != nil {
+	if _, err := writeUnit(bin, desktop); err != nil {
 		fmt.Fprintln(out, "could not write the service file:", err)
 		return false
 	}
@@ -108,13 +109,15 @@ func (sc systemdControl) Install(out io.Writer) bool {
 		fmt.Fprintln(out, "systemctl --user daemon-reload failed:", err)
 		return false
 	}
-	return sc.Enable(out)
+	return true
 }
 
 // RefreshUnit writes the unit again when it is not the one this program
-// would write now, naming this program where it is now and the claude CLI
-// found now, and has systemd read it again.
-func (systemdControl) RefreshUnit(out io.Writer) (rewritten, ok bool) {
+// would write now, for a desktop or a server, naming this program where it
+// is now and the claude CLI found now, and has systemd read it again. A
+// rewritten unit whose start at login was on is enabled again, so its
+// enable link follows the target the unit names now.
+func (systemdControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bool) {
 	bin, err := resolvedExecutablePath()
 	if err != nil {
 		fmt.Fprintln(out, "could not resolve this program's own path:", err)
@@ -125,7 +128,7 @@ func (systemdControl) RefreshUnit(out io.Writer) (rewritten, ok bool) {
 		fmt.Fprintln(out, "could not find the service file:", err)
 		return false, false
 	}
-	want, err := unitFile(bin, claude.FindCLI(), false)
+	want, err := unitFile(bin, claude.FindCLI(), desktop)
 	if err != nil {
 		fmt.Fprintln(out, "could not write the service file:", err)
 		return false, false
@@ -141,11 +144,56 @@ func (systemdControl) RefreshUnit(out io.Writer) (rewritten, ok bool) {
 		fmt.Fprintln(out, "systemctl --user daemon-reload failed:", err)
 		return true, false
 	}
+	if on, _ := autostartInstalledLinux(); on {
+		if err := runSystemctl("reenable", "ccbabysitter"); err != nil {
+			fmt.Fprintln(out, "systemctl --user reenable ccbabysitter failed:", err)
+			return true, false
+		}
+	}
 	return true, true
 }
 
-// Restart stops the service and starts it again, as the unit says now.
+// displayVariablesSet names the display variables set in this process,
+// which a start from a desktop terminal hands to the user manager so the
+// background copy sees the desktop, as a desktop session itself does.
+func displayVariablesSet() []string {
+	var names []string
+	for _, name := range []string{"DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY"} {
+		if os.Getenv(name) != "" {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// importDisplay hands the display variables set here to the user manager.
+// Failing only means the background copy may not see the desktop until the
+// next login, so it is reported and the start goes on.
+func importDisplay(out io.Writer) {
+	names := displayVariablesSet()
+	if len(names) == 0 {
+		return
+	}
+	if err := runSystemctl(append([]string{"import-environment"}, names...)...); err != nil {
+		fmt.Fprintln(out, "systemctl --user import-environment failed:", err)
+	}
+}
+
+// Start hands over the display variables, then starts the unit, which
+// leaves one already running alone. It does not enable it.
+func (systemdControl) Start(out io.Writer) bool {
+	importDisplay(out)
+	if err := runSystemctl("start", "ccbabysitter"); err != nil {
+		fmt.Fprintln(out, "systemctl --user start ccbabysitter failed:", err)
+		return false
+	}
+	return true
+}
+
+// Restart hands over the display variables, then stops the service and
+// starts it again, as the unit says now.
 func (systemdControl) Restart(out io.Writer) bool {
+	importDisplay(out)
 	if err := runSystemctl("restart", "ccbabysitter"); err != nil {
 		fmt.Fprintln(out, "systemctl --user restart ccbabysitter failed:", err)
 		return false
@@ -186,9 +234,12 @@ func (systemdControl) SetLingering(user string, on bool) error {
 // runInstall sets CC Babysitter up as a systemd user service that starts
 // at boot and keeps running after the user logs out, or starts the one
 // already set up, then says how to reach its page. It does this whether or
-// not the machine has a display.
+// not the machine has a display, and a service manager that does not
+// answer shows up as the systemctl step that failed, never as a run in
+// this terminal.
 func runInstall(out io.Writer) int {
-	return installService(out, newServiceControl(), state.DefaultDir(), waitForService)
+	o := launchOptions{Install: true, Headless: hosts.Headless(), NoOpen: true}
+	return runLauncher(out, newServiceControl(), state.DefaultDir(), o, realLaunchDeps())
 }
 
 // runUninstall reverses install: it stops and disables the service,
@@ -200,7 +251,7 @@ func runUninstall(out io.Writer) int {
 	// date, and read again by systemd, before the service is stopped. This
 	// is best effort: whatever fails here, uninstall goes on.
 	if serviceInstalled() {
-		_, _ = systemdControl{}.RefreshUnit(io.Discard)
+		_, _ = systemdControl{}.RefreshUnit(io.Discard, !hosts.Headless())
 	}
 	if err := runSystemctl("disable", "--now", "ccbabysitter"); err != nil {
 		fmt.Fprintln(out, "systemctl --user disable --now ccbabysitter failed:", err)
@@ -226,4 +277,4 @@ func runUninstall(out io.Writer) int {
 
 // foregroundHint is how to run CC Babysitter after uninstall without a
 // plain run setting the service up again.
-const foregroundHint = "To run CC Babysitter only while a terminal stays open, start it with: ccbabysitter --no-open"
+const foregroundHint = "To run CC Babysitter only while a terminal stays open, start it with: ccbabysitter --foreground"

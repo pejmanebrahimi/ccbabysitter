@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"runtime"
 	"strings"
 	"syscall"
 
@@ -66,21 +65,25 @@ func run(args []string) int {
 		}
 	}
 
-	// A plain run on a Linux server hands CC Babysitter to the systemd
-	// user manager and gives the terminal back, rather than serving only
-	// for as long as this ssh session lasts.
-	if setsUpService(runtime.GOOS, args, os.Getenv("INVOCATION_ID"), hosts.Headless()) {
-		if sc := newServiceControl(); sc != nil {
-			if rc, foreground := startAsService(os.Stdout, sc, state.DefaultDir(), waitForService); !foreground {
-				return rc
-			}
-		}
-	}
-
 	opts, err := parseServeFlags(args, stdoutToJournal())
 	if err != nil {
 		printUsage(os.Stderr)
 		return 2
+	}
+	// A plain run hands CC Babysitter to the system's service manager and
+	// gives the terminal back, where there is one to hand it to. Elsewhere,
+	// and with --foreground, it serves in this terminal.
+	if launches(opts, os.Getenv("INVOCATION_ID")) {
+		if sc := newServiceControl(); sc != nil {
+			if opts.PortSet {
+				fmt.Fprintln(os.Stderr, "--port only applies with --foreground, since the background copy picks its own port.")
+				return 2
+			}
+			o := launchOptions{Headless: hosts.Headless(), NoOpen: opts.NoOpen}
+			if rc, foreground := startInBackground(os.Stdout, sc, state.DefaultDir(), o, realLaunchDeps()); !foreground {
+				return rc
+			}
+		}
 	}
 	return runServe(opts)
 }
@@ -132,6 +135,7 @@ func parseServeFlags(args []string, journal bool) (serveOptions, error) {
 	fs := flag.NewFlagSet("ccbabysitter", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
+	foreground := fs.Bool("foreground", false, "serve in this terminal")
 	service := fs.Bool("service", false, "run as the systemd user service")
 	demo := fs.Bool("demo", false, "scripted sessions that touch nothing real")
 	port := fs.Int("port", defaultPort, "preferred port to serve the page on")
@@ -141,8 +145,10 @@ func parseServeFlags(args []string, journal bool) (serveOptions, error) {
 	if fs.NArg() > 0 {
 		return serveOptions{}, fmt.Errorf("unexpected argument %q", fs.Arg(0))
 	}
+	portSet := false
+	fs.Visit(func(f *flag.Flag) { portSet = portSet || f.Name == "port" })
 	asService := *service || journal
-	return serveOptions{NoOpen: *noOpen || asService, Service: asService, Demo: *demo, Port: *port}, nil
+	return serveOptions{NoOpen: *noOpen || asService, Service: asService, Demo: *demo, Port: *port, Foreground: *foreground, PortSet: portSet}, nil
 }
 
 // runServe starts serve and stops it on SIGINT or SIGTERM: the first
