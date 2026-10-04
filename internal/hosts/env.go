@@ -346,8 +346,10 @@ func realRegistryHandler(platform, scheme string) (string, bool) {
 	case "windows":
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		out, err := exec.CommandContext(ctx, "reg", "query",
-			`HKCU\Software\Classes\`+scheme+`\shell\open\command`, "/ve").Output()
+		cmd := exec.CommandContext(ctx, "reg", "query",
+			`HKCU\Software\Classes\`+scheme+`\shell\open\command`, "/ve")
+		noWindow(cmd)
+		out, err := cmd.Output()
 		if err != nil {
 			return "", false
 		}

@@ -43,6 +43,7 @@ func (r ExecRunner) Run(ctx context.Context, cwd string, args ...string) (string
 		defer cancel()
 	}
 	cmd := exec.CommandContext(ctx, bin, args...)
+	noWindow(cmd)
 	cmd.Dir = cwd
 	cmd.Stdin = strings.NewReader("")
 	// Bound how long Wait keeps the output pipes open after the context is

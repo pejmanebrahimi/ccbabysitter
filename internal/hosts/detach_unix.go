@@ -12,3 +12,7 @@ import (
 func detach(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 }
+
+// noWindow does nothing outside Windows, where a console helper started
+// from a background process opens no window.
+func noWindow(*exec.Cmd) {}
