@@ -145,7 +145,7 @@ ccbabysitter --no-open       start it without opening the page
 ccbabysitter --demo          scripted sessions, touches nothing real
 ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
 ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
-ccbabysitter uninstall       reverse install
+ccbabysitter uninstall       stop it and remove it from the background and from start at login
 ccbabysitter reset           delete the state folder after confirmation
 ccbabysitter version         print the name and version
 
