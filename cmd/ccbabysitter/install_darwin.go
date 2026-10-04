@@ -17,8 +17,11 @@ func runInstall(out io.Writer) int {
 // runUninstall stops the LaunchAgent and removes its plist, wherever it is.
 // The state folder stays.
 func runUninstall(out io.Writer) int {
-	_, _ = runLaunchctl("bootout", launchdJob())
-	fmt.Fprintln(out, "Stopped the CC Babysitter LaunchAgent.")
+	if _, err := runLaunchctl("bootout", launchdJob()); err != nil {
+		fmt.Fprintln(out, "The CC Babysitter LaunchAgent was not running.")
+	} else {
+		fmt.Fprintln(out, "Stopped the CC Babysitter LaunchAgent.")
+	}
 	rc := 0
 	for _, path := range []string{agentPath(), offPath()} {
 		if on, _ := pathPresent(path); !on || path == "" {

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeLaunchctl answers launchctl from answers, keyed by the joined
@@ -17,6 +18,9 @@ import (
 type fakeLaunchctl struct {
 	answers map[string]fakeAnswer
 	calls   []string
+	// stuck keeps the job loaded after a bootout, as launchd does while
+	// the old process is still shutting down.
+	stuck bool
 }
 
 type fakeAnswer struct {
@@ -32,7 +36,7 @@ func useFakeLaunchctl(t *testing.T) *fakeLaunchctl {
 		key := strings.Join(args, " ")
 		f.calls = append(f.calls, key)
 		// A bootout unloads the job, as launchd does.
-		if args[0] == "bootout" {
+		if args[0] == "bootout" && !f.stuck {
 			f.answers["print "+job()] = notLoaded
 		}
 		a := f.answers[key]
@@ -252,5 +256,42 @@ func TestStartedByLaunchd(t *testing.T) {
 func TestNotStartedLineOnMacOSNeedsNoJournal(t *testing.T) {
 	if line := notStartedLine(); strings.Contains(line, "journalctl") || !strings.Contains(line, "launchctl print") {
 		t.Fatalf("%q", line)
+	}
+}
+
+// A job launchd still holds after the wait is never loaded over: the load
+// would fail, and nothing would start the copy once the old one ended.
+func TestLaunchdRestartWaitsForTheOldJob(t *testing.T) {
+	launchdHome(t)
+	f := useFakeLaunchctl(t)
+	saved := launchdUnloadWait
+	launchdUnloadWait = 200 * time.Millisecond
+	t.Cleanup(func() { launchdUnloadWait = saved })
+	var out strings.Builder
+	(launchdControl{}).Write(&out, true)
+	f.calls = nil
+	f.stuck = true
+	f.answers["print "+job()] = fakeAnswer{"state = running\n", nil}
+	if (launchdControl{}).Restart(&out, true) {
+		t.Fatal("restarted over a job that is still loaded")
+	}
+	for _, c := range f.calls {
+		if strings.HasPrefix(c, "bootstrap") {
+			t.Fatalf("loaded again while the old job was there: %q", f.calls)
+		}
+	}
+	if !strings.Contains(out.String(), "still") {
+		t.Fatalf("output %q", out.String())
+	}
+}
+
+func TestDarwinUninstallSaysWhenBootoutFailed(t *testing.T) {
+	launchdHome(t)
+	f := useFakeLaunchctl(t)
+	f.answers["bootout "+job()] = fakeAnswer{"Boot-out failed: 3: No such process", errors.New("exit status 3")}
+	var out strings.Builder
+	runUninstall(&out)
+	if strings.Contains(out.String(), "Stopped the CC Babysitter LaunchAgent.") || !strings.Contains(out.String(), "was not running") {
+		t.Fatalf("output %q", out.String())
 	}
 }

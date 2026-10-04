@@ -142,8 +142,9 @@ func (launchdControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bo
 }
 
 // launchdUnloadWait is how long a reload waits for launchd to finish
-// unloading the job before loading it again; loading too soon fails.
-var launchdUnloadWait = 3 * time.Second
+// unloading the job, and the old copy to finish quitting, before loading it
+// again: a few seconds past the shutdown grace.
+var launchdUnloadWait = 10 * time.Second
 
 // loadFailedHint follows a failure to load the LaunchAgent: the usual cause
 // is that it was switched off under Login Items.
@@ -159,14 +160,24 @@ func (c launchdControl) Start(out io.Writer, desktop bool) bool {
 	return bootstrapAgent(out)
 }
 
-// Restart unloads the LaunchAgent, waits for launchd to let it go, and
-// loads it again, so launchd reads a plist written since it was loaded.
+// Restart unloads the LaunchAgent, waits until launchd has let it go and
+// the old copy has released the state folder, and loads it again, so
+// launchd reads a plist written since it was loaded. A job launchd still
+// holds after the wait is not loaded over, since that load would fail and
+// nothing would start the copy once the old one ended.
 func (launchdControl) Restart(out io.Writer, desktop bool) bool {
 	_, _ = runLaunchctl("bootout", launchdJob())
+	stateDir := state.DefaultDir()
 	deadline := time.Now().Add(launchdUnloadWait)
 	for {
-		if _, err := runLaunchctl("print", launchdJob()); err != nil || !time.Now().Before(deadline) {
+		_, err := runLaunchctl("print", launchdJob())
+		gone := err != nil && !state.IsHeld(stateDir)
+		if gone {
 			break
+		}
+		if !time.Now().Before(deadline) {
+			fmt.Fprintln(out, "CC Babysitter is still shutting down. Run ccbabysitter again in a moment.")
+			return false
 		}
 		time.Sleep(100 * time.Millisecond)
 	}

@@ -221,6 +221,7 @@ func TestLaunchAgentPlistRunsTheServiceAndComesBackFromACrash(t *testing.T) {
 		"<string>/Users/dev/.local/bin/ccbabysitter</string>\n\t\t<string>--service</string>",
 		"<key>KeepAlive</key>\n\t<dict>\n\t\t<key>SuccessfulExit</key>\n\t\t<false/>\n\t</dict>",
 		"<key>AbandonProcessGroup</key>\n\t<true/>",
+		"<key>ThrottleInterval</key>\n\t<integer>2</integer>",
 		"<key>PATH</key>\n\t\t<string>/Users/dev/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:" + servicePath + "</string>",
 		"<key>XDG_DATA_HOME</key>\n\t\t<string>/Users/dev/data</string>",
 	} {
