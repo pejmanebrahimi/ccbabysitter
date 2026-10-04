@@ -73,7 +73,7 @@ go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest
 ### Desktop
 
 1. Install with the one-line command for your system, under Install above.
-2. Run the command the installer printed, usually `ccbabysitter`. Its page opens in your browser. The page's address includes a key that only your account can read, and `ccbabysitter status` shows that address again. CC Babysitter then runs in the background, starts again when you log in, and gives the terminal back.
+2. Run the command the installer printed, usually `ccbabysitter`. Its page opens in your browser. The page's address includes a key that only your account can read, and `ccbabysitter status` shows that address again. The page `ccbabysitter` opens for you stays signed in until CC Babysitter restarts, after an update or a restart of the computer; run `ccbabysitter` again to open it. CC Babysitter then runs in the background, starts again when you log in, and gives the terminal back.
 3. Switch Remote Control on in the session you want to keep: `/rc` in a terminal, or the switch in Claude Desktop or VS Code. Then press Babysit on its card.
 4. Walk away. If the app dies, the session carries on in the background. Reach it from the Claude app on your phone.
 

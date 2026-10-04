@@ -28,7 +28,7 @@ var ErrNotRunning = errors.New("CC Babysitter is not running")
 // ErrNoKey means CC Babysitter answered but refused the request for want
 // of the page's key: there was none to send, or the one sent is not the
 // running copy's. The sentence is the one the page itself answers with.
-var ErrNoKey = errors.New("This needs the page's key. Open the address CC Babysitter printed, or run ccbabysitter status.")
+var ErrNoKey = errors.New("This needs the page's key. Run ccbabysitter to open the page again, or open the address ccbabysitter status prints.")
 
 // ErrNoAnswer means CC Babysitter was reached but gave no answer in time,
 // or dropped the connection after the request was sent. An action may

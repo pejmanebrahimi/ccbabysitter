@@ -310,7 +310,7 @@
   /* ---------- talking to the server ---------- */
 
   function statusMessage(status) {
-    if (status === 401) { return "This needs the page's key. Open the address CC Babysitter printed, or run ccbabysitter status."; }
+    if (status === 401) { return "This needs the page's key. Run ccbabysitter to open the page again, or open the address ccbabysitter status prints."; }
     if (status === 403) { return "CC Babysitter refused that request. Open this page from the address it printed when it started."; }
     if (status === 404) { return "That session is not there any more."; }
     if (status === 400) { return "CC Babysitter could not read that request."; }

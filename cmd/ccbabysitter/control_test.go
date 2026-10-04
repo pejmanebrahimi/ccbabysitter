@@ -555,7 +555,7 @@ func TestWrongKeyIsNoKey(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(env.stateDir, "page-key"), []byte(strings.Repeat("cd", 32)+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	want := "This needs the page's key. Open the address CC Babysitter printed, or run ccbabysitter status."
+	want := "This needs the page's key. Run ccbabysitter to open the page again, or open the address ccbabysitter status prints."
 	for _, args := range [][]string{{"status"}, {"list"}, {"babysit", "api"}, {"activity"}, {"settings", "theme", "dark"}, {"quit"}} {
 		code, out, errOut := runCmd(t, env, append(args, "--json")...)
 		doc := oneJSON(t, out)

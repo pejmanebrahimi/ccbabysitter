@@ -169,9 +169,10 @@ func guard(key, session string, launch *launchTokens, next http.Handler) http.Ha
 }
 
 // KeyMessage is what a request without the page's key, or with a wrong
-// one, is told. It names the two ways a person gets the address with the
-// key again, and never the key itself.
-const KeyMessage = "This needs the page's key. Open the address CC Babysitter printed, or run ccbabysitter status."
+// one, is told. It names the two ways a person gets the page again, and
+// never the key itself. A page that ccbabysitter opened holds only that
+// run's session, so after a restart running ccbabysitter opens it again.
+const KeyMessage = "This needs the page's key. Run ccbabysitter to open the page again, or open the address ccbabysitter status prints."
 
 // keyCookieMaxAge is how long the browser keeps the key cookie, in
 // seconds: a year, since the key itself is kept across restarts.
