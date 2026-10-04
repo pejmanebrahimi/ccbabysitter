@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"ccbabysitter.dev/ccbabysitter/internal/claude"
 )
 
 func TestUnitFile(t *testing.T) {
@@ -135,5 +137,41 @@ func TestRefreshUnitReenablesARewrittenEnabledUnit(t *testing.T) {
 		if !rewritten || !ok || strings.Join(*calls, "; ") != want {
 			t.Fatalf("enabled %v: rewritten %v ok %v calls %q out %q", enabled, rewritten, ok, *calls, out.String())
 		}
+	}
+}
+
+// A unit that is already the right one, but whose enable link is still in
+// the other kind's wants folder, as when an earlier reenable failed, is
+// enabled again so the link follows the unit.
+func TestRefreshUnitMovesALinkLeftInTheWrongFolder(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_DATA_HOME", "")
+	saved := executablePath
+	executablePath = func() (string, error) { return "/home/dev/.local/bin/ccbabysitter", nil }
+	t.Cleanup(func() { executablePath = saved })
+	unit, err := systemdUnitPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := unitFile("/home/dev/.local/bin/ccbabysitter", claude.FindCLI(), true, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeUnitAt(unit, text); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(filepath.Dir(unit), "default.target.wants", "ccbabysitter.service")
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(unit, link); err != nil {
+		t.Fatal(err)
+	}
+	calls := fakeSystemctl(t)
+	var out strings.Builder
+	rewritten, ok := systemdControl{}.RefreshUnit(&out, true)
+	if rewritten || !ok || strings.Join(*calls, "; ") != "reenable ccbabysitter" {
+		t.Fatalf("rewritten %v ok %v calls %q", rewritten, ok, *calls)
 	}
 }

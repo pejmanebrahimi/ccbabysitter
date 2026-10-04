@@ -243,11 +243,13 @@ function Install-CCBabysitter {
         # let go, not only for the page to stop answering. A copy from
         # before quit existed does not know the command and stays running,
         # and the replace below then says to quit it by hand.
+        $quitAsked = $false
         if ($withBackground -and (Test-Path -LiteralPath $dest)) {
             if ((Invoke-Quiet $dest @('status')) -eq 0) {
                 $wasRunning = $true
                 Write-Host 'Asking CC Babysitter to quit, to replace it.'
                 if ((Invoke-Quiet $dest @('quit')) -eq 0) {
+                    $quitAsked = $true
                     $deadline = (Get-Date).AddSeconds(15)
                     while (-not (Test-Writable @($dest, $bgDest)) -and (Get-Date) -lt $deadline) {
                         Start-Sleep -Milliseconds 300
@@ -257,14 +259,27 @@ function Install-CCBabysitter {
         }
 
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
-        if ($withBackground) {
-            $bgMoved = Replace-File $files[$bgAsset] $bgDest
-        }
+        # A windowless program that is new here has no .bak; a rollback
+        # removes it instead.
+        $bgNew = $withBackground -and -not (Test-Path -LiteralPath $bgDest)
         try {
-            $moved = Replace-File $files[$asset] $dest
+            if ($withBackground) {
+                $bgMoved = Replace-File $files[$bgAsset] $bgDest
+            }
+            try {
+                $moved = Replace-File $files[$asset] $dest
+            } catch {
+                if ($bgMoved) {
+                    try { Restore-File $bgDest } catch { }
+                } elseif ($bgNew) {
+                    Remove-Item -LiteralPath $bgDest -Force -ErrorAction SilentlyContinue
+                }
+                throw
+            }
         } catch {
-            if ($bgMoved) {
-                try { Restore-File $bgDest } catch { }
+            # Asked to quit, it answered, but has not let its files go yet.
+            if ($quitAsked -and $_.Exception.Message -eq $runningMessage) {
+                throw 'CC Babysitter was asked to quit and is still letting go of its files. Run this again in a moment.'
             }
             throw
         }
@@ -287,17 +302,31 @@ function Install-CCBabysitter {
             try {
                 if ($moved) { Restore-File $dest }
                 if ($bgMoved) { Restore-File $bgDest }
+                if ($bgNew) { Remove-Item -LiteralPath $bgDest -Force -ErrorAction SilentlyContinue }
             } catch {
                 throw "$dest was installed but does not run on this machine, and the old copy could not be put back. It is at $dest.bak"
             }
             throw "$dest was installed but does not run on this machine, so the old copy was put back."
         }
+        if ($bgNew) { Remove-Item -LiteralPath $bgDest -Force -ErrorAction SilentlyContinue }
         throw "$dest was installed but does not run on this machine."
     }
     foreach ($target in @($dest, $bgDest)) {
         Remove-Item -LiteralPath "$target.bak" -Force -ErrorAction SilentlyContinue
     }
     Write-Host "Installed $installed to $dir"
+
+    # An earlier version started at login from a Startup folder script,
+    # which opens a console window. With the windowless program installed,
+    # the per-user Run value takes its place, also when CC Babysitter is not
+    # running now.
+    $legacy = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\CCBabysitter.cmd'
+    if ($withBackground -and $env:APPDATA -and (Test-Path -LiteralPath $legacy)) {
+        $run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+        Set-ItemProperty -Path $run -Name 'CCBabysitter' -Value ('"' + $bgDest + '" --service')
+        Remove-Item -LiteralPath $legacy -Force
+        Write-Host 'Start at login now starts the windowless program, with no console window.'
+    }
 
     # The user Path is read and written as stored, so entries such as
     # %USERPROFILE%\bin keep their variables rather than being expanded.
@@ -334,6 +363,9 @@ function Install-CCBabysitter {
         # its page is, without opening it.
         $ErrorActionPreference = 'Continue'
         & $dest --no-open
+        if ($LASTEXITCODE -ne 0) {
+            throw 'CC Babysitter was updated but did not start in the background again. Start it with: ccbabysitter'
+        }
     } else {
         Write-Host 'Start it with: ccbabysitter'
     }
