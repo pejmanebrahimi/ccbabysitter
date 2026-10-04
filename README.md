@@ -36,9 +36,9 @@ irm https://ccbabysitter.dev/install.ps1 | iex
 Either command downloads the binary of the latest release for your system and processor from the [releases page](https://github.com/pejmanebrahimi/ccbabysitter/releases), checks it against the release's `checksums.txt`, and installs it without admin rights or `sudo`:
 
 - On macOS and Linux it goes to `~/.local/bin/ccbabysitter`. When that folder is not on your PATH, the script prints the line to add to your shell's profile.
-- On Windows it goes to `%LOCALAPPDATA%\Programs\CCBabysitter\ccbabysitter.exe`, and that folder is added to your user Path.
+- On Windows it goes to `%LOCALAPPDATA%\Programs\CCBabysitter\ccbabysitter.exe`, with `ccbabysitter-background.exe` beside it, the same program built to show no console window, which is what runs in the background. That folder is added to your user Path.
 
-On a Linux machine with no display, such as a server you reach over ssh, the script then runs CC Babysitter once when your systemd user manager is available: it sets itself up as a service and prints how to connect from your laptop. On a Linux desktop or a Mac where CC Babysitter already runs in the background, the script runs it once too, which restarts it on the new version. Everywhere else the script prints how to start it. Run the same command again to update. On Windows, quit CC Babysitter first: Windows does not let a running program be replaced, so the script stops and asks you to.
+On a Linux machine with no display, such as a server you reach over ssh, the script then runs CC Babysitter once when your systemd user manager is available: it sets itself up as a service and prints how to connect from your laptop. On a Linux desktop, a Mac or a Windows machine where CC Babysitter already runs in the background, the script runs it once too, which restarts it on the new version; on Windows it first asks the running copy to quit, since Windows does not let a running program be replaced. Everywhere else the script prints how to start it. Run the same command again to update. A copy from before version 0.5 running in a window has no quit command: quit it there with Ctrl+C first, and the script says so.
 
 Three environment variables change what the scripts do: `CCBABYSITTER_VERSION` installs a given release, such as `v0.4.0`, instead of the latest, `CCBABYSITTER_INSTALL_DIR` installs into another folder, and `CCBABYSITTER_DOWNLOAD_URL` is a base address to download from instead of GitHub releases, for mirrors (it skips the HTTPS pin, so use an `https://` address). On macOS and Linux:
 
@@ -73,10 +73,9 @@ go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest
 ### Desktop
 
 1. Install with the one-line command for your system, under Install above.
-2. Run the command the installer printed, usually `ccbabysitter`. Its page opens in your browser. The page's address includes a key that only your account can read, and `ccbabysitter status` shows that address again. On Linux and macOS, CC Babysitter then runs in the background, starts again when you log in, and gives the terminal back. On Windows it runs in that terminal for now.
+2. Run the command the installer printed, usually `ccbabysitter`. Its page opens in your browser. The page's address includes a key that only your account can read, and `ccbabysitter status` shows that address again. CC Babysitter then runs in the background, starts again when you log in, and gives the terminal back.
 3. Switch Remote Control on in the session you want to keep: `/rc` in a terminal, or the switch in Claude Desktop or VS Code. Then press Babysit on its card.
-4. On Windows, optional: in Settings, turn on start at login so it survives a restart. On Linux and macOS it is on already.
-5. Walk away. If the app dies, the session carries on in the background. Reach it from the Claude app on your phone.
+4. Walk away. If the app dies, the session carries on in the background. Reach it from the Claude app on your phone.
 
 ### Server
 
@@ -134,13 +133,13 @@ On a server with no display the same page is the session manager. A plain `ccbab
 - **Claude's files are read-only.** Sessions are controlled only through the `claude` CLI.
 - **Claude Desktop and VS Code are never modified or opened.**
 - **Loopback only.** The page is served on `127.0.0.1`, requests that come from other web pages are refused, and every request must carry the page's key, which only your account can read.
-- **User mode only.** No admin rights, ever. The only thing CC Babysitter adds to your system is its own start-at-login entry in your user account: a systemd user unit on Linux, a LaunchAgent on macOS, a Windows Startup entry. On Linux and macOS it is on by default, and you can turn it off with `ccbabysitter settings autostart off`, or on a desktop in Settings.
+- **User mode only.** No admin rights, ever. The only thing CC Babysitter adds to your system is its own start-at-login entry in your user account: a systemd user unit on Linux, a LaunchAgent on macOS, a Run value on Windows. It is on by default, and you can turn it off with `ccbabysitter settings autostart off`, or on a desktop in Settings.
 - **One folder of state** (`%LOCALAPPDATA%\CCBabysitter` on Windows, the XDG data directory elsewhere: `~/.local/share/ccbabysitter`, or `$XDG_DATA_HOME/ccbabysitter` when that is set).
 
 ## Usage
 
 ```
-ccbabysitter                 start CC Babysitter. On Linux and macOS it runs in the background and starts at login
+ccbabysitter                 start CC Babysitter. It runs in the background and starts at login
 ccbabysitter --foreground    run in this terminal until Ctrl+C
 ccbabysitter --no-open       start it without opening the page
 ccbabysitter --demo          scripted sessions, touches nothing real
@@ -171,7 +170,9 @@ On Linux, `ccbabysitter` runs CC Babysitter in the background through the system
 
 On macOS, `ccbabysitter` runs CC Babysitter in the background as a user LaunchAgent, `com.ccbabysitter`, loaded with `launchctl` the way `brew services start` does it, and turns start at login on that first time, also when you upgrade. The LaunchAgent runs the service, which never opens a browser, so logging in does not open the page; it starts CC Babysitter again if it crashes, but not after `ccbabysitter quit`. While start at login is on its plist is `~/Library/LaunchAgents/com.ccbabysitter.plist`, and macOS lists it under System Settings, General, Login Items. Turning start at login off moves the plist into the state folder: CC Babysitter keeps running until you quit it or log out, and a plain `ccbabysitter` still starts it. A Mac reached only over ssh, with nobody logged in at its screen, has no session to load the LaunchAgent into, so there `ccbabysitter` runs in the terminal.
 
-On Windows, Settings has "Start CC Babysitter when I log in", which appears only on a machine with a display. The login entry points at the binary where it is at that moment, so keep the binary where the install script put it, or somewhere else it will stay, such as `~/bin`; a copy in a temporary folder is refused. The same holds for the systemd unit and the LaunchAgent, which `ccbabysitter` writes again when the binary has moved.
+On Windows, `ccbabysitter` starts `ccbabysitter-background.exe`, the windowless copy installed beside it, which runs in the background with no console window; closing the terminal or the app that ran `ccbabysitter` does not stop it. Start at login, turned on the first time, is the value `CCBabysitter` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, which starts the windowless copy at login, again with no window. It replaces the Startup folder script `CCBabysitter.cmd` that earlier versions wrote, which `ccbabysitter` removes. A copy installed with `go install` has no windowless program, so there `ccbabysitter` runs in the terminal.
+
+Every login entry points at the program where it is at that moment, so keep the program where the install script put it, or somewhere else it will stay, such as `~/bin`; a copy in a temporary folder is refused. `ccbabysitter` writes the unit, the LaunchAgent or the Run value again when the program has moved.
 
 ## Uninstall
 
@@ -193,8 +194,8 @@ Linux:
 
 Windows:
 
-1. If "Start CC Babysitter when I log in" is on, switch it off in Settings. That removes `CCBabysitter.cmd` from your Startup folder, `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`; you can also delete the file yourself.
-2. Quit CC Babysitter: `ccbabysitter quit`, Ctrl+C in its window, or close the window.
+1. Run `ccbabysitter uninstall`. It quits CC Babysitter and removes its Run value, and an earlier version's `CCBabysitter.cmd` from your Startup folder.
+2. Quit any copy still running in a window with `ccbabysitter quit` or Ctrl+C.
 3. Run `ccbabysitter reset` to delete the state folder, `%LOCALAPPDATA%\CCBabysitter`.
 4. Delete the folder holding the binary, `%LOCALAPPDATA%\Programs\CCBabysitter`, or the folder you installed into.
 5. Remove that folder from your user Path: open "Edit environment variables for your account" from the Start menu, select Path, choose Edit, and delete the entry.
