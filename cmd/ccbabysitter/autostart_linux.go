@@ -58,6 +58,15 @@ func installAutostartLinux(enable bool) (string, error) {
 // desktop unit's and a server unit's.
 var wantsFolders = []string{"graphical-session.target.wants", "default.target.wants"}
 
+// wantsFolderFor is the wants folder a desktop's or a server's unit is
+// enabled into.
+func wantsFolderFor(desktop bool) string {
+	if desktop {
+		return wantsFolders[0]
+	}
+	return wantsFolders[1]
+}
+
 // enableLink is the enable link systemctl made for unit, in whichever wants
 // folder it is, or the desktop one when there is none, which is where a
 // desktop unit's link goes.

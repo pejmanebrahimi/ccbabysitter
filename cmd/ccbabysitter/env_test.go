@@ -254,3 +254,11 @@ func TestStartedReason(t *testing.T) {
 		t.Fatalf("server: %q", got)
 	}
 }
+
+// The background copy's own banner goes to the journal: it says how to
+// quit a copy that has no terminal, not Ctrl+C.
+func TestServiceClosingHasNoCtrlC(t *testing.T) {
+	if strings.Contains(serviceClosing, "Ctrl+C") || !strings.Contains(serviceClosing, "ccbabysitter quit") {
+		t.Fatalf("%q", serviceClosing)
+	}
+}

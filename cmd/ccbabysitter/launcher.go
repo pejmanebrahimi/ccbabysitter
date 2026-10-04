@@ -181,10 +181,9 @@ func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOpti
 		return 1
 	}
 
-	switch {
-	case o.Install:
-		_ = state.MarkLoginStartOffered(stateDir)
-	case !state.LoginStartOffered(stateDir):
+	// install has already enabled the unit; turning the copy's own setting
+	// on too makes the banner, the page and the settings agree at once.
+	if o.Install || !state.LoginStartOffered(stateDir) {
 		if err := d.loginOn(stateDir); err != nil {
 			fmt.Fprintln(out, "Could not turn start at login on:", err)
 		} else {

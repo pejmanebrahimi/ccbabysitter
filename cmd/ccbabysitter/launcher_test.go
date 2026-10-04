@@ -276,8 +276,13 @@ func TestLauncherForInstall(t *testing.T) {
 	if rc := runLauncher(&out, f, dir, launchOptions{Install: true, NoOpen: true}, d.deps(answeringAt(pageAt))); rc != 0 {
 		t.Fatalf("rc %d", rc)
 	}
-	if !f.did("write server") || !f.did("enable") || !f.did("linger on") || f.did("usable") || d.loginOns != 0 || !state.LoginStartOffered(dir) {
+	// The running copy's own setting is turned on too, so the banner, the
+	// page and ccbabysitter settings say start at boot is on straight away.
+	if !f.did("write server") || !f.did("enable") || !f.did("linger on") || f.did("usable") || d.loginOns != 1 || !state.LoginStartOffered(dir) {
 		t.Fatalf("calls %q, login ons %d", f.calls, d.loginOns)
+	}
+	if !strings.Contains(out.String(), "starts again when this server boots.") {
+		t.Fatalf("output:\n%s", out.String())
 	}
 }
 

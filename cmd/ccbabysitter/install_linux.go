@@ -163,6 +163,15 @@ func (systemdControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bo
 		return false, false
 	}
 	if unitUpToDate(path, want) {
+		// An enable link left in the other kind's wants folder, as after a
+		// reenable that failed, is moved to the one this unit names.
+		if on, _ := autostartInstalledLinux(); on && filepath.Base(filepath.Dir(enableLink(path))) != wantsFolderFor(desktop) {
+			if err := runSystemctl("reenable", "ccbabysitter"); err != nil {
+				fmt.Fprintln(out, "systemctl --user reenable ccbabysitter failed:", err)
+				return false, false
+			}
+			flushStartLinks(path)
+		}
 		return false, true
 	}
 	if err := writeUnitAt(path, want); err != nil {

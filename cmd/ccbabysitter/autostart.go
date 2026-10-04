@@ -178,6 +178,9 @@ func unitFile(binPath, cliPath string, desktop bool, dataHome string) (string, e
 		// it apart.
 		env = unitEnvironment("PATH="+path.Dir(cliPath)+":"+servicePath) + "\n"
 	}
+	if strings.ContainsAny(dataHome, "\n\r") {
+		return "", fmt.Errorf("the data folder cannot be written into a service file: %q", dataHome)
+	}
 	if dataHome != "" {
 		env += unitEnvironment("XDG_DATA_HOME="+dataHome) + "\n"
 	}

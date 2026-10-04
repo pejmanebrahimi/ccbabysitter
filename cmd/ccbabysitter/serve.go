@@ -481,7 +481,11 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 	if opts.Service {
 		shown = pageURL
 	}
-	fmt.Fprint(stdout, banner(version, shown, env.Headless, sshUser, sshAddress, env.CLIVersion, env.DesktopVersion, env.VSCodeExtVersion, foregroundClosing))
+	closing := foregroundClosing
+	if opts.Service {
+		closing = serviceClosing
+	}
+	fmt.Fprint(stdout, banner(version, shown, env.Headless, sshUser, sshAddress, env.CLIVersion, env.DesktopVersion, env.VSCodeExtVersion, closing))
 
 	if shouldOpenBrowser(opts.NoOpen, env.Headless, settings.AutoOpenBrowser) {
 		if err := openInBrowser(srv, pageURL, openBrowser); err != nil {
