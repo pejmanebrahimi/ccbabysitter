@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unsafe"
 
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
@@ -252,5 +254,30 @@ func TestWindowsUnusableLineNamesTheBackgroundProgram(t *testing.T) {
 	line := (windowsControl{}).UnusableLine()
 	if !strings.Contains(line, backgroundExe) || !strings.Contains(line, "only while this terminal stays open") {
 		t.Fatalf("%q", line)
+	}
+}
+
+// The process id list QueryInformationJobObject fills in: two counts, then
+// the ids, each as wide as a pointer. Only the ids it says it filled in
+// count.
+func TestParseJobPIDs(t *testing.T) {
+	word := int(unsafe.Sizeof(uintptr(0)))
+	buf := make([]byte, 8+4*word)
+	binary.LittleEndian.PutUint32(buf[0:4], 5) // assigned
+	binary.LittleEndian.PutUint32(buf[4:8], 3) // in the list
+	for i, pid := range []uint64{100, 200, 300, 400} {
+		off := 8 + i*word
+		if word == 8 {
+			binary.LittleEndian.PutUint64(buf[off:], pid)
+		} else {
+			binary.LittleEndian.PutUint32(buf[off:], uint32(pid))
+		}
+	}
+	got := parseJobPIDs(buf)
+	if len(got) != 3 || !got[100] || !got[200] || !got[300] || got[400] {
+		t.Fatalf("%v", got)
+	}
+	if got := parseJobPIDs(buf[:6]); len(got) != 0 {
+		t.Fatalf("a short buffer: %v", got)
 	}
 }

@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -100,9 +101,50 @@ var outsideJob = func(path string, since time.Time) bool {
 }
 
 var (
-	kernel32           = syscall.NewLazyDLL("kernel32.dll")
-	procIsProcessInJob = kernel32.NewProc("IsProcessInJob")
+	kernel32                      = syscall.NewLazyDLL("kernel32.dll")
+	procQueryInformationJobObject = kernel32.NewProc("QueryInformationJobObject")
 )
+
+// ownJobPIDs is the set of processes in this process's own job, and empty
+// when it is in none. Windows puts programs Explorer starts into a job of
+// its own, so whether a process is in some job says nothing; what matters
+// is whether it is in this one.
+func ownJobPIDs() map[uint32]bool {
+	// JobObjectBasicProcessIdList, asked of no job handle, is about the
+	// job this process is in.
+	const jobObjectBasicProcessIDList = 3
+	buf := make([]byte, 8+4096*int(unsafe.Sizeof(uintptr(0))))
+	ok, _, _ := procQueryInformationJobObject.Call(0, jobObjectBasicProcessIDList,
+		uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf)), 0)
+	if ok == 0 {
+		return map[uint32]bool{}
+	}
+	return parseJobPIDs(buf)
+}
+
+// parseJobPIDs reads a JOBOBJECT_BASIC_PROCESS_ID_LIST: the number of
+// processes assigned, the number of ids in the list, then the ids, each as
+// wide as a pointer.
+func parseJobPIDs(buf []byte) map[uint32]bool {
+	pids := map[uint32]bool{}
+	if len(buf) < 8 {
+		return pids
+	}
+	word := int(unsafe.Sizeof(uintptr(0)))
+	n := int(binary.LittleEndian.Uint32(buf[4:8]))
+	for i := 0; i < n; i++ {
+		off := 8 + i*word
+		if off+word > len(buf) {
+			break
+		}
+		if word == 8 {
+			pids[uint32(binary.LittleEndian.Uint64(buf[off:]))] = true
+		} else {
+			pids[binary.LittleEndian.Uint32(buf[off:])] = true
+		}
+	}
+	return pids
+}
 
 // startedOutsideJob reports whether a process whose program is named name
 // started at or after since, give or take a second for the clock's grain,
@@ -113,30 +155,22 @@ func startedOutsideJob(name string, since time.Time) bool {
 		return false
 	}
 	defer syscall.CloseHandle(snap)
+	inJob := ownJobPIDs()
 	var entry syscall.ProcessEntry32
 	entry.Size = uint32(unsafe.Sizeof(entry))
 	for err = syscall.Process32First(snap, &entry); err == nil; err = syscall.Process32Next(snap, &entry) {
-		if !strings.EqualFold(syscall.UTF16ToString(entry.ExeFile[:]), name) {
+		if !strings.EqualFold(syscall.UTF16ToString(entry.ExeFile[:]), name) || inJob[entry.ProcessID] {
 			continue
 		}
-		// PROCESS_QUERY_LIMITED_INFORMATION is enough for both questions.
+		// PROCESS_QUERY_LIMITED_INFORMATION is enough for its times.
 		h, err := syscall.OpenProcess(0x1000, false, entry.ProcessID)
 		if err != nil {
 			continue
 		}
 		var created, exited, kernel, user syscall.Filetime
 		timesErr := syscall.GetProcessTimes(h, &created, &exited, &kernel, &user)
-		var inJob int32
-		// A zero job handle asks about the job this process is in.
-		ok, _, _ := procIsProcessInJob.Call(uintptr(h), 0, uintptr(unsafe.Pointer(&inJob)))
 		syscall.CloseHandle(h)
-		if timesErr != nil || ok == 0 {
-			continue
-		}
-		if time.Unix(0, created.Nanoseconds()).Before(since.Add(-time.Second)) {
-			continue
-		}
-		if inJob == 0 {
+		if timesErr == nil && !time.Unix(0, created.Nanoseconds()).Before(since.Add(-time.Second)) {
 			return true
 		}
 	}
