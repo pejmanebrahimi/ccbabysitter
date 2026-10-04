@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
 	"ccbabysitter.dev/ccbabysitter/internal/hosts"
@@ -42,7 +43,7 @@ func writeUnit(binPath string, desktop bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	text, err := unitFile(binPath, claude.FindCLI(), desktop)
+	text, err := unitFile(binPath, claude.FindCLI(), desktop, os.Getenv("XDG_DATA_HOME"))
 	if err != nil {
 		return "", err
 	}
@@ -68,11 +69,39 @@ func removeUnit() (string, error) {
 	return path, nil
 }
 
-func runSystemctl(args ...string) error {
+// runSystemctl runs systemctl --user with args, its output discarded.
+// Tests replace it, so they never touch the real service manager.
+var runSystemctl = func(args ...string) error {
 	cmd := exec.Command("systemctl", append([]string{"--user"}, args...)...)
 	cmd.Stdout = io.Discard
 	cmd.Stderr = io.Discard
 	return cmd.Run()
+}
+
+// executablePath is where this program is, for the unit to start. Tests
+// replace it, since a test binary lives in a temporary folder that a unit
+// must never name.
+var executablePath = resolvedExecutablePath
+
+// UnitKind reads whether the installed unit is a desktop's, wanted by the
+// graphical session, or a server's, wanted at boot. known is false when
+// there is no unit, or it names neither.
+func (systemdControl) UnitKind() (desktop, known bool) {
+	path, err := systemdUnitPath()
+	if err != nil {
+		return false, false
+	}
+	text, err := os.ReadFile(path)
+	if err != nil {
+		return false, false
+	}
+	switch {
+	case strings.Contains(string(text), "\nWantedBy=graphical-session.target\n"):
+		return true, true
+	case strings.Contains(string(text), "\nWantedBy=default.target\n"):
+		return false, true
+	}
+	return false, false
 }
 
 // systemdControl is serviceControl for the real systemd user manager.
@@ -96,7 +125,7 @@ func (systemdControl) Active() bool {
 // Write writes the unit, for a desktop or a server, and has systemd read
 // it. It starts nothing.
 func (systemdControl) Write(out io.Writer, desktop bool) bool {
-	bin, err := resolvedExecutablePath()
+	bin, err := executablePath()
 	if err != nil {
 		fmt.Fprintln(out, "could not resolve this program's own path:", err)
 		return false
@@ -118,7 +147,7 @@ func (systemdControl) Write(out io.Writer, desktop bool) bool {
 // rewritten unit whose start at login was on is enabled again, so its
 // enable link follows the target the unit names now.
 func (systemdControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bool) {
-	bin, err := resolvedExecutablePath()
+	bin, err := executablePath()
 	if err != nil {
 		fmt.Fprintln(out, "could not resolve this program's own path:", err)
 		return false, false
@@ -128,7 +157,7 @@ func (systemdControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bo
 		fmt.Fprintln(out, "could not find the service file:", err)
 		return false, false
 	}
-	want, err := unitFile(bin, claude.FindCLI(), desktop)
+	want, err := unitFile(bin, claude.FindCLI(), desktop, os.Getenv("XDG_DATA_HOME"))
 	if err != nil {
 		fmt.Fprintln(out, "could not write the service file:", err)
 		return false, false
@@ -167,10 +196,15 @@ func displayVariablesSet() []string {
 	return names
 }
 
-// importDisplay hands the display variables set here to the user manager.
-// Failing only means the background copy may not see the desktop until the
-// next login, so it is reported and the start goes on.
-func importDisplay(out io.Writer) {
+// importDisplay hands the display variables set here to the user manager,
+// for a desktop unit only, and never from an ssh session, whose forwarded
+// display would outlive the connection and would make a server's copy act
+// as a desktop's. Failing only means the background copy may not see the
+// desktop until the next login, so it is reported and the start goes on.
+func importDisplay(out io.Writer, desktop bool) {
+	if !desktop || os.Getenv("SSH_CONNECTION") != "" || os.Getenv("SSH_TTY") != "" {
+		return
+	}
 	names := displayVariablesSet()
 	if len(names) == 0 {
 		return
@@ -180,10 +214,10 @@ func importDisplay(out io.Writer) {
 	}
 }
 
-// Start hands over the display variables, then starts the unit, which
-// leaves one already running alone. It does not enable it.
-func (systemdControl) Start(out io.Writer) bool {
-	importDisplay(out)
+// Start hands a desktop unit the display variables, then starts the unit,
+// which leaves one already running alone. It does not enable it.
+func (systemdControl) Start(out io.Writer, desktop bool) bool {
+	importDisplay(out, desktop)
 	if err := runSystemctl("start", "ccbabysitter"); err != nil {
 		fmt.Fprintln(out, "systemctl --user start ccbabysitter failed:", err)
 		return false
@@ -191,10 +225,10 @@ func (systemdControl) Start(out io.Writer) bool {
 	return true
 }
 
-// Restart hands over the display variables, then stops the service and
-// starts it again, as the unit says now.
-func (systemdControl) Restart(out io.Writer) bool {
-	importDisplay(out)
+// Restart hands a desktop unit the display variables, then stops the
+// service and starts it again, as the unit says now.
+func (systemdControl) Restart(out io.Writer, desktop bool) bool {
+	importDisplay(out, desktop)
 	if err := runSystemctl("restart", "ccbabysitter"); err != nil {
 		fmt.Fprintln(out, "systemctl --user restart ccbabysitter failed:", err)
 		return false

@@ -144,7 +144,7 @@ func TestUnitEnvironmentQuoting(t *testing.T) {
 // mustUnitFile is unitFile for a path that is known to be writable.
 func mustUnitFile(t *testing.T, binPath, cliPath string) string {
 	t.Helper()
-	u, err := unitFile(binPath, cliPath, false)
+	u, err := unitFile(binPath, cliPath, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestUnitExecStartQuoting(t *testing.T) {
 		}
 	}
 	bin := "/home/a\nb/ccbabysitter"
-	_, err := unitFile(bin, "", false)
+	_, err := unitFile(bin, "", false, "")
 	if err == nil {
 		t.Fatal("a path with a line break was accepted")
 	}
@@ -182,18 +182,35 @@ func TestUnitExecStartQuoting(t *testing.T) {
 // A desktop unit starts with the graphical session, after it, when the
 // display variables are in the user manager; a server unit starts at boot.
 func TestUnitFileTargetsTheGraphicalSessionOnADesktop(t *testing.T) {
-	desktop, err := unitFile("/home/a/.local/bin/ccbabysitter", "", true)
+	desktop, err := unitFile("/home/a/.local/bin/ccbabysitter", "", true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(desktop, "After=graphical-session.target\n") || !strings.Contains(desktop, "WantedBy=graphical-session.target\n") || strings.Contains(desktop, "default.target") {
 		t.Fatalf("desktop unit:\n%s", desktop)
 	}
-	server, err := unitFile("/home/a/.local/bin/ccbabysitter", "", false)
+	server, err := unitFile("/home/a/.local/bin/ccbabysitter", "", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(server, "WantedBy=default.target\n") || strings.Contains(server, "graphical-session") {
 		t.Fatalf("server unit:\n%s", server)
+	}
+}
+
+// A state folder moved with XDG_DATA_HOME in a shell profile is not in the
+// user manager's environment, so the unit names it, and the copy it starts
+// uses the same folder as the launcher and the command line.
+func TestUnitFileCarriesTheDataHome(t *testing.T) {
+	u, err := unitFile("/home/a/.local/bin/ccbabysitter", "", true, "/data/home a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(u, "\n"+`Environment="XDG_DATA_HOME=/data/home a"`+"\n") {
+		t.Fatalf("unit:\n%s", u)
+	}
+	u, _ = unitFile("/home/a/.local/bin/ccbabysitter", "", true, "")
+	if strings.Contains(u, "XDG_DATA_HOME") {
+		t.Fatalf("no data home, but:\n%s", u)
 	}
 }

@@ -154,6 +154,10 @@ const servicePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bi
 // desktop. A server unit is wanted by default.target and starts at boot,
 // with lingering on.
 //
+// dataHome, when set, is the XDG_DATA_HOME the launcher sees, which a shell
+// profile sets but the user manager does not have; the unit names it so the
+// copy uses the same state folder as the launcher and the command line.
+//
 // A binPath holding a line break cannot be written into a unit at all, so
 // it is an error naming the path.
 //
@@ -162,7 +166,7 @@ const servicePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bi
 // daemon that hosts them, are started from the service and so live in its
 // group, and they must outlive it, since nothing but a confirmed Stop may
 // close a session.
-func unitFile(binPath, cliPath string, desktop bool) (string, error) {
+func unitFile(binPath, cliPath string, desktop bool, dataHome string) (string, error) {
 	exec, err := unitExecStart(binPath)
 	if err != nil {
 		return "", err
@@ -173,6 +177,9 @@ func unitFile(binPath, cliPath string, desktop bool) (string, error) {
 		// whatever this was built for, and path rather than filepath takes
 		// it apart.
 		env = unitEnvironment("PATH="+path.Dir(cliPath)+":"+servicePath) + "\n"
+	}
+	if dataHome != "" {
+		env += unitEnvironment("XDG_DATA_HOME="+dataHome) + "\n"
 	}
 	after, wantedBy := "After=network-online.target\n", "default.target"
 	if desktop {

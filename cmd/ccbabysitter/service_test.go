@@ -21,7 +21,10 @@ type fakeService struct {
 	usable, installed, active bool
 	writeOK, enableOK         bool
 	startOK                   bool
-	onWrite                   func()
+	// unitDesktop and unitKnown are the installed unit's kind, as
+	// UnitKind reads it.
+	unitDesktop, unitKnown bool
+	onWrite                func()
 	// staleUnit is whether the installed unit differs from the one this
 	// program would write, which RefreshUnit then writes again.
 	staleUnit bool
@@ -65,7 +68,9 @@ func (f *fakeService) RefreshUnit(out io.Writer, desktop bool) (bool, bool) {
 	return rewritten, true
 }
 
-func (f *fakeService) Restart(out io.Writer) bool {
+func (f *fakeService) UnitKind() (desktop, known bool) { return f.unitDesktop, f.unitKnown }
+
+func (f *fakeService) Restart(out io.Writer, desktop bool) bool {
 	f.calls = append(f.calls, "restart")
 	if !f.restartOK {
 		fmt.Fprintln(out, "systemctl --user restart ccbabysitter failed: exit status 1")
@@ -103,7 +108,7 @@ func kindOf(desktop bool) string {
 	return "server"
 }
 
-func (f *fakeService) Start(out io.Writer) bool {
+func (f *fakeService) Start(out io.Writer, desktop bool) bool {
 	f.calls = append(f.calls, "start")
 	if !f.startOK {
 		fmt.Fprintln(out, "systemctl --user start ccbabysitter failed: exit status 1")

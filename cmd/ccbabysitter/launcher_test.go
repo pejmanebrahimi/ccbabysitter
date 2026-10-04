@@ -332,3 +332,59 @@ func TestLaunches(t *testing.T) {
 		}
 	}
 }
+
+// install set CC Babysitter up to start at boot: a plain run from a desktop
+// terminal later keeps that server unit, restarts nothing, and says it
+// starts at boot.
+func TestLauncherFromADesktopKeepsAServerUnit(t *testing.T) {
+	dir := keyedDir(t)
+	if err := state.MarkLingeringTurnedOn(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.MarkLoginStartOffered(dir); err != nil {
+		t.Fatal(err)
+	}
+	f := okService()
+	f.installed, f.active, f.unitKnown, f.unitDesktop, f.lingerOn = true, true, true, false, true
+	d := &fakeDeps{view: desktopView()}
+	d.view.Settings.Autostart = true
+	var out strings.Builder
+	if rc := runLauncher(&out, f, dir, launchOptions{NoOpen: true}, d.deps(answeringAt(pageAt))); rc != 0 {
+		t.Fatalf("rc %d", rc)
+	}
+	if !f.did("refresh server") || f.did("refresh desktop") || f.did("restart") {
+		t.Fatalf("calls %q", f.calls)
+	}
+	if !strings.Contains(out.String(), "starts again when this server boots.") {
+		t.Fatalf("output:\n%s", out.String())
+	}
+}
+
+// A desktop reached over ssh keeps its desktop unit, and gets no lingering.
+func TestLauncherOverSSHKeepsADesktopUnit(t *testing.T) {
+	dir := keyedDir(t)
+	f := okService()
+	f.installed, f.active, f.unitKnown, f.unitDesktop = true, true, true, true
+	var out strings.Builder
+	if rc := runLauncher(&out, f, dir, launchOptions{Headless: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt(pageAt))); rc != 0 {
+		t.Fatalf("rc %d", rc)
+	}
+	if !f.did("refresh desktop") || f.did("refresh server") || f.did("linger on") || f.did("restart") {
+		t.Fatalf("calls %q", f.calls)
+	}
+}
+
+// A unit an earlier version wrote for start at login on a desktop starts
+// at boot without lingering: a plain run from the desktop makes it a
+// desktop unit.
+func TestLauncherMovesAnOldDesktopUnitToTheGraphicalSession(t *testing.T) {
+	f := okService()
+	f.installed, f.unitKnown, f.unitDesktop, f.staleUnit = true, true, false, true
+	var out strings.Builder
+	if rc := runLauncher(&out, f, keyedDir(t), launchOptions{NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt(pageAt))); rc != 0 {
+		t.Fatalf("rc %d", rc)
+	}
+	if !f.did("refresh desktop") {
+		t.Fatalf("calls %q", f.calls)
+	}
+}

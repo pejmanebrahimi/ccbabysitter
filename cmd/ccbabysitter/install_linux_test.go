@@ -58,3 +58,82 @@ func TestDisplayVariablesToImport(t *testing.T) {
 		t.Fatalf("nothing set, got %q", got)
 	}
 }
+
+// fakeSystemctl records systemctl calls instead of making them.
+func fakeSystemctl(t *testing.T) *[]string {
+	t.Helper()
+	var calls []string
+	saved := runSystemctl
+	runSystemctl = func(args ...string) error { calls = append(calls, strings.Join(args, " ")); return nil }
+	t.Cleanup(func() { runSystemctl = saved })
+	return &calls
+}
+
+// The display variables go to the user manager before a desktop unit is
+// started or restarted, and never for a server unit or from an ssh session,
+// whose forwarded display would outlive the connection.
+func TestDisplayIsImportedOnlyForADesktopStart(t *testing.T) {
+	t.Setenv("DISPLAY", ":0")
+	t.Setenv("WAYLAND_DISPLAY", "")
+	t.Setenv("XAUTHORITY", "")
+	t.Setenv("SSH_CONNECTION", "")
+	t.Setenv("SSH_TTY", "")
+	calls := fakeSystemctl(t)
+	var out strings.Builder
+	systemdControl{}.Start(&out, true)
+	systemdControl{}.Restart(&out, true)
+	if got := strings.Join(*calls, "; "); got != "import-environment DISPLAY; start ccbabysitter; import-environment DISPLAY; restart ccbabysitter" {
+		t.Fatalf("desktop: %q", got)
+	}
+	*calls = nil
+	systemdControl{}.Start(&out, false)
+	if got := strings.Join(*calls, "; "); got != "start ccbabysitter" {
+		t.Fatalf("server: %q", got)
+	}
+	*calls = nil
+	t.Setenv("SSH_CONNECTION", "198.51.100.4 50000 203.0.113.7 22")
+	systemdControl{}.Start(&out, true)
+	if got := strings.Join(*calls, "; "); got != "start ccbabysitter" {
+		t.Fatalf("over ssh: %q", got)
+	}
+}
+
+// A rewritten unit whose start at login was on is enabled again, so its
+// link moves to the target the unit names now; one that was off is not.
+func TestRefreshUnitReenablesARewrittenEnabledUnit(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_DATA_HOME", "")
+	saved := executablePath
+	executablePath = func() (string, error) { return "/home/dev/.local/bin/ccbabysitter", nil }
+	t.Cleanup(func() { executablePath = saved })
+	unit, err := systemdUnitPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, enabled := range []bool{true, false} {
+		if err := writeUnitAt(unit, "[Service]\nExecStart=/old/ccbabysitter --no-open\n"); err != nil {
+			t.Fatal(err)
+		}
+		link := filepath.Join(filepath.Dir(unit), "default.target.wants", "ccbabysitter.service")
+		os.Remove(link)
+		if enabled {
+			if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(unit, link); err != nil {
+				t.Fatal(err)
+			}
+		}
+		calls := fakeSystemctl(t)
+		var out strings.Builder
+		rewritten, ok := systemdControl{}.RefreshUnit(&out, true)
+		want := "daemon-reload"
+		if enabled {
+			want = "daemon-reload; reenable ccbabysitter"
+		}
+		if !rewritten || !ok || strings.Join(*calls, "; ") != want {
+			t.Fatalf("enabled %v: rewritten %v ok %v calls %q out %q", enabled, rewritten, ok, *calls, out.String())
+		}
+	}
+}

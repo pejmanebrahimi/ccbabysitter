@@ -41,6 +41,9 @@ type serviceControl interface {
 	Usable() bool
 	// Installed reports whether the unit file is there.
 	Installed() bool
+	// UnitKind reads whether the installed unit is a desktop's or a
+	// server's; known is false when there is none or it names neither.
+	UnitKind() (desktop, known bool)
 	// Write writes the unit, for a desktop or a server, and has the
 	// service manager read it, telling out about any step that failed. It
 	// reports whether everything worked. It starts nothing.
@@ -54,16 +57,18 @@ type serviceControl interface {
 	// it did worked; a unit that is already the right one is left alone.
 	RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bool)
 	// Start starts the service if it is not running, which leaves a
-	// running one alone, telling out about any step that failed. It does
-	// not turn start at login on.
-	Start(out io.Writer) bool
+	// running one alone, telling out about any step that failed. A desktop
+	// unit is handed the display variables first. It does not turn start
+	// at login on.
+	Start(out io.Writer, desktop bool) bool
 	// Enable turns start at boot on and starts the service if it is not
 	// running, telling out about any step that failed. Only the install
 	// subcommand uses it; lingering is not its business.
 	Enable(out io.Writer) bool
 	// Restart stops the running service and starts it again, telling out
-	// when that failed, and reports whether it worked.
-	Restart(out io.Writer) bool
+	// when that failed, and reports whether it worked. A desktop unit is
+	// handed the display variables first, as Start does.
+	Restart(out io.Writer, desktop bool) bool
 	// Active reports whether the service is running now.
 	Active() bool
 }

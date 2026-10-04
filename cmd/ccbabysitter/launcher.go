@@ -125,8 +125,11 @@ func startInBackground(out io.Writer, sc serviceControl, stateDir string, o laun
 // running after the person logs out.
 func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOptions, d launchDeps) int {
 	user, address := currentUserAndAddress(stateDir)
-	server := o.Install || o.Headless
-	desktop := !server
+	desktop := !o.Install && !o.Headless
+	if !o.Install && sc.Installed() {
+		desktop = keptKind(sc, stateDir, user, desktop)
+	}
+	server := !desktop
 
 	active := sc.Active()
 	if !active && anotherCopyRunning(stateDir) {
@@ -146,7 +149,7 @@ func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOpti
 		}
 		if rewritten && active {
 			_ = state.WriteStartReason(stateDir, restartedReason)
-			if !sc.Restart(out) {
+			if !sc.Restart(out, desktop) {
 				return 1
 			}
 			restarted = true
@@ -154,7 +157,7 @@ func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOpti
 	}
 	if !active {
 		_ = state.WriteStartReason(stateDir, launchedReason)
-		if !sc.Start(out) {
+		if !sc.Start(out, desktop) {
 			return 1
 		}
 	}
@@ -168,7 +171,7 @@ func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOpti
 	page, ok := d.wait(stateDir)
 	if ok && !restarted && page.Version != "" && page.Version != buildinfo.Version {
 		_ = state.WriteStartReason(stateDir, restartedReason)
-		if !sc.Restart(out) {
+		if !sc.Restart(out, desktop) {
 			return 1
 		}
 		page, ok = d.wait(stateDir)
@@ -212,6 +215,31 @@ func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOpti
 		}
 	}
 	return 0
+}
+
+// keptKind is the kind of unit a run keeps, given the kind it would choose
+// from where it runs. Once a unit exists its kind changes only for a good
+// reason, so a plain run never undoes a setup or restarts the copy for
+// nothing: a desktop reached over ssh keeps its desktop unit, and a unit
+// set up to start at boot, with lingering, keeps that when a plain run
+// comes from a desktop terminal. A unit an earlier version wrote for start
+// at login on a desktop wants default.target without lingering, and
+// becomes a desktop unit.
+func keptKind(sc serviceControl, stateDir, user string, desktop bool) bool {
+	existing, known := sc.UnitKind()
+	if !known {
+		return desktop
+	}
+	switch {
+	case existing && !desktop:
+		return true
+	case !existing && desktop:
+		lingering, err := sc.Lingering(user)
+		if state.LingeringTurnedOn(stateDir) || (err == nil && lingering) {
+			return false
+		}
+	}
+	return desktop
 }
 
 // launches reports whether a run of the default command is the launcher:
