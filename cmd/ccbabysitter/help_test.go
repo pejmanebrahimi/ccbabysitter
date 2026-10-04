@@ -210,3 +210,13 @@ func TestHelpStatesHowASessionWordIsRead(t *testing.T) {
 		}
 	}
 }
+
+// quit's refusal, as from an older running copy, is the action refusal
+// document, which the page states.
+func TestQuitHelpStatesItsRefusal(t *testing.T) {
+	var b bytes.Buffer
+	printCommandHelp(&b, "quit")
+	if !strings.Contains(b.String(), "ok is false when it was refused, with exit code 1 and the reason in message.") {
+		t.Fatalf("help quit:\n%s", b.String())
+	}
+}

@@ -267,7 +267,8 @@ dies, and the computer may sleep, until you run ccbabysitter again.`,
 		"",
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
 
-With --json: {"schema":1,"ok":true,"message":"..."}.`,
+With --json: {"schema":1,"ok":true,"message":"..."}.
+ok is false when it was refused, with exit code 1 and the reason in message.`,
 		`  ccbabysitter quit
 `),
 	"install": `ccbabysitter install

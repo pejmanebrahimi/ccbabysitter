@@ -677,7 +677,10 @@ func TestQuitAgainstAnOlderCopySaysHowToQuitIt(t *testing.T) {
 	env := controlEnv{stateDir: dir}
 
 	code, _, errOut := runCmd(t, env, "quit")
-	if code != 1 || strings.Contains(errOut, "not running") || !strings.Contains(errOut, "older version") || !strings.Contains(errOut, "Ctrl+C") {
+	// A copy started at login has no window to press Ctrl+C in: the answer
+	// names how to stop it on each system too.
+	if code != 1 || strings.Contains(errOut, "not running") || !strings.Contains(errOut, "older version") || !strings.Contains(errOut, "Ctrl+C") ||
+		!strings.Contains(errOut, "systemctl --user stop ccbabysitter") || !strings.Contains(errOut, "launchctl bootout gui/") || !strings.Contains(errOut, "Task Manager") {
 		t.Fatalf("quit against an older copy = %d %q", code, errOut)
 	}
 	code, out, _ := runCmd(t, env, "quit", "--json")

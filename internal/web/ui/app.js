@@ -1351,7 +1351,9 @@
       }
     });
     stream.addEventListener("view", function (event) {
-      show($("#reconnect"), false);
+      /* A copy that is quitting sends one last view on its way out, which
+         must not hide the sentence saying it has quit. */
+      if (!quitHere) { show($("#reconnect"), false); }
       backoff = 1000;
       try { applyView(JSON.parse(event.data)); } catch (err) { /* a truncated frame is dropped */ }
     });
