@@ -157,6 +157,7 @@ ccbabysitter retry S         try again on a babysat session that is stuck
 ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
 ccbabysitter activity [S]    what CC Babysitter did and why, newest first
 ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
+ccbabysitter quit            quit CC Babysitter. Babysat sessions keep running where they are
 ccbabysitter help COMMAND    everything about one command
 ```
 
@@ -175,21 +176,21 @@ On a Linux server, `ccbabysitter` writes the systemd unit the first time it runs
 macOS:
 
 1. If "Start CC Babysitter when I log in" is on, switch it off in Settings. That removes `~/Library/LaunchAgents/com.ccbabysitter.plist`; you can also delete the file yourself.
-2. Quit CC Babysitter: Ctrl+C in its terminal, or `pkill -x ccbabysitter` when it was started at login.
+2. Quit CC Babysitter: `ccbabysitter quit`, or Ctrl+C in its terminal.
 3. Run `ccbabysitter reset` to delete the state folder, `~/.local/share/ccbabysitter` (or `$XDG_DATA_HOME/ccbabysitter`).
 4. Delete the binary: `rm ~/.local/bin/ccbabysitter`, or wherever `command -v ccbabysitter` says it is.
 
 Linux:
 
 1. Run `ccbabysitter uninstall`. It stops and disables the systemd user service and removes `~/.config/systemd/user/ccbabysitter.service`, however the unit was written: by a plain run on a server, by `ccbabysitter install`, or by "Start CC Babysitter when I log in". It turns lingering off for your user only when CC Babysitter turned it on, which it notes in the file `lingering-turned-on` in the state folder; lingering that was already on is left on, since other services of yours may need it. Skip this step if none of those happened.
-2. Quit any copy still running in a terminal with Ctrl+C.
+2. Quit any copy still running in a terminal with `ccbabysitter quit` or Ctrl+C.
 3. Run `ccbabysitter reset` to delete the state folder, `~/.local/share/ccbabysitter` (or `$XDG_DATA_HOME/ccbabysitter`).
 4. Delete the binary: `rm ~/.local/bin/ccbabysitter`, or wherever `command -v ccbabysitter` says it is.
 
 Windows:
 
 1. If "Start CC Babysitter when I log in" is on, switch it off in Settings. That removes `CCBabysitter.cmd` from your Startup folder, `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`; you can also delete the file yourself.
-2. Quit CC Babysitter: Ctrl+C in its window, or close the window.
+2. Quit CC Babysitter: `ccbabysitter quit`, Ctrl+C in its window, or close the window.
 3. Run `ccbabysitter reset` to delete the state folder, `%LOCALAPPDATA%\CCBabysitter`.
 4. Delete the folder holding the binary, `%LOCALAPPDATA%\Programs\CCBabysitter`, or the folder you installed into.
 5. Remove that folder from your user Path: open "Edit environment variables for your account" from the Start menu, select Path, choose Edit, and delete the entry.

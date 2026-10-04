@@ -30,6 +30,7 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
   ccbabysitter activity [S]    what CC Babysitter did and why, newest first
   ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
+  ccbabysitter quit            quit CC Babysitter. Babysat sessions keep running where they are
   ccbabysitter help COMMAND    everything about one command
 
 S is a session id, a short id, a name, or self.
@@ -258,6 +259,17 @@ With --json: {"schema":1,"settings":{"autostart":false,"autoBabysit":true,
   ccbabysitter settings theme dark
 `),
 
+	"quit": controlPage(
+		"ccbabysitter quit",
+		`Quits the running copy of CC Babysitter, as the page's Quit button does. Babysat
+sessions keep running where they are, but nothing brings them back if their app
+dies, and the computer may sleep, until you run ccbabysitter again.`,
+		"",
+		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {"schema":1,"ok":true,"message":"..."}.`,
+		`  ccbabysitter quit
+`),
 	"install": `ccbabysitter install
 
 On Linux, sets CC Babysitter up as a systemd user service that starts at boot, and

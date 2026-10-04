@@ -270,6 +270,15 @@ func (c *Client) Stop(ctx context.Context, id string) (supervise.Result, error) 
 	return c.action(ctx, id, "stop", nil)
 }
 
+// Quit asks the running copy to quit. Babysat sessions keep running.
+func (c *Client) Quit(ctx context.Context) (supervise.Result, error) {
+	status, data, err := c.send(ctx, c.actionTimeout, http.MethodPost, "/api/quit?via=cli", struct{}{})
+	if err != nil {
+		return supervise.Result{}, err
+	}
+	return result(status, data)
+}
+
 // Activity is the Activity panel, newest first, at most n entries.
 func (c *Client) Activity(ctx context.Context, n int) ([]state.Entry, error) {
 	status, data, err := c.send(ctx, c.viewTimeout, http.MethodGet, fmt.Sprintf("/api/activity?n=%d", n), nil)

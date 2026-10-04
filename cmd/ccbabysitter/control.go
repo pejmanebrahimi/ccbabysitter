@@ -129,7 +129,7 @@ type controlArgs struct {
 // controlCommands are the commands that talk to the running copy.
 var controlCommands = map[string]bool{
 	"status": true, "list": true, "show": true, "babysit": true, "unbabysit": true,
-	"retry": true, "stop": true, "activity": true, "settings": true,
+	"retry": true, "stop": true, "activity": true, "settings": true, "quit": true,
 }
 
 func isControlCommand(name string) bool { return controlCommands[name] }
@@ -203,7 +203,7 @@ func parseControlArgs(name string, args []string) (controlArgs, error) {
 	a.pos = pos
 
 	switch name {
-	case "status", "list":
+	case "status", "list", "quit":
 		if len(pos) != 0 {
 			return controlArgs{}, fmt.Errorf("%s takes no words, but got %s", name, pos[0])
 		}
@@ -285,6 +285,15 @@ func runControl(name string, args []string, env controlEnv) int {
 		return env.fail(a.json, exitUsage, "usage", err.Error())
 	}
 	ctx := context.Background()
+
+	// quit needs no view: it only asks the running copy to stop.
+	if name == "quit" {
+		res, err := c.Quit(ctx)
+		if err != nil {
+			return env.failErr(a.json, false, "", err)
+		}
+		return env.printResult(a.json, res, "")
+	}
 
 	// activity without a session only needs the log.
 	if name == "activity" && len(a.pos) == 0 {
