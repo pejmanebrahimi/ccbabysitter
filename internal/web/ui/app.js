@@ -971,6 +971,19 @@
     });
   }
 
+  /* doQuit says how to start CC Babysitter again from the moment the
+     person confirms, not only once the answer arrives: the answer can be
+     cut off by the shutdown it starts, and the pill must not fall back to
+     Reconnecting or Not running meanwhile. */
+  function doQuit() {
+    closeDialog($("#dlg-quit"));
+    closeDrawer();
+    quitHere = true;
+    show($("#reconnect"), true);
+    reconnectSays(QUIT_SAYS, false);
+    send("POST", "/api/quit", {});
+  }
+
   function openBack(id) {
     state.dialog.id = id;
     if (fillBackDialog()) { openDialog($("#dlg-back")); }
@@ -1283,6 +1296,12 @@
   /* keyRefused is set while the server answers but does not take this
      page's key, which no number of attempts will change. */
   var keyRefused = false;
+  /* quitHere is set once this page has asked CC Babysitter to quit, so the
+     pill says how to start it again instead of counting attempts. It is
+     cleared when the stream comes back, which is CC Babysitter running
+     again. */
+  var quitHere = false;
+  var QUIT_SAYS = "CC Babysitter has quit. Run ccbabysitter to start it again.";
 
   function reconnectSays(text, dots) {
     setText($("#reconnect-text"), text);
@@ -1322,6 +1341,7 @@
       backoff = 1000;
       attempts = 0;
       keyRefused = false;
+      quitHere = false;
       reconnectSays("Reconnecting", true);
       if (wasDropped) {
         wasDropped = false;
@@ -1343,7 +1363,9 @@
       wasDropped = true;
       attempts++;
       show($("#reconnect"), true);
-      if (attempts >= PATIENCE && !keyRefused) {
+      if (quitHere) {
+        reconnectSays(QUIT_SAYS, false);
+      } else if (attempts >= PATIENCE && !keyRefused) {
         reconnectSays("Not running. Start CC Babysitter to reconnect.", false);
       }
       askWhyDown();
@@ -1431,6 +1453,8 @@
 
     onDialog($("#dlg-babysit"), doBabysit);
     onDialog($("#dlg-stop"), doStop);
+    onDialog($("#dlg-quit"), doQuit);
+    $("#open-quit").addEventListener("click", function () { openDialog($("#dlg-quit")); });
     onDialog($("#dlg-back"), doBack);
     $('[data-act="copy-resume"]', $("#dlg-back")).addEventListener("click", function () {
       copyText(f($("#dlg-back"), "resume").textContent);

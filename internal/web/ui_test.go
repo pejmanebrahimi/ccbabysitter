@@ -1479,3 +1479,27 @@ func TestThemesDarkLightAuto(t *testing.T) {
 		}
 	}
 }
+
+// The page offers Quit in its settings, asks first, and says how to start
+// CC Babysitter again once it has quit.
+func TestThePageCanQuit(t *testing.T) {
+	html, js := readUI(t, "ui/index.html"), readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`id="open-quit"`,
+		`id="dlg-quit"`,
+		"Quit CC Babysitter?",
+		"Babysat sessions keep running, but nothing brings them back until you run ccbabysitter again.",
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("index.html has no %q", want)
+		}
+	}
+	for _, want := range []string{
+		`"/api/quit"`,
+		"CC Babysitter has quit. Run ccbabysitter to start it again.",
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("app.js has no %q", want)
+		}
+	}
+}

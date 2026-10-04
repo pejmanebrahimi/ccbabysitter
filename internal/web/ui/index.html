@@ -115,6 +115,12 @@
       </div>
     </div>
 
+    <div class="fieldset">
+      <h3>CC Babysitter</h3>
+      <button class="b danger" id="open-quit">Quit CC Babysitter</button>
+      <p class="quiet">Babysat sessions keep running, but nothing brings them back until you run ccbabysitter again.</p>
+    </div>
+
   </div>
 </aside>
 
@@ -170,6 +176,18 @@
   <menu class="dlg-acts">
     <button class="b" data-act="cancel">Cancel</button>
     <button class="b primary" data-act="go"></button>
+  </menu>
+</dialog>
+
+<dialog class="dlg" id="dlg-quit" aria-labelledby="dlg-quit-h">
+  <div class="dlg-body">
+    <h2 id="dlg-quit-h">Quit CC Babysitter?</h2>
+    <p class="line">Babysat sessions keep running, but nothing brings them back until you run ccbabysitter again.</p>
+    <p class="line warn">The computer may sleep while CC Babysitter is not running.</p>
+  </div>
+  <menu class="dlg-acts">
+    <button class="b" data-act="cancel">Cancel</button>
+    <button class="b danger" data-act="go">Quit</button>
   </menu>
 </dialog>
 
