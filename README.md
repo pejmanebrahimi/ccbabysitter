@@ -120,7 +120,7 @@ On a server with no display the same page is the session manager. A plain `ccbab
 - If the session's app closes, starts the session again as a background session with Remote Control, under the same id, with `claude --bg --resume`.
 - Lets you unbabysit while the session is still in its own app. Once the background copy carries it, you stop the copy instead with `claude stop`, which keeps the conversation.
 - Says before you babysit when a background copy could not start: the Claude Code CLI must trust the folder, so run `claude` there once, and it never starts in your home folder.
-- Offers, in the same dialog, to start CC Babysitter at login so the promise survives a restart, when that is off. A plain `ccbabysitter` turns it on the first time it runs.
+- Offers, in the same dialog, to start CC Babysitter at login so the promise survives a restart, when that is off. A plain `ccbabysitter` turns it on the first time it starts CC Babysitter in the background, also when you upgrade, as Start at login below says.
 - Stops babysitting a session that ended before anything was said in it, and says so in Activity: Claude saves a conversation only after the first message, so there is nothing to bring back.
 - Waits 90 seconds after it starts on a machine with a display before starting anything in the background, so apps that restore their own sessions at login, Claude Desktop in particular, go first.
 - Gives every background session a Copy button for `claude attach <short>`, and on a server a second one for the same command run over `ssh` from another machine. A background copy stopped from the page keeps both on its Not running row, until CC Babysitter restarts.
@@ -145,7 +145,7 @@ ccbabysitter --no-open       start it without opening the page
 ccbabysitter --demo          scripted sessions, touches nothing real
 ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
 ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
-ccbabysitter uninstall       stop it and remove it from start at login
+ccbabysitter uninstall       stop the background copy and remove its service or login entry
 ccbabysitter reset           delete the state folder after confirmation
 ccbabysitter version         print the name and version
 

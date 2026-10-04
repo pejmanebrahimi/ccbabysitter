@@ -17,7 +17,7 @@ Run it:
   ccbabysitter --demo          scripted sessions, touches nothing real
   ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
   ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
-  ccbabysitter uninstall       stop it and remove it from start at login
+  ccbabysitter uninstall       stop the background copy and remove its service or login entry
   ccbabysitter reset           delete the state folder after confirmation
   ccbabysitter version         print the name and version
 
@@ -286,9 +286,11 @@ Example:
 
 	"uninstall": `ccbabysitter uninstall
 
-On Linux, stops and disables the service, however it was set up, and removes its
-file. On macOS, stops the LaunchAgent and removes its plist. On Windows, quits
-CC Babysitter and removes its Run value. The state folder stays.
+On Linux, stops and disables the service, however it was set up, removes its
+file, and turns lingering off when CC Babysitter turned it on. On macOS, stops
+the LaunchAgent and removes its plist. On Windows, quits CC Babysitter, removes
+its Run value and an earlier version's Startup folder script. The state folder
+stays.
 
 Example:
   ccbabysitter uninstall
