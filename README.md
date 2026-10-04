@@ -176,7 +176,7 @@ Every login entry points at the program where it is at that moment, so keep the 
 
 ## Uninstall
 
-`ccbabysitter reset` deletes the state folder after asking, and refuses while CC Babysitter is still running, so quit it first. Run the steps for your system in this order.
+`ccbabysitter uninstall` on its own leaves the state folder, but a later plain `ccbabysitter` turns start at login on again, as on a machine that never had CC Babysitter. `ccbabysitter reset` deletes the state folder after asking, and refuses while CC Babysitter is still running, so quit it first. Run the steps for your system in this order.
 
 macOS:
 

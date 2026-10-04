@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
 // fakeLaunchctl answers launchctl from answers, keyed by the joined
@@ -293,5 +295,20 @@ func TestDarwinUninstallSaysWhenBootoutFailed(t *testing.T) {
 	runUninstall(&out)
 	if strings.Contains(out.String(), "Stopped the CC Babysitter LaunchAgent.") || !strings.Contains(out.String(), "was not running") {
 		t.Fatalf("output %q", out.String())
+	}
+}
+
+// Uninstall forgets that start at login was turned on once, so a later
+// plain run turns it on again, as on a machine that never had it.
+func TestDarwinUninstallForgetsTheLoginStartChoice(t *testing.T) {
+	launchdHome(t)
+	useFakeLaunchctl(t)
+	if err := state.MarkLoginStartOffered(state.DefaultDir()); err != nil {
+		t.Fatal(err)
+	}
+	var out strings.Builder
+	runUninstall(&out)
+	if state.LoginStartOffered(state.DefaultDir()) {
+		t.Fatalf("the choice is still remembered after uninstall:\n%s", out.String())
 	}
 }

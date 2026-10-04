@@ -55,3 +55,16 @@ func TestServiceRunningNote(t *testing.T) {
 		t.Fatal("a cleared note is still there")
 	}
 }
+
+// Forgetting the note makes the next plain run turn start at login on
+// again, as on a machine that never had CC Babysitter.
+func TestForgetLoginStartOffered(t *testing.T) {
+	dir := t.TempDir()
+	if err := ForgetLoginStartOffered(dir); err != nil {
+		t.Fatalf("forgetting a note that is not there: %v", err)
+	}
+	_ = MarkLoginStartOffered(dir)
+	if err := ForgetLoginStartOffered(dir); err != nil || LoginStartOffered(dir) {
+		t.Fatalf("still offered after forgetting: %v", err)
+	}
+}

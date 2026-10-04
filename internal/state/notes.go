@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -41,6 +42,16 @@ func TakeStartReason(dir string) string {
 // MarkLoginStartOffered notes that the launcher turned start at login on.
 func MarkLoginStartOffered(dir string) error {
 	return writeNote(dir, loginStartFile, "start at login was turned on by default")
+}
+
+// ForgetLoginStartOffered removes that note, so the next plain run turns
+// start at login on again. A note that is not there is not an error.
+func ForgetLoginStartOffered(dir string) error {
+	err := os.Remove(filepath.Join(dir, loginStartFile))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 // LoginStartOffered reports whether MarkLoginStartOffered was noted.

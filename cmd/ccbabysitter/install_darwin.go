@@ -5,6 +5,8 @@ package main
 import (
 	"fmt"
 	"io"
+
+	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
 // runInstall explains that install, which sets up a systemd service, is a
@@ -15,7 +17,8 @@ func runInstall(out io.Writer) int {
 }
 
 // runUninstall stops the LaunchAgent and removes its plist, wherever it is.
-// The state folder stays.
+// The state folder stays, but a later plain run turns start at login on
+// again.
 func runUninstall(out io.Writer) int {
 	if _, err := runLaunchctl("bootout", launchdJob()); err != nil {
 		fmt.Fprintln(out, "The CC Babysitter LaunchAgent was not running.")
@@ -34,6 +37,9 @@ func runUninstall(out io.Writer) int {
 		}
 		fmt.Fprintln(out, "Removed", path)
 	}
+	// A later plain run turns start at login on again, as on a machine
+	// that never had CC Babysitter.
+	_ = state.ForgetLoginStartOffered(state.DefaultDir())
 	fmt.Fprintln(out, foregroundHint)
 	return rc
 }

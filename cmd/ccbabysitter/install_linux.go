@@ -313,6 +313,9 @@ func runUninstall(out io.Writer) int {
 	}
 
 	releaseLingering(out, systemdControl{}, state.DefaultDir(), currentUser())
+	// A later plain run turns start at login on again, as on a machine
+	// that never had CC Babysitter.
+	_ = state.ForgetLoginStartOffered(state.DefaultDir())
 	fmt.Fprintln(out, foregroundHint)
 	return 0
 }

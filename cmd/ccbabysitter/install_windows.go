@@ -21,7 +21,8 @@ func runInstall(out io.Writer) int {
 }
 
 // runUninstall quits the running copy, turns start at login off and
-// removes an earlier version's Startup script. The state folder stays.
+// removes an earlier version's Startup script. The state folder stays,
+// but a later plain run turns start at login on again.
 func runUninstall(out io.Writer) int {
 	stateDir := state.DefaultDir()
 	// The page's key goes only to a copy whose lock names a live process,
@@ -50,6 +51,9 @@ func runUninstall(out io.Writer) int {
 		return 1
 	}
 	fmt.Fprintln(out, "Removed", name)
+	// A later plain run turns start at login on again, as on a machine
+	// that never had CC Babysitter.
+	_ = state.ForgetLoginStartOffered(state.DefaultDir())
 	fmt.Fprintln(out, foregroundHint)
 	return rc
 }

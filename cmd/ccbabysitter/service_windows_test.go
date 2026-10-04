@@ -228,3 +228,20 @@ func TestStartBackgroundLeavesTheWindowsJob(t *testing.T) {
 		t.Fatalf("nothing could start: %+v", r)
 	}
 }
+
+// Uninstall forgets that start at login was turned on once, so a later
+// plain run turns it on again, as on a machine that never had it.
+func TestWindowsUninstallForgetsTheLoginStartChoice(t *testing.T) {
+	t.Setenv("LOCALAPPDATA", t.TempDir())
+	t.Setenv("APPDATA", t.TempDir())
+	windowsProgram(t, true)
+	useFakeReg(t)
+	if err := state.MarkLoginStartOffered(state.DefaultDir()); err != nil {
+		t.Fatal(err)
+	}
+	var out strings.Builder
+	runUninstall(&out)
+	if state.LoginStartOffered(state.DefaultDir()) {
+		t.Fatalf("the choice is still remembered after uninstall:\n%s", out.String())
+	}
+}

@@ -290,7 +290,8 @@ On Linux, stops and disables the service, however it was set up, removes its
 file, and turns lingering off when CC Babysitter turned it on. On macOS, stops
 the LaunchAgent and removes its plist. On Windows, quits CC Babysitter, removes
 its Run value and an earlier version's Startup folder script. The state folder
-stays.
+stays, but a later plain ccbabysitter turns start at login on again, as on a
+machine that never had CC Babysitter.
 
 Example:
   ccbabysitter uninstall

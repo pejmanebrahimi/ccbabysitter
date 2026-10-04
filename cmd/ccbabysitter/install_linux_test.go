@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
+
+	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
 func TestUnitFile(t *testing.T) {
@@ -173,5 +175,23 @@ func TestRefreshUnitMovesALinkLeftInTheWrongFolder(t *testing.T) {
 	rewritten, ok := systemdControl{}.RefreshUnit(&out, true)
 	if rewritten || !ok || strings.Join(*calls, "; ") != "reenable ccbabysitter" {
 		t.Fatalf("rewritten %v ok %v calls %q", rewritten, ok, *calls)
+	}
+}
+
+// Uninstall forgets that start at login was turned on once, so a later
+// plain run turns it on again, as on a machine that never had it.
+func TestLinuxUninstallForgetsTheLoginStartChoice(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_DATA_HOME", "")
+	t.Setenv("XDG_CONFIG_HOME", "")
+	fakeSystemctl(t)
+	if err := state.MarkLoginStartOffered(state.DefaultDir()); err != nil {
+		t.Fatal(err)
+	}
+	var out strings.Builder
+	runUninstall(&out)
+	if state.LoginStartOffered(state.DefaultDir()) {
+		t.Fatalf("the choice is still remembered after uninstall:\n%s", out.String())
 	}
 }
