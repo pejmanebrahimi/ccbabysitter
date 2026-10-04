@@ -169,3 +169,32 @@ func TestLaunchdRefreshRewritesAnOldAgentInPlace(t *testing.T) {
 		t.Fatalf("a right plist was rewritten: %v %v", rewritten, ok)
 	}
 }
+
+func TestDarwinUninstallRemovesBothPlists(t *testing.T) {
+	launchdHome(t)
+	f := useFakeLaunchctl(t)
+	var out strings.Builder
+	(launchdControl{}).Write(&out, true)
+	if err := os.MkdirAll(filepath.Dir(agentPath()), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(agentPath(), []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.calls = nil
+	out.Reset()
+	if rc := runUninstall(&out); rc != 0 {
+		t.Fatalf("rc %d: %s", rc, out.String())
+	}
+	for _, path := range []string{agentPath(), offPath()} {
+		if on, _ := pathPresent(path); on {
+			t.Errorf("%s is still there", path)
+		}
+		if !strings.Contains(out.String(), "Removed "+path) {
+			t.Errorf("output does not name %s:\n%s", path, out.String())
+		}
+	}
+	if len(f.calls) != 1 || f.calls[0] != "bootout "+job() {
+		t.Fatalf("calls %q", f.calls)
+	}
+}

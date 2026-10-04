@@ -11,7 +11,7 @@ import (
 const usage = `CC Babysitter keeps Claude Code sessions alive and reachable.
 
 Run it:
-  ccbabysitter                 start CC Babysitter. On Linux it runs in the background and starts at login
+  ccbabysitter                 start CC Babysitter. On Linux and macOS it runs in the background and starts at login
   ccbabysitter --foreground    run in this terminal until Ctrl+C
   ccbabysitter --no-open       start it without opening the page
   ccbabysitter --demo          scripted sessions, touches nothing real
@@ -276,7 +276,8 @@ With --json: {"schema":1,"ok":true,"message":"..."}.`,
 On Linux, sets CC Babysitter up as a systemd user service that starts at boot and
 keeps running after you log out, and starts it, whether or not the machine has a
 display. Running ccbabysitter on a Linux server does the same. On macOS and
-Windows it says that install is for Linux and exits with 2.
+Windows it says that install is for Linux and exits with 2: on macOS a plain
+ccbabysitter starts CC Babysitter in the background.
 
 Example:
   ccbabysitter install
@@ -285,7 +286,8 @@ Example:
 	"uninstall": `ccbabysitter uninstall
 
 On Linux, stops and disables the service, however it was set up, and removes its
-file. The state folder stays. On macOS and Windows it exits with 2.
+file. On macOS, stops the LaunchAgent and removes its plist. The state folder
+stays. On Windows it exits with 2.
 
 Example:
   ccbabysitter uninstall
