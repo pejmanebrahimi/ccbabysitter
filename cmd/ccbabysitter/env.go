@@ -112,10 +112,12 @@ func portOf(rawURL string) string {
 // its page is not reachable directly, with the command to connect from
 // another computer that also forwards the page's port, and the URL to open
 // there once it is connected. The keep-awake line states the one rule
-// there is rather than a setting, since there is nothing to change. A version left empty is left out of the versions line
-// rather than printed blank, and a missing CLI is called out by name
-// instead of silently vanishing from the line.
-func banner(version, pageURL string, headless bool, user, address, cliVersion, desktopVersion, vscodeExtVersion string) string {
+// there is rather than a setting, since there is nothing to change. A
+// version left empty is left out of the versions line rather than printed
+// blank, and a missing CLI is called out by name instead of silently
+// vanishing from the line. closing is the last line: how to quit a copy in
+// this terminal, or how a copy in the background keeps running.
+func banner(version, pageURL string, headless bool, user, address, cliVersion, desktopVersion, vscodeExtVersion, closing string) string {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "%s %s\n", buildinfo.Name, version)
@@ -148,8 +150,39 @@ func banner(version, pageURL string, headless bool, user, address, cliVersion, d
 		fmt.Fprintf(&b, "This build was verified with Claude Code %s or later. Older versions may word their output differently.\n", buildinfo.VerifiedCLIVersion)
 	}
 
-	fmt.Fprintln(&b, "Press Ctrl+C to quit. Babysat sessions keep running, but nothing restarts them and the computer may sleep.")
+	fmt.Fprintln(&b, closing)
 	return b.String()
+}
+
+// foregroundClosing ends the banner of a copy that serves in this terminal.
+const foregroundClosing = "Press Ctrl+C to quit. Babysat sessions keep running, but nothing restarts them and the computer may sleep."
+
+// backgroundClosing ends what the launcher prints: the copy runs in the
+// background, whether it starts again by itself, and that the window can
+// be closed.
+func backgroundClosing(server, loginStart bool) string {
+	switch {
+	case loginStart && server:
+		return "CC Babysitter runs in the background and starts again when this server boots. You can close this window."
+	case loginStart:
+		return "CC Babysitter runs in the background and starts again when you log in. You can close this window."
+	case server:
+		return "CC Babysitter runs in the background until you quit it or restart. Start at boot is off. You can close this window."
+	}
+	return "CC Babysitter runs in the background until you quit it or restart. Start at login is off. You can close this window."
+}
+
+// startedReason is the background copy's first Activity line: the
+// launcher's note when it left one, and otherwise that the system started
+// it, at login on a desktop or at boot on a server.
+func startedReason(note string, server bool) string {
+	switch {
+	case note != "":
+		return note
+	case server:
+		return "Started at boot."
+	}
+	return "Started at login."
 }
 
 // olderThanVerified reports whether a detected CLI version is earlier than

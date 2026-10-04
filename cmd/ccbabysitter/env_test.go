@@ -12,7 +12,7 @@ import (
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
 
 func TestBannerStatesTheKeepAwakeRuleAndTunnelsWhenHeadless(t *testing.T) {
-	b := banner("0.1.0", "http://127.0.0.1:47391", true, "dev", "203.0.113.7", "2.1.275", "", "")
+	b := banner("0.1.0", "http://127.0.0.1:47391", true, "dev", "203.0.113.7", "2.1.275", "", "", foregroundClosing)
 	for _, want := range []string{
 		"Keep computer awake: while at least one session is babysat, the computer does not idle-sleep",
 		"To view and control this server's CC Babysitter from a computer with a browser, connect from that computer with:\n" +
@@ -33,7 +33,7 @@ func TestBannerStatesTheKeepAwakeRuleAndTunnelsWhenHeadless(t *testing.T) {
 
 // The banner calls the web page what the rest of the program calls it.
 func TestBannerNamesThePage(t *testing.T) {
-	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.275", "", "")
+	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.275", "", "", foregroundClosing)
 	if !contains(b, "Page: http://127.0.0.1:47391\n") {
 		t.Fatalf("missing the page line in\n%s", b)
 	}
@@ -45,7 +45,7 @@ func TestBannerNamesThePage(t *testing.T) {
 // A machine nobody is sitting at gets the lines about reaching the page from
 // another computer; the one in front of the user does not.
 func TestBannerOffersNoTunnelWhenNotHeadless(t *testing.T) {
-	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.275", "", "")
+	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.275", "", "", foregroundClosing)
 	for _, gone := range []string{"To view and control this server's", "ssh -L"} {
 		if contains(b, gone) {
 			t.Fatalf("a non-headless banner must not offer a tunnel: found %q in\n%s", gone, b)
@@ -54,14 +54,14 @@ func TestBannerOffersNoTunnelWhenNotHeadless(t *testing.T) {
 }
 
 func TestBannerMissingCLIReportsNotFound(t *testing.T) {
-	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "", "", "")
+	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "", "", "", foregroundClosing)
 	if !contains(b, "Claude Code CLI not found") {
 		t.Fatalf("missing the not-found line in\n%s", b)
 	}
 }
 
 func TestBannerOmitsUnknownVersions(t *testing.T) {
-	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.275", "2.2553.1", "2.1.263")
+	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.275", "2.2553.1", "2.1.263", foregroundClosing)
 	for _, want := range []string{"Claude Code CLI 2.1.275", "Desktop 2.2553.1", "VS Code extension 2.1.263"} {
 		if !contains(b, want) {
 			t.Fatalf("missing %q in\n%s", want, b)
@@ -126,7 +126,7 @@ func TestServerAddressOrder(t *testing.T) {
 // one that could not be detected at all, is worth nothing.
 func TestBannerNotesAnOlderCLI(t *testing.T) {
 	const note = "verified with Claude Code"
-	older := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.9", "", "")
+	older := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.9", "", "", foregroundClosing)
 	if !strings.Contains(older, note) {
 		t.Fatalf("an older CLI must be called out:\n%s", older)
 	}
@@ -134,7 +134,7 @@ func TestBannerNotesAnOlderCLI(t *testing.T) {
 		t.Fatalf("the note must name the version:\n%s", older)
 	}
 	for _, version := range []string{buildinfo.VerifiedCLIVersion, "2.1.300", "3.0.0", ""} {
-		out := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", version, "", "")
+		out := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", version, "", "", foregroundClosing)
 		if strings.Contains(out, note) {
 			t.Fatalf("version %q must not be called out:\n%s", version, out)
 		}
@@ -176,7 +176,7 @@ func TestReadmeNamesTheVerifiedCLIVersion(t *testing.T) {
 // person to open the page, and the tunnel still forwards the plain port.
 func TestBannerCarriesTheKeyedAddress(t *testing.T) {
 	keyed := "http://127.0.0.1:47391/?token=" + strings.Repeat("ab", 32)
-	b := banner("0.1.0", keyed, true, "dev", "203.0.113.7", "2.1.275", "", "")
+	b := banner("0.1.0", keyed, true, "dev", "203.0.113.7", "2.1.275", "", "", foregroundClosing)
 	for _, want := range []string{
 		"Page: " + keyed + "\n",
 		"  ssh -L 47391:127.0.0.1:47391 dev@203.0.113.7\n",
@@ -217,5 +217,40 @@ func TestWithoutDomain(t *testing.T) {
 		if got := withoutDomain(in); got != want {
 			t.Errorf("withoutDomain(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestBackgroundClosing(t *testing.T) {
+	for _, c := range []struct {
+		server, on bool
+		want       string
+	}{
+		{false, true, "CC Babysitter runs in the background and starts again when you log in. You can close this window."},
+		{true, true, "CC Babysitter runs in the background and starts again when this server boots. You can close this window."},
+		{false, false, "CC Babysitter runs in the background until you quit it or restart. Start at login is off. You can close this window."},
+		{true, false, "CC Babysitter runs in the background until you quit it or restart. Start at boot is off. You can close this window."},
+	} {
+		if got := backgroundClosing(c.server, c.on); got != c.want {
+			t.Errorf("server %v, on %v: %q", c.server, c.on, got)
+		}
+	}
+}
+
+func TestBannerEndsWithItsClosingLine(t *testing.T) {
+	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.275", "", "", backgroundClosing(false, true))
+	if !strings.HasSuffix(b, backgroundClosing(false, true)+"\n") || strings.Contains(b, "Ctrl+C") {
+		t.Fatalf("banner:\n%s", b)
+	}
+}
+
+func TestStartedReason(t *testing.T) {
+	if got := startedReason("Started in the background by ccbabysitter.", false); got != "Started in the background by ccbabysitter." {
+		t.Fatalf("a launcher's note is kept: %q", got)
+	}
+	if got := startedReason("", false); got != "Started at login." {
+		t.Fatalf("desktop: %q", got)
+	}
+	if got := startedReason("", true); got != "Started at boot." {
+		t.Fatalf("server: %q", got)
 	}
 }
