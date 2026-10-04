@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"unsafe"
 )
 
 func init() {
@@ -41,6 +42,45 @@ var runReg = func(args ...string) (string, error) {
 	noWindow(cmd)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
+}
+
+// runSubkey is runKey below HKEY_CURRENT_USER, for the registry API.
+const runSubkey = `Software\Microsoft\Windows\CurrentVersion\Run`
+
+// queryRunValue reads the Run value's data through the registry API, as
+// the UTF-16 Windows stores, so a path with letters outside ASCII reads
+// back exactly as it was written. found is false when there is no such
+// value; any other failure is an error, never "off". Tests replace it.
+var queryRunValue = func() (data string, found bool, err error) {
+	sub, err := syscall.UTF16PtrFromString(runSubkey)
+	if err != nil {
+		return "", false, err
+	}
+	var key syscall.Handle
+	if err := syscall.RegOpenKeyEx(syscall.HKEY_CURRENT_USER, sub, 0, syscall.KEY_READ, &key); err != nil {
+		if errors.Is(err, syscall.ERROR_FILE_NOT_FOUND) {
+			return "", false, nil
+		}
+		return "", false, err
+	}
+	defer syscall.RegCloseKey(key)
+	name, err := syscall.UTF16PtrFromString(runValue)
+	if err != nil {
+		return "", false, err
+	}
+	var kind, size uint32
+	if err := syscall.RegQueryValueEx(key, name, nil, &kind, nil, &size); err != nil {
+		if errors.Is(err, syscall.ERROR_FILE_NOT_FOUND) {
+			return "", false, nil
+		}
+		return "", false, err
+	}
+	buf := make([]uint16, size/2+1)
+	size = uint32(len(buf) * 2)
+	if err := syscall.RegQueryValueEx(key, name, nil, &kind, (*byte)(unsafe.Pointer(&buf[0])), &size); err != nil {
+		return "", false, err
+	}
+	return syscall.UTF16ToString(buf), true, nil
 }
 
 // legacyScriptPath is the Startup folder script an earlier version wrote
@@ -91,34 +131,40 @@ func setRunValue() error {
 
 // installAutostartWindows turns start at login on or off: the Run value,
 // which starts the windowless program at login without any window. The
-// Startup folder script an earlier version wrote goes either way. It
-// reports the Run value it set or deleted.
+// Startup folder script an earlier version wrote goes too, once the Run
+// value is written. Start at login is refused without the windowless
+// program, as after go install, where a Run value would name a missing
+// file. It reports the Run value it set or deleted.
 func installAutostartWindows(enable bool) (string, error) {
 	name := runKey + `\` + runValue
-	if enable && !(windowsControl{}).Usable() {
-		// Without the windowless program, as after go install, a Run value
-		// would name a missing file and nothing would start at login.
-		return "", fmt.Errorf("start at login needs %s beside ccbabysitter.exe, which the install script installs", backgroundExe)
-	}
-	if err := removeLegacyScript(); err != nil {
-		return "", err
-	}
 	if !enable {
-		// A value that is not there is already off.
-		_, _ = runReg("delete", runKey, "/v", runValue, "/f")
-		return name, nil
+		_, found, err := queryRunValue()
+		if err != nil {
+			return "", err
+		}
+		if found {
+			if out, err := runReg("delete", runKey, "/v", runValue, "/f"); err != nil {
+				return "", fmt.Errorf("reg delete failed: %v %s", err, strings.TrimSpace(out))
+			}
+		}
+		return name, removeLegacyScript()
+	}
+	if !(windowsControl{}).Usable() {
+		return "", fmt.Errorf("start at login needs %s beside ccbabysitter.exe, which the install script installs", backgroundExe)
 	}
 	if err := setRunValue(); err != nil {
 		return "", err
 	}
-	return name, nil
+	return name, removeLegacyScript()
 }
 
 // autostartInstalledWindows reports whether start at login is on: the Run
-// value is there, or an earlier version's Startup script still is.
+// value is there, or an earlier version's Startup script still is. A Run
+// value that cannot be read is an error, so the saved setting stays.
 func autostartInstalledWindows() (bool, error) {
-	if _, err := runReg("query", runKey, "/v", runValue); err == nil {
-		return true, nil
+	_, found, err := queryRunValue()
+	if err != nil || found {
+		return found, err
 	}
 	path, err := legacyScriptPath()
 	if err != nil {

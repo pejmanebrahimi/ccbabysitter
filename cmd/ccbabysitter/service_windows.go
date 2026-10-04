@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"ccbabysitter.dev/ccbabysitter/internal/client"
 	"ccbabysitter.dev/ccbabysitter/internal/procs"
@@ -41,22 +43,67 @@ func backgroundPath() string {
 	return filepath.Join(filepath.Dir(bin), backgroundExe)
 }
 
-// startBackground starts the program at path as the service and lets it
-// go. A job object that forbids breaking away refuses the first start, so
-// it is tried again without that flag. Tests replace it.
-var startBackground = func(path string) error {
-	start := func(flags uint32) error {
-		cmd := exec.Command(path, "--service")
-		cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flags, HideWindow: true}
-		if err := cmd.Start(); err != nil {
-			return err
-		}
-		return cmd.Process.Release()
+// errStillOwned says the windowless program started, but inside the job
+// of the terminal or app that ran the launcher, so closing that may end it.
+var errStillOwned = errors.New("started inside this window's job")
+
+// spawn starts the program at path as the service with these creation
+// flags and, when parent is set, as that process's child, and lets it go.
+// Only a failed start is an error. Tests replace it.
+var spawn = func(path string, flags uint32, parent syscall.Handle) error {
+	cmd := exec.Command(path, "--service")
+	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flags, HideWindow: true, ParentProcess: parent}
+	if err := cmd.Start(); err != nil {
+		return err
 	}
-	if err := start(createNewProcessGroup | detachedProcess | createBreakawayFromJob); err == nil {
+	_ = cmd.Process.Release()
+	return nil
+}
+
+// explorerHandle opens this user's Explorer for creating a child of it,
+// and the function that closes the handle. Tests replace it.
+var explorerHandle = func() (syscall.Handle, func(), error) {
+	snap, err := syscall.CreateToolhelp32Snapshot(syscall.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer syscall.CloseHandle(snap)
+	var entry syscall.ProcessEntry32
+	entry.Size = uint32(unsafe.Sizeof(entry))
+	for err = syscall.Process32First(snap, &entry); err == nil; err = syscall.Process32Next(snap, &entry) {
+		if !strings.EqualFold(syscall.UTF16ToString(entry.ExeFile[:]), "explorer.exe") {
+			continue
+		}
+		// PROCESS_CREATE_PROCESS: only this user's own Explorer opens.
+		h, err := syscall.OpenProcess(0x0080, false, entry.ProcessID)
+		if err == nil {
+			return h, func() { syscall.CloseHandle(h) }, nil
+		}
+	}
+	return 0, nil, errors.New("no Explorer of this user to start CC Babysitter under")
+}
+
+// startBackground starts the windowless program at path as the service,
+// out of the job of the terminal or app that ran the launcher, which would
+// end it when that closes. A job that forbids breaking away refuses the
+// first try; the second starts it as a child of this user's Explorer,
+// outside that job; the last starts it anyway and reports errStillOwned.
+var startBackground = func(path string) error {
+	const flags = createNewProcessGroup | detachedProcess
+	if spawn(path, flags|createBreakawayFromJob, 0) == nil {
 		return nil
 	}
-	return start(createNewProcessGroup | detachedProcess)
+	if h, closeH, err := explorerHandle(); err == nil {
+		started := spawn(path, flags, h) == nil
+		closeH()
+		if started {
+			return nil
+		}
+	}
+	if err := spawn(path, flags, 0); err != nil {
+		return err
+	}
+	return errStillOwned
 }
 
 // windowsControl is serviceControl for Windows.
@@ -88,25 +135,25 @@ func (windowsControl) UnitKind() (desktop, known bool) { return true, true }
 func (windowsControl) Write(io.Writer, bool) bool { return true }
 
 // RefreshUnit replaces an earlier version's Startup script with the Run
-// value, and writes the Run value again when it names a program that has
-// since moved. A Run value that is not there is start at login turned off,
-// and is left so.
+// value, writing the value before removing the script, and writes the Run
+// value again when it names a program that has since moved. A Run value
+// that is not there is start at login turned off, and is left so; one that
+// cannot be read is left alone too, so nothing restarts over it.
 func (windowsControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bool) {
 	if path, err := legacyScriptPath(); err == nil {
 		if on, _ := pathPresent(path); on {
-			if err := removeLegacyScript(); err != nil {
-				fmt.Fprintln(out, "could not remove the old Startup script:", err)
-				return false, false
-			}
 			if err := setRunValue(); err != nil {
 				fmt.Fprintln(out, err)
-				return true, false
+				return false, false
+			}
+			if err := removeLegacyScript(); err != nil {
+				fmt.Fprintln(out, "could not remove the old Startup script:", err)
 			}
 			return true, true
 		}
 	}
-	text, err := runReg("query", runKey, "/v", runValue)
-	if err != nil {
+	data, found, err := queryRunValue()
+	if err != nil || !found {
 		return false, true
 	}
 	want, err := runValueWanted()
@@ -114,7 +161,7 @@ func (windowsControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bo
 		fmt.Fprintln(out, err)
 		return false, false
 	}
-	if runValueData(text) == want {
+	if strings.EqualFold(data, want) {
 		return false, true
 	}
 	if err := setRunValue(); err != nil {
@@ -122,17 +169,6 @@ func (windowsControl) RefreshUnit(out io.Writer, desktop bool) (rewritten, ok bo
 		return true, false
 	}
 	return true, true
-}
-
-// runValueData is the data reg query printed for the Run value: what
-// follows REG_SZ on its line.
-func runValueData(text string) string {
-	for _, line := range strings.Split(text, "\n") {
-		if _, data, found := strings.Cut(line, "REG_SZ"); found {
-			return strings.TrimSpace(data)
-		}
-	}
-	return ""
 }
 
 // Active reports whether the background copy runs: the state lock is held
@@ -147,9 +183,14 @@ func (windowsControl) Active() bool {
 	return ok && strings.EqualFold(filepath.Base(exe), backgroundExe)
 }
 
-// Start starts the windowless program as the service.
+// Start starts the windowless program as the service. Started inside this
+// window's job, it says so: closing this window may then end it.
 func (windowsControl) Start(out io.Writer, desktop bool) bool {
-	if err := startBackground(backgroundPath()); err != nil {
+	err := startBackground(backgroundPath())
+	switch {
+	case errors.Is(err, errStillOwned):
+		fmt.Fprintln(out, "Windows kept CC Babysitter inside this window's group of programs, so closing this window may stop it, whatever the lines below say. It starts on its own again at your next login.")
+	case err != nil:
 		fmt.Fprintln(out, "could not start", backgroundExe+":", err)
 		return false
 	}

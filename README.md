@@ -54,7 +54,7 @@ $env:CCBABYSITTER_VERSION='v0.4.0'; irm https://ccbabysitter.dev/install.ps1 | i
 $env:CCBABYSITTER_INSTALL_DIR="$env:USERPROFILE\bin"; irm https://ccbabysitter.dev/install.ps1 | iex
 ```
 
-You can also download a binary from the releases page yourself (`ccbabysitter-<os>-<arch>`, with `.exe` on Windows, for amd64 and arm64) and check it against `checksums.txt`. The binaries are not signed, so a few extra steps apply to a download by hand:
+You can also download a binary from the releases page yourself (`ccbabysitter-<os>-<arch>`, with `.exe` on Windows, for amd64 and arm64) and check it against `checksums.txt`. On Windows, also download `ccbabysitter-background-windows-<arch>.exe` and save it as `ccbabysitter-background.exe` in the same folder; without it CC Babysitter runs only in the terminal. The binaries are not signed, so a few extra steps apply to a download by hand:
 
 - On macOS and Linux, make it executable: `chmod +x ccbabysitter-<os>-<arch>`.
 - On macOS, Gatekeeper blocks a binary downloaded with a browser. Remove the quarantine flag first: `xattr -d com.apple.quarantine ccbabysitter-darwin-<arch>`.

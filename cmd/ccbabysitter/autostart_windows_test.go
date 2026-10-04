@@ -10,10 +10,13 @@ import (
 	"testing"
 )
 
-// fakeReg records reg.exe calls; query answers with queryErr.
+// fakeReg records reg.exe calls and answers the Run value read: absent
+// while queryErr is set, value otherwise; readErr makes the read fail.
 type fakeReg struct {
 	calls    []string
 	queryErr error
+	value    string
+	readErr  error
 }
 
 func useFakeReg(t *testing.T) *fakeReg {
@@ -30,7 +33,21 @@ func useFakeReg(t *testing.T) *fakeReg {
 		}
 		return "", nil
 	}
-	t.Cleanup(func() { runReg = saved })
+	savedQuery := queryRunValue
+	queryRunValue = func() (string, bool, error) {
+		f.calls = append(f.calls, "read")
+		if f.readErr != nil {
+			return "", false, f.readErr
+		}
+		if f.queryErr != nil {
+			return "", false, nil
+		}
+		if f.value == "" {
+			return `"C:\x\ccbabysitter-background.exe" --service`, true, nil
+		}
+		return f.value, true, nil
+	}
+	t.Cleanup(func() { runReg = saved; queryRunValue = savedQuery })
 	return f
 }
 
@@ -94,8 +111,27 @@ func TestStartAtLoginOffDeletesTheRunValue(t *testing.T) {
 	if _, err := installAutostartWindows(false); err != nil {
 		t.Fatal(err)
 	}
-	if len(f.calls) != 1 || f.calls[0] != `delete `+runKey+` /v CCBabysitter /f` {
+	if len(f.calls) != 1 || f.calls[0] != "read" {
+		t.Fatalf("an absent value was deleted: %q", f.calls)
+	}
+	f.calls = nil
+	f.queryErr = nil
+	if _, err := installAutostartWindows(false); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(f.calls, "; ") != `read; delete `+runKey+` /v CCBabysitter /f` {
 		t.Fatalf("calls %q", f.calls)
+	}
+}
+
+// A Run value that cannot be read is not taken for "off": the error goes
+// back, so the saved setting is left alone.
+func TestStartAtLoginReadFailureIsAnError(t *testing.T) {
+	windowsHome(t)
+	f := useFakeReg(t)
+	f.readErr = errors.New("access denied")
+	if _, err := autostartInstalledWindows(); err == nil {
+		t.Fatal("a failed read counted as off")
 	}
 }
 
