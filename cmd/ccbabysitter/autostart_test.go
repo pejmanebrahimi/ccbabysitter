@@ -9,7 +9,7 @@ import (
 )
 
 func TestLaunchAgentPlistEscapesPath(t *testing.T) {
-	p := launchAgentPlist(`/Users/dev/Applications & Co/ccbabysitter`)
+	p := launchAgentPlist(`/Users/dev/Applications & Co/ccbabysitter`, "", "")
 	if !strings.Contains(p, "com.ccbabysitter") {
 		t.Fatalf("missing the label in\n%s", p)
 	}
@@ -212,5 +212,24 @@ func TestUnitFileCarriesTheDataHome(t *testing.T) {
 	u, _ = unitFile("/home/a/.local/bin/ccbabysitter", "", true, "")
 	if strings.Contains(u, "XDG_DATA_HOME") {
 		t.Fatalf("no data home, but:\n%s", u)
+	}
+}
+
+func TestLaunchAgentPlistRunsTheServiceAndComesBackFromACrash(t *testing.T) {
+	p := launchAgentPlist("/Users/dev/.local/bin/ccbabysitter", "/Users/dev/.local/bin/claude", "/Users/dev/data")
+	for _, want := range []string{
+		"<string>/Users/dev/.local/bin/ccbabysitter</string>\n\t\t<string>--service</string>",
+		"<key>KeepAlive</key>\n\t<dict>\n\t\t<key>SuccessfulExit</key>\n\t\t<false/>\n\t</dict>",
+		"<key>AbandonProcessGroup</key>\n\t<true/>",
+		"<key>PATH</key>\n\t\t<string>/Users/dev/.local/bin:" + servicePath + "</string>",
+		"<key>XDG_DATA_HOME</key>\n\t\t<string>/Users/dev/data</string>",
+	} {
+		if !strings.Contains(p, want) {
+			t.Errorf("plist has no\n%s\nin\n%s", want, p)
+		}
+	}
+	q := launchAgentPlist("/b/ccbabysitter", "", "")
+	if strings.Contains(q, "XDG_DATA_HOME") || !strings.Contains(q, "<key>PATH</key>\n\t\t<string>"+servicePath+"</string>") {
+		t.Errorf("without a CLI or data home:\n%s", q)
 	}
 }

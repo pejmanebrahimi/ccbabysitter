@@ -93,10 +93,28 @@ func refuseTemporaryBinary(path, tempDir string) error {
 	return nil
 }
 
-// launchAgentPlist is the macOS LaunchAgent that starts binPath at the next
-// login, with no arguments, so the page opens the way a person starting
-// it themselves would see it.
-func launchAgentPlist(binPath string) string {
+// launchAgentPlist is the macOS LaunchAgent that runs binPath as the
+// background copy, with --service, which serves without opening a browser,
+// so a start at login never pops the page. launchd starts it when the
+// LaunchAgent is loaded (RunAtLoad), which is at login when the file is in
+// ~/Library/LaunchAgents, and starts it again when it crashes, but not when
+// it quits on purpose with exit code 0 (KeepAlive, SuccessfulExit false).
+// AbandonProcessGroup keeps launchd from ending what the copy started, such
+// as the processes Claude's background sessions run in, when the copy
+// ends. launchd gives a job a bare PATH, so the plist names one with the
+// claude CLI's folder first when it is known, and XDG_DATA_HOME when the
+// launcher has one, so the copy uses the same state folder.
+func launchAgentPlist(binPath, cliPath, dataHome string) string {
+	pathValue := servicePath
+	if cliPath != "" {
+		// The plist is only ever read by launchd, so the path is a macOS
+		// one whatever this was built for, and path takes it apart.
+		pathValue = path.Dir(cliPath) + ":" + servicePath
+	}
+	env := "\t\t<key>PATH</key>\n\t\t<string>" + xmlEscape(pathValue) + "</string>\n"
+	if dataHome != "" {
+		env += "\t\t<key>XDG_DATA_HOME</key>\n\t\t<string>" + xmlEscape(dataHome) + "</string>\n"
+	}
 	return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -106,11 +124,22 @@ func launchAgentPlist(binPath string) string {
 	<key>ProgramArguments</key>
 	<array>
 		<string>` + xmlEscape(binPath) + `</string>
+		<string>--service</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>AbandonProcessGroup</key>
+	<true/>
 	<key>ProcessType</key>
 	<string>Interactive</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+` + env + `	</dict>
 </dict>
 </plist>
 `

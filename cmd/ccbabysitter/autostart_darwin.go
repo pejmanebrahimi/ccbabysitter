@@ -5,6 +5,8 @@ package main
 import (
 	"os"
 	"path/filepath"
+
+	"ccbabysitter.dev/ccbabysitter/internal/claude"
 )
 
 func init() {
@@ -42,7 +44,7 @@ func installAutostartDarwin(enable bool) (string, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", err
 	}
-	if err := writeDurable(path, []byte(launchAgentPlist(bin)), 0o644); err != nil {
+	if err := writeDurable(path, []byte(launchAgentPlist(bin, claude.FindCLI(), os.Getenv("XDG_DATA_HOME"))), 0o644); err != nil {
 		return "", err
 	}
 	return path, nil
