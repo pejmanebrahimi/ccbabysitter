@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 	"ccbabysitter.dev/ccbabysitter/internal/supervise"
@@ -634,5 +635,45 @@ func TestSettingsFromThePageAreNotLoggedByTheServer(t *testing.T) {
 	resp.Body.Close()
 	if n := len(s.log.Recent(10, "")); n != 0 {
 		t.Errorf("the page's settings change wrote %d server entries", n)
+	}
+}
+
+func TestQuitAnswersThenCallsTheHook(t *testing.T) {
+	ts, _, s := newTS(t)
+	called := make(chan struct{}, 2)
+	s.OnQuit(func() { called <- struct{}{} })
+
+	r := postJSON(t, ts.URL+"/api/quit?via=cli", "{}")
+	var res supervise.Result
+	decodeBody(t, r, &res)
+	if r.StatusCode != http.StatusOK || !res.OK || !strings.Contains(res.Message, "nothing brings them back") {
+		t.Fatalf("quit = %d %+v", r.StatusCode, res)
+	}
+	select {
+	case <-called:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the quit hook was not called")
+	}
+	entries := s.log.Recent(1, "")
+	if len(entries) != 1 || entries[0].Message != "asked to quit, from the command line" {
+		t.Fatalf("activity = %+v", entries)
+	}
+
+	// A second quit, as a double click would send, is answered too and
+	// calls the hook again, which serve's cancel function allows.
+	r = postJSON(t, ts.URL+"/api/quit", "{}")
+	r.Body.Close()
+	if r.StatusCode != http.StatusOK {
+		t.Fatalf("second quit = %d", r.StatusCode)
+	}
+}
+
+func TestQuitWithoutAHookIsRefused(t *testing.T) {
+	ts, _, _ := newTS(t)
+	r := postJSON(t, ts.URL+"/api/quit", "{}")
+	var res supervise.Result
+	decodeBody(t, r, &res)
+	if r.StatusCode != http.StatusConflict || res.OK || res.Message != "Quitting is not available here." {
+		t.Fatalf("quit without a hook = %d %+v", r.StatusCode, res)
 	}
 }

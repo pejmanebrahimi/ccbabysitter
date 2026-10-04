@@ -54,6 +54,12 @@ type Server struct {
 	// settingsMu keeps two settings changes from reading the same current
 	// settings and the second one undoing the first.
 	settingsMu sync.Mutex
+
+	// quitMu guards quit, which serve sets once before serving.
+	quitMu sync.Mutex
+	// quit stops the program serving this page, as Ctrl+C does. Nil means
+	// quitting is not available, as in a server built only for a test.
+	quit func()
 }
 
 // NewServer builds a Server around an engine, the activity log it should
@@ -111,6 +117,16 @@ func (s *Server) LaunchURL(pageURL string) string {
 	return pageURL + "/?token=" + s.launch.issue()
 }
 
+// OnQuit sets what POST /api/quit calls once it has answered: serve passes
+// the cancel function of its own context, so a quit shuts everything down
+// the way Ctrl+C does. It must not wait for the shutdown, which waits for
+// the quit request itself to finish.
+func (s *Server) OnQuit(f func()) {
+	s.quitMu.Lock()
+	defer s.quitMu.Unlock()
+	s.quit = f
+}
+
 func (s *Server) routes(mux *http.ServeMux) {
 	registerStatic(mux, s.version)
 
@@ -125,6 +141,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/settings", s.handleGetSettings)
 	mux.HandleFunc("PUT /api/settings", s.handlePutSettings)
+
+	mux.HandleFunc("POST /api/quit", s.handleQuit)
 
 	mux.HandleFunc("GET /api/activity", s.handleActivity)
 }
@@ -265,6 +283,31 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeResult(w, res)
+}
+
+// quitMessage is what a quit answers, for the page and the command line.
+const quitMessage = "CC Babysitter is quitting. Babysat sessions keep running, but nothing brings them back until you run ccbabysitter again."
+
+// handleQuit answers, notes the quit in Activity, and only then calls the
+// quit hook, so the answer reaches the page or the command line before the
+// server starts shutting down. The shutdown waits for this handler to
+// return, so the answer is never cut off.
+func (s *Server) handleQuit(w http.ResponseWriter, r *http.Request) {
+	s.quitMu.Lock()
+	quit := s.quit
+	s.quitMu.Unlock()
+	if quit == nil {
+		writeResult(w, supervise.Result{Message: "Quitting is not available here."})
+		return
+	}
+	if s.log != nil {
+		s.log.Info("", "asked to quit"+viaOf(r).Suffix())
+	}
+	writeResult(w, supervise.Result{OK: true, Message: quitMessage})
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+	quit()
 }
 
 // settingChanges names each setting, other than start at login, that

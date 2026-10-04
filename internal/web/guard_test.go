@@ -1023,3 +1023,30 @@ func TestLaunchGivesASessionNotTheKey(t *testing.T) {
 		t.Fatalf("?token=<key> set %v", resp.Cookies())
 	}
 }
+
+// Another web page cannot make CC Babysitter quit: not by a cross-site
+// post, not from a foreign origin, not as a form, and not without the key.
+func TestAnotherPageCannotQuit(t *testing.T) {
+	for name, headers := range map[string]map[string]string{
+		"cross-site":     {"Content-Type": "application/json", "Sec-Fetch-Site": "cross-site"},
+		"foreign origin": {"Content-Type": "application/json", "Origin": "http://evil.example"},
+		"form post":      {"Content-Type": "application/x-www-form-urlencoded", "Sec-Fetch-Site": "same-origin"},
+	} {
+		ts, _, s := newTS(t)
+		called := false
+		s.OnQuit(func() { called = true })
+		resp := doRequest(t, http.MethodPost, ts.URL+"/api/quit", headers, "{}")
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden || called {
+			t.Errorf("%s: %d, hook called %v", name, resp.StatusCode, called)
+		}
+	}
+	ts, _, s := newTS(t)
+	called := false
+	s.OnQuit(func() { called = true })
+	resp := doPlainRequest(t, http.MethodPost, ts.URL+"/api/quit", map[string]string{"Content-Type": "application/json"}, "{}")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized || called {
+		t.Errorf("no key: %d, hook called %v", resp.StatusCode, called)
+	}
+}
