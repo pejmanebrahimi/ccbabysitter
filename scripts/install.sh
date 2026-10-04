@@ -194,8 +194,9 @@ path_hint() {
 }
 
 # headless reports whether this is a Linux machine where a plain run of
-# CC Babysitter sets it up as a service: inside SSH, with no display, or
-# with no way to open a browser. It is the rule the program itself uses.
+# CC Babysitter sets it up as a server's service: inside SSH, with no
+# display, or with no way to open a browser. It is the rule the program
+# itself uses.
 headless() {
 	[ "$os" = linux ] || return 1
 	if [ -n "${SSH_CONNECTION:-}" ] || [ -n "${SSH_TTY:-}" ]; then
@@ -275,12 +276,22 @@ main() {
 		fi
 	fi
 
-	if headless && service_ready; then
-		# A plain run here sets CC Babysitter up as a user service, or
-		# updates the one already set up, and says how to connect.
-		say ""
-		"$dest" </dev/null
-		exit $?
+	if service_ready; then
+		if headless; then
+			# A plain run here sets CC Babysitter up as a user service, or
+			# updates the one already set up, and says how to connect.
+			say ""
+			"$dest" </dev/null
+			exit $?
+		fi
+		if systemctl --user is-active --quiet ccbabysitter >/dev/null 2>&1; then
+			# A desktop's background copy: a plain run restarts it on the
+			# new version and prints where its page is, without opening it
+			# again.
+			say ""
+			"$dest" --no-open </dev/null
+			exit $?
+		fi
 	fi
 
 	say ""

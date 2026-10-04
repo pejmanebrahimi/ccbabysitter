@@ -174,9 +174,10 @@ new_case() {
 	how=file
 }
 
-# shim_systemctl STATUS makes systemctl exit with STATUS.
+# shim_systemctl STATUS [ACTIVE] makes systemctl exit with STATUS, and its
+# is-active question with ACTIVE: 3, not running, unless given.
 shim_systemctl() {
-	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >>"%s"\nexit %s\n' "$c/systemctl.log" "$1" >"$c/shim/systemctl"
+	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >>"%s"\ncase " $* " in *" is-active "*) exit %s ;; esac\nexit %s\n' "$c/systemctl.log" "${2:-3}" "$1" >"$c/shim/systemctl"
 	chmod 755 "$c/shim/systemctl"
 }
 
@@ -632,6 +633,19 @@ case_linux_desktop() {
 	expect_clean
 }
 
+# A Linux desktop whose background copy runs as the user service: a plain
+# run replaces it with the new version, and opens no page.
+case_linux_desktop_running() {
+	new_case linux-desktop-running
+	shim_uname Linux x86_64
+	shim_systemctl 0 0
+	run_install CCBABYSITTER_DOWNLOAD_URL="$url/fake" DISPLAY= WAYLAND_DISPLAY=wayland-0
+	expect_status 0
+	expect_fake_calls "argc=1 args=version;argc=1 args=--no-open stdin=0;"
+	expect_no_out "Start it with"
+	expect_clean
+}
+
 # 15. A Mac reached over SSH is not set up as a service either.
 case_mac_ssh() {
 	new_case mac-ssh
@@ -781,7 +795,7 @@ for t in case_default_dir case_hint_bash case_hint_sh case_hint_fish case_hint_o
 	case_linux_no_display case_linux_ssh case_linux_ssh_tty case_linux_no_opener \
 	case_linux_no_user_manager case_linux_no_systemctl case_linux_invocation_id \
 	case_stdin_pipe case_stdin_pipe_service case_stdin_redirect \
-	case_linux_desktop case_mac_ssh case_default_url case_fallbacks case_relative_dir \
+	case_linux_desktop case_linux_desktop_running case_mac_ssh case_default_url case_fallbacks case_relative_dir \
 	case_no_home case_cut_short; do
 	check "$t"
 done
