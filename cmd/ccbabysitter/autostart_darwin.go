@@ -5,8 +5,6 @@ package main
 import (
 	"os"
 	"path/filepath"
-
-	"ccbabysitter.dev/ccbabysitter/internal/claude"
 )
 
 func init() {
@@ -22,32 +20,41 @@ func launchAgentPath() (string, error) {
 	return filepath.Join(home, "Library", "LaunchAgents", "com.ccbabysitter.plist"), nil
 }
 
-// installAutostartDarwin writes or removes the LaunchAgent that starts CC
-// Babysitter at login. It never calls launchctl: a LaunchAgent written
-// here takes effect the next time the user logs in, without needing this
-// process to have permission to talk to the running launchd.
+// installAutostartDarwin turns start at login on or off by moving the
+// LaunchAgent's plist: into ~/Library/LaunchAgents, which launchd loads at
+// every login, or back to the state folder, which only the launcher loads.
+// Moving it never unloads the running job, so CC Babysitter keeps running
+// either way. With no plist anywhere yet, on writes one in LaunchAgents.
+// It reports the LaunchAgent it wrote or removed, which is what changed.
 func installAutostartDarwin(enable bool) (string, error) {
-	path, err := launchAgentPath()
-	if err != nil {
-		return "", err
-	}
+	from, to := offPath(), agentPath()
 	if !enable {
-		if err := removeDurable(path); err != nil {
+		from, to = to, from
+	}
+	text, err := os.ReadFile(from)
+	switch {
+	case err == nil:
+	case os.IsNotExist(err) && enable:
+		plist, err := launchdPlist()
+		if err != nil {
 			return "", err
 		}
-		return path, nil
-	}
-	bin, err := resolvedExecutablePath()
-	if err != nil {
+		text = []byte(plist)
+	case os.IsNotExist(err):
+		return from, nil
+	default:
 		return "", err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
 		return "", err
 	}
-	if err := writeDurable(path, []byte(launchAgentPlist(bin, claude.FindCLI(), os.Getenv("XDG_DATA_HOME"))), 0o644); err != nil {
+	if err := writeDurable(to, text, 0o644); err != nil {
 		return "", err
 	}
-	return path, nil
+	if err := removeDurable(from); err != nil {
+		return "", err
+	}
+	return agentPath(), nil
 }
 
 // autostartInstalledDarwin reports whether the LaunchAgent is there.
