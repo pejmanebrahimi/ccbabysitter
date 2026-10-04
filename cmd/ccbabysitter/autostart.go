@@ -45,6 +45,11 @@ func pathPresent(path string) (bool, error) {
 // refuses a path that looks like a scratch build, since writing an
 // autostart entry or a systemd unit that names one would point at a file
 // that is already gone by the time anything tries to run it.
+// executablePath is where this program is, for a unit or LaunchAgent to
+// start. Tests replace it, since a test binary lives in a temporary folder
+// that a unit must never name.
+var executablePath = resolvedExecutablePath
+
 func resolvedExecutablePath() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {

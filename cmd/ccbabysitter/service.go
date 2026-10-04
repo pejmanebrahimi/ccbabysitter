@@ -167,3 +167,7 @@ func pageState(pageURL, key string) (version string, ok bool) {
 	_, _ = io.Copy(io.Discard, resp.Body)
 	return view.Version, true
 }
+
+// foregroundHint is how to run CC Babysitter after uninstall without a
+// plain run setting the service up again.
+const foregroundHint = "To run CC Babysitter only while a terminal stays open, start it with: ccbabysitter --foreground"
