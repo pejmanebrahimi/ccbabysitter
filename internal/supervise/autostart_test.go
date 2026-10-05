@@ -262,3 +262,29 @@ func TestTheSwitchStillWritesTheLoginItem(t *testing.T) {
 		t.Fatalf("nothing changed outside, got %d lines", n)
 	}
 }
+
+// A login item ccbabysitter rewrote itself, such as an earlier version's,
+// comes with a note that says so; only the first look uses it, and a later
+// change by someone else is still an outside one.
+func TestALoginItemTheLauncherWroteIsSaidInItsWords(t *testing.T) {
+	item := &loginItem{installed: true}
+	f, clock := autostartFixture(t, false, item)
+	const note = "Start at login carried over from an earlier version."
+	f.d.AutostartNote = note
+	s := New(*f.d)
+	if !s.View().Settings.Autostart {
+		t.Fatal("the setting must follow the machine")
+	}
+	if linesSaying(f, note) != 1 || linesSaying(f, turnedOnOutside) != 0 {
+		t.Fatalf("want the note, not an outside line: %v", f.d.Log.Recent(10, ""))
+	}
+	item.set(false)
+	*clock = clock.Add(autostartInterval)
+	s.maybeCheckAutostart()
+	item.set(true)
+	*clock = clock.Add(autostartInterval)
+	s.maybeCheckAutostart()
+	if linesSaying(f, note) != 1 || linesSaying(f, turnedOnOutside) != 1 {
+		t.Fatalf("a later change is someone else's: %v", f.d.Log.Recent(10, ""))
+	}
+}

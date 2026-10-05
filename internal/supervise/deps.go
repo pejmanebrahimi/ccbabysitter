@@ -78,6 +78,11 @@ type Deps struct {
 	URL string
 
 	Backoff time.Duration
+	// AutostartNote is what Activity says when the first look at the login
+	// item finds one the settings do not know about because ccbabysitter
+	// wrote it itself, such as replacing an earlier version's. Empty means
+	// there is no such note, and only the first look uses it.
+	AutostartNote string
 	// StartupGrace is how long after start, on a machine with a display, no
 	// fallback runs, so apps that restore their own sessions at login go
 	// first. Zero means the default of 90 seconds, and a negative value

@@ -601,6 +601,10 @@ func (s *Supervisor) checkAutostart() {
 	if s.deps.AutostartInstalled == nil {
 		return
 	}
+	// The launcher's note speaks only for the login item it found as this
+	// copy started.
+	note := s.deps.AutostartNote
+	s.deps.AutostartNote = ""
 	installed, err := s.deps.AutostartInstalled()
 	if err != nil || installed == s.st.Settings.Autostart {
 		return
@@ -616,6 +620,8 @@ func (s *Supervisor) checkAutostart() {
 	switch {
 	case installed && server:
 		s.logInfo("", "Set up as a service that starts at boot.")
+	case installed && note != "":
+		s.logInfo("", note)
 	case installed:
 		s.logInfo("", "Start at login was turned on outside CC Babysitter.")
 	case server:

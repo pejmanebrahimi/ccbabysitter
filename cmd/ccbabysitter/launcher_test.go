@@ -420,3 +420,39 @@ func TestStartInBackgroundSaysWhyItCannot(t *testing.T) {
 		t.Fatalf("rc %d, foreground %v, %q", rc, foreground, out.String())
 	}
 }
+
+// A login item the launcher rewrote itself, such as an earlier version's,
+// is noted for the background copy, which would otherwise take it for
+// someone else's doing.
+func TestLauncherNotesALoginItemItRewrote(t *testing.T) {
+	f := okService()
+	f.installed, f.staleUnit = true, true
+	dir := keyedDir(t)
+	var out strings.Builder
+	if rc := runLauncher(&out, f, dir, launchOptions{NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt(pageAt))); rc != 0 {
+		t.Fatalf("rc %d: %s", rc, out.String())
+	}
+	if got := state.TakeLoginItemNote(dir); got != loginItemRewrittenReason {
+		t.Fatalf("note %q", got)
+	}
+	f = okService()
+	f.installed = true
+	dir = keyedDir(t)
+	runLauncher(&out, f, dir, launchOptions{NoOpen: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt(pageAt)))
+	if got := state.TakeLoginItemNote(dir); got != "" {
+		t.Fatalf("nothing rewritten, but a note %q", got)
+	}
+}
+
+// The Windows install script replaces an earlier version's Startup script
+// itself, so it leaves the same note, in the same file, as the launcher.
+func TestInstallScriptLeavesTheLauncherNote(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "scripts", "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := string(data)
+	if !strings.Contains(script, loginItemRewrittenReason) || !strings.Contains(script, "'login-item-note'") {
+		t.Fatal("install.ps1 does not leave the launcher's note for a login item it rewrote")
+	}
+}

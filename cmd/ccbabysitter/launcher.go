@@ -22,6 +22,11 @@ import (
 const (
 	launchedReason  = "Started in the background by ccbabysitter."
 	restartedReason = "Restarted in the background by ccbabysitter."
+	// loginItemRewrittenReason is the background copy's Activity line for a
+	// login item the launcher, or the Windows install script, rewrote
+	// itself, such as an earlier version's. scripts/install.ps1 writes the
+	// same line, which a test checks.
+	loginItemRewrittenReason = "Start at login kept on: its login entry was rewritten for this version."
 )
 
 // launchOptions shape one launcher run.
@@ -154,6 +159,9 @@ func runLauncher(out io.Writer, sc serviceControl, stateDir string, o launchOpti
 		rewritten, ok := sc.RefreshUnit(out, desktop)
 		if !ok {
 			return 1
+		}
+		if rewritten {
+			_ = state.WriteLoginItemNote(stateDir, loginItemRewrittenReason)
 		}
 		if rewritten && active {
 			_ = state.WriteStartReason(stateDir, restartedReason)

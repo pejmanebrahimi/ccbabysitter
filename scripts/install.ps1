@@ -331,6 +331,14 @@ function Install-CCBabysitter {
         Set-ItemProperty -Path $run -Name 'CCBabysitter' -Value ('"' + $bgDest + '" --service')
         Remove-Item -LiteralPath $legacy -Force
         Write-Host 'Start at login now starts the windowless program, with no console window.'
+        # CC Babysitter's next start would otherwise take the Run value for
+        # someone else's doing; the note, the launcher's own, says what
+        # happened. A note that cannot be written only costs that line.
+        try {
+            $stateDir = Join-Path $env:LOCALAPPDATA 'CCBabysitter'
+            New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
+            [IO.File]::WriteAllText((Join-Path $stateDir 'login-item-note'), "Start at login kept on: its login entry was rewritten for this version.`n")
+        } catch { }
     }
 
     # The user Path is read and written as stored, so entries such as

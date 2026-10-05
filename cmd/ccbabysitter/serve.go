@@ -322,7 +322,11 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 		return 1
 	}
 	log.Info("", fmt.Sprintf("%s %s start, pid %d, state %s", buildinfo.Name, version, os.Getpid(), stateDir))
+	// A login item the launcher rewrote itself is noted for the background
+	// copy, whose first look at it would otherwise call it someone else's.
+	autostartNote := ""
 	if opts.Service {
+		autostartNote = state.TakeLoginItemNote(stateDir)
 		// Why this background copy started: the launcher's note when it
 		// started it; otherwise the system, again after the copy before
 		// it ended without cleaning up, or at login or boot.
@@ -439,6 +443,7 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 			SSHTarget:          target.get,
 			Autostart:          autostartInstaller,
 			AutostartInstalled: autostartInstalled,
+			AutostartNote:      autostartNote,
 			OpenTerminal:       terminal.OpenAttach,
 			TerminalName:       terminal.Name,
 		}

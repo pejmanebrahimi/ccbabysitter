@@ -18,6 +18,9 @@ const (
 	// serviceRunningFile holds the creation time of the background copy
 	// that runs now, removed when it ends cleanly.
 	serviceRunningFile = "service-running"
+	// loginItemFile holds the one-line reason the launcher wrote the login
+	// item itself, for the background copy's Activity.
+	loginItemFile = "login-item-note"
 )
 
 // WriteStartReason notes why the launcher is about to start the background
@@ -31,6 +34,25 @@ func WriteStartReason(dir, reason string) error {
 // reason. It is empty when there is none.
 func TakeStartReason(dir string) string {
 	path := filepath.Join(dir, startReasonFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	_ = os.Remove(path)
+	return strings.TrimSpace(string(data))
+}
+
+// WriteLoginItemNote notes why the launcher wrote the login item itself,
+// such as replacing an earlier version's, which the background copy reads
+// once as it starts.
+func WriteLoginItemNote(dir, line string) error {
+	return writeNote(dir, loginItemFile, line)
+}
+
+// TakeLoginItemNote returns the line WriteLoginItemNote noted and removes
+// it. It is empty when there is none.
+func TakeLoginItemNote(dir string) string {
+	path := filepath.Join(dir, loginItemFile)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return ""
