@@ -249,7 +249,7 @@ func (d *DemoEngine) seed(now time.Time) {
 		},
 		{
 			id: demoStuckID, name: "data-sync", cwd: "~/projects/data-sync",
-			host: claude.HostTerminal, entrypoint: "cli", status: "idle", warning: supervise.FallbackUntrusted,
+			host: claude.HostTerminal, entrypoint: "cli", status: "idle", warning: supervise.UntrustedWarning("~/projects/data-sync"),
 			watched: true, originHost: claude.HostTerminal, promiseState: "paused", watchedSince: now.Add(-90 * time.Minute),
 			paused: true, pauseReason: "three failed resumes in five minutes: Resume did not start: Workspace not trusted",
 			stats: claude.Stats{Model: "claude-haiku-4-5", Turns: 4, InputTokens: 5_200, OutputTokens: 800},

@@ -28,21 +28,43 @@ type Trust struct {
 	ok      bool
 }
 
-// Trusted reports whether dir, or a folder above it, is trusted. known is
-// false when the settings file could not be read, and then nothing is
-// claimed either way.
+// Trusted reports whether the Claude Code CLI trusts dir: dir or a folder
+// above it is trusted, but inside a git repository only up to the
+// repository's own folder. The CLI does not take trust from a folder above
+// a repository, though the desktop app does, so a session the desktop app
+// runs happily can still be refused a background copy. known is false
+// when the settings file could not be read, and then nothing is claimed
+// either way. Finding the repository looks for a .git file or folder; the
+// settings file is never touched.
 func (t Trust) Trusted(dir string) (trusted, known bool) {
 	if !t.ok {
 		return false, false
 	}
 	p := filepath.Clean(dir)
+	repo := repositoryOf(p)
 	for {
 		if t.trusted[filepath.ToSlash(p)] {
 			return true, true
 		}
 		parent := filepath.Dir(p)
-		if parent == p {
+		if parent == p || p == repo {
 			return false, true
+		}
+		p = parent
+	}
+}
+
+// repositoryOf is the folder of the git repository dir is in, the nearest
+// folder at or above it holding .git, a folder in a repository and a file
+// in a worktree, or "" outside any.
+func repositoryOf(dir string) string {
+	for p := dir; ; {
+		if _, err := os.Lstat(filepath.Join(p, ".git")); err == nil {
+			return p
+		}
+		parent := filepath.Dir(p)
+		if parent == p {
+			return ""
 		}
 		p = parent
 	}

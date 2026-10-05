@@ -15,6 +15,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 - Changed: when launchd or systemd starts CC Babysitter again after it stopped unexpectedly, Activity says "Started again by the system after CC Babysitter stopped unexpectedly." instead of "Started at login."
 - Changed: on Windows, when the app CC Babysitter is started from keeps its programs in a job that forbids leaving it, the background copy is started through Explorer, so closing that app no longer ends it.
 - Changed: a page that lost its key, such as the one `ccbabysitter` opened before CC Babysitter restarted, says to run `ccbabysitter` to open it again. When CC Babysitter is not running, every command says "Start it with: ccbabysitter", on a server too, where it named a systemctl command that fails after `ccbabysitter uninstall`.
+- Fixed: the warning that a session could not be brought back missed folders inside a git repository whose trust came from a folder above it. The desktop app accepts that, but the Claude Code CLI, which brings sessions back, does not. The warning now follows the CLI and says what is at stake and the exact command to run: "Won't come back if its app closes. Claude Code needs a one-time OK to run on its own in this folder. In a terminal, run `cd <folder> && claude`, answer Yes, then exit."
 
 ## 0.4.2 (2026-10-03)
 

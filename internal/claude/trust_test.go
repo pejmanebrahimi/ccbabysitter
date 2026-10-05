@@ -118,3 +118,52 @@ func TestTrustIsAValueThatNeedsNoFile(t *testing.T) {
 		t.Fatal("the zero Trust knows nothing")
 	}
 }
+
+// Inside a git repository the Claude Code CLI counts trust only from the
+// folder up to the repository's own folder, never from a folder above it,
+// though the desktop app does. A worktree, whose .git is a file, is a
+// repository of its own. Outside any repository every folder above counts.
+func TestTrustStopsAtTheRepository(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "source")
+	repo := filepath.Join(src, "repo")
+	worktree := filepath.Join(repo, ".claude", "worktrees", "wt")
+	plain := filepath.Join(src, "plain", "sub")
+	for _, d := range []string{filepath.Join(repo, ".git"), worktree, filepath.Join(repo, "pkg", "deep"), plain} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeConfig(t, filepath.Join(worktree, ".git"), "gitdir: "+filepath.Join(repo, ".git", "worktrees", "wt")+"\n")
+	config := func(trusted ...string) Trust {
+		body := `{"projects":{`
+		for i, d := range trusted {
+			if i > 0 {
+				body += ","
+			}
+			body += `"` + filepath.ToSlash(d) + `":{"hasTrustDialogAccepted":true}`
+		}
+		path := filepath.Join(t.TempDir(), ".claude.json")
+		writeConfig(t, path, body+"}}")
+		return (&TrustFile{Path: path}).Read(time.Date(2026, 10, 5, 8, 0, 0, 0, time.UTC))
+	}
+	cases := []struct {
+		name    string
+		trust   Trust
+		dir     string
+		trusted bool
+	}{
+		{"a folder above the repository", config(src), repo, false},
+		{"a folder above, asked from inside", config(src), filepath.Join(repo, "pkg", "deep"), false},
+		{"the repository itself", config(repo), repo, true},
+		{"the repository, asked from inside", config(repo), filepath.Join(repo, "pkg", "deep"), true},
+		{"a worktree under a trusted repository", config(repo), worktree, false},
+		{"a trusted worktree", config(worktree), worktree, true},
+		{"no repository, a folder above", config(src), plain, true},
+	}
+	for _, c := range cases {
+		if trusted, known := c.trust.Trusted(c.dir); !known || trusted != c.trusted {
+			t.Errorf("%s: trusted=%v known=%v, want %v", c.name, trusted, known, c.trusted)
+		}
+	}
+}

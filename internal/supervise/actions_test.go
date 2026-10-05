@@ -307,7 +307,7 @@ func TestTheFallbackWarning(t *testing.T) {
 
 	// The file is read on the stats worker, so the warnings turn up in a
 	// view published after that read has come back.
-	want := map[string]string{trusted: "", untrusted: FallbackUntrusted, home: FallbackHome, background: ""}
+	want := map[string]string{trusted: "", untrusted: UntrustedWarning("/home/dev/new"), home: FallbackHome, background: ""}
 	matches := func() bool {
 		v := s.View()
 		if len(v.Sessions) != len(want) {
@@ -328,11 +328,11 @@ func TestTheFallbackWarning(t *testing.T) {
 	}
 
 	res := s.Babysit(untrusted, false, ViaPage)
-	if !res.OK || !strings.HasSuffix(res.Message, FallbackUntrusted) {
+	if !res.OK || !strings.HasSuffix(res.Message, UntrustedWarning("/home/dev/new")) {
 		t.Fatalf("babysitting is still allowed, and says so: %+v", res)
 	}
 	for _, w := range s.View().Watches {
-		if w.SessionID == untrusted && w.FallbackWarning != FallbackUntrusted {
+		if w.SessionID == untrusted && w.FallbackWarning != UntrustedWarning("/home/dev/new") {
 			t.Fatalf("the card keeps the warning: %+v", w)
 		}
 	}
@@ -609,7 +609,7 @@ func TestTheTrustFileIsReadAwayFromTheLoop(t *testing.T) {
 	go func() { done <- s.Babysit(untrusted, false, ViaPage) }()
 	select {
 	case res := <-done:
-		if !res.OK || strings.Contains(res.Message, FallbackUntrusted) {
+		if !res.OK || strings.Contains(res.Message, UntrustedWarning("/home/dev/new")) {
 			t.Fatalf("nothing is claimed before the file has been read: %+v", res)
 		}
 	case <-time.After(3 * time.Second):
@@ -618,7 +618,7 @@ func TestTheTrustFileIsReadAwayFromTheLoop(t *testing.T) {
 	free()
 	if !waitFor(t, f, func() bool {
 		w, ok := firstWatch(s)
-		return ok && w.FallbackWarning == FallbackUntrusted
+		return ok && w.FallbackWarning == UntrustedWarning("/home/dev/new")
 	}) {
 		t.Fatalf("the warning must turn up in a later view: %+v", s.View().Watches)
 	}

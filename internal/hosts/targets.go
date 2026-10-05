@@ -62,6 +62,13 @@ func BackgroundResumeCommandIn(cwd, id string) string {
 	return inFolder(cwd, "claude --bg --resume "+id)
 }
 
+// TrustCommandIn renders the command line that runs the claude CLI in cwd,
+// which asks once whether to trust that folder. The CLI starts a
+// background session only in a folder it trusts.
+func TrustCommandIn(cwd string) string {
+	return inFolder(cwd, "claude")
+}
+
 // inFolder prefixes command with a change to cwd and leaves it as it is
 // when no folder is known. On Windows the command targets PowerShell,
 // since Windows PowerShell 5.1 (the default Windows shell) has no `&&`

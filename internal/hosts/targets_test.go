@@ -121,6 +121,19 @@ func TestBackgroundResumeCommandIn(t *testing.T) {
 	}
 }
 
+// The command that gives a folder the CLI's trust: claude, run there, which
+// asks once. On Windows it targets PowerShell, which has no &&.
+func TestTrustCommandIn(t *testing.T) {
+	withTargetOS(t, "linux")
+	if got := TrustCommandIn("/home/dev/my ws"); got != "cd '/home/dev/my ws' && claude" {
+		t.Fatal(got)
+	}
+	withTargetOS(t, "windows")
+	if got := TrustCommandIn(`C:\Users\dev\my ws`); got != `cd -LiteralPath 'C:\Users\dev\my ws'; claude` {
+		t.Fatal(got)
+	}
+}
+
 // On Windows, the resume commands target PowerShell (Windows PowerShell
 // 5.1 has no `&&`, and cmd.exe reads single quotes literally), so the
 // rendered form differs from every other OS. The folder is named with
