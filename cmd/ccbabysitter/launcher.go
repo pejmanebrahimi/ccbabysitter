@@ -22,11 +22,11 @@ import (
 const (
 	launchedReason  = "Started in the background by ccbabysitter."
 	restartedReason = "Restarted in the background by ccbabysitter."
-	// loginItemRewrittenReason is the background copy's Activity line for a
-	// login item the launcher, or the Windows install script, rewrote
-	// itself, such as an earlier version's. scripts/install.ps1 writes the
+	// loginItemRewrittenReason is the next copy's Activity line for a login
+	// item the launcher, or the Windows install script, rewrote itself, such
+	// as an earlier version's or one naming a program that has moved. scripts/install.ps1 writes the
 	// same line, which a test checks.
-	loginItemRewrittenReason = "Start at login kept on: its login entry was rewritten for this version."
+	loginItemRewrittenReason = "Start at login kept on: CC Babysitter rewrote its login entry."
 )
 
 // launchOptions shape one launcher run.

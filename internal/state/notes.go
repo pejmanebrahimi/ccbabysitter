@@ -18,10 +18,14 @@ const (
 	// serviceRunningFile holds the creation time of the background copy
 	// that runs now, removed when it ends cleanly.
 	serviceRunningFile = "service-running"
-	// loginItemFile holds the one-line reason the launcher wrote the login
-	// item itself, for the background copy's Activity.
-	loginItemFile = "login-item-note"
 )
+
+// LoginItemNoteFile holds the one-line reason CC Babysitter wrote the login
+// item itself, for the next copy's Activity. The launcher writes it, and so
+// does scripts/install.ps1 when it replaces an earlier version's Startup
+// folder script, so its name and its one plain line are shared with that
+// script.
+const LoginItemNoteFile = "login-item-note"
 
 // WriteStartReason notes why the launcher is about to start the background
 // copy, which that copy reads once as it starts.
@@ -42,17 +46,17 @@ func TakeStartReason(dir string) string {
 	return strings.TrimSpace(string(data))
 }
 
-// WriteLoginItemNote notes why the launcher wrote the login item itself,
-// such as replacing an earlier version's, which the background copy reads
-// once as it starts.
+// WriteLoginItemNote notes why CC Babysitter wrote the login item itself,
+// such as replacing an earlier version's, which the next copy reads once as
+// it starts.
 func WriteLoginItemNote(dir, line string) error {
-	return writeNote(dir, loginItemFile, line)
+	return writeNote(dir, LoginItemNoteFile, line)
 }
 
 // TakeLoginItemNote returns the line WriteLoginItemNote noted and removes
 // it. It is empty when there is none.
 func TakeLoginItemNote(dir string) string {
-	path := filepath.Join(dir, loginItemFile)
+	path := filepath.Join(dir, LoginItemNoteFile)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return ""

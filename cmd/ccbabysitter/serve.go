@@ -322,11 +322,15 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 		return 1
 	}
 	log.Info("", fmt.Sprintf("%s %s start, pid %d, state %s", buildinfo.Name, version, os.Getpid(), stateDir))
-	// A login item the launcher rewrote itself is noted for the background
-	// copy, whose first look at it would otherwise call it someone else's.
+	// A login item the launcher or the Windows install script rewrote is
+	// noted for the next copy, whose first look at it would otherwise call
+	// it someone else's. Every copy that is not the demo takes the note, so
+	// it is never left behind to explain a later change.
 	autostartNote := ""
-	if opts.Service {
+	if !opts.Demo {
 		autostartNote = state.TakeLoginItemNote(stateDir)
+	}
+	if opts.Service {
 		// Why this background copy started: the launcher's note when it
 		// started it; otherwise the system, again after the copy before
 		// it ended without cleaning up, or at login or boot.

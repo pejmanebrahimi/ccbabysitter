@@ -337,7 +337,7 @@ function Install-CCBabysitter {
         try {
             $stateDir = Join-Path $env:LOCALAPPDATA 'CCBabysitter'
             New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
-            [IO.File]::WriteAllText((Join-Path $stateDir 'login-item-note'), "Start at login kept on: its login entry was rewritten for this version.`n")
+            [IO.File]::WriteAllText((Join-Path $stateDir 'login-item-note'), "Start at login kept on: CC Babysitter rewrote its login entry.`n")
         } catch { }
     }
 

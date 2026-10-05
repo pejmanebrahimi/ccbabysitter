@@ -452,7 +452,7 @@ func TestInstallScriptLeavesTheLauncherNote(t *testing.T) {
 		t.Fatal(err)
 	}
 	script := string(data)
-	if !strings.Contains(script, loginItemRewrittenReason) || !strings.Contains(script, "'login-item-note'") {
+	if !strings.Contains(script, loginItemRewrittenReason) || !strings.Contains(script, "'"+state.LoginItemNoteFile+"'") {
 		t.Fatal("install.ps1 does not leave the launcher's note for a login item it rewrote")
 	}
 }

@@ -126,7 +126,8 @@ func TestTrustIsAValueThatNeedsNoFile(t *testing.T) {
 // worktree lives: the nearest .git decides. Outside any repository every folder above counts. The
 // two real cases this follows: a repository in a trusted folder that the
 // CLI refused to start a session in, and a worktree in a trusted folder
-// where the CLI asked nothing.
+// where the CLI asked nothing. A worktree also takes its main repository's
+// trust: that only ever removes a warning, never adds one.
 func TestTrustStopsAtTheRepository(t *testing.T) {
 	root := t.TempDir()
 	src := filepath.Join(root, "source")
@@ -168,11 +169,35 @@ func TestTrustStopsAtTheRepository(t *testing.T) {
 		{"a worktree inside a repository, in a trusted folder", config(src), inner, true},
 		{"a trusted worktree", config(inner), inner, true},
 		{"a worktree nothing above trusts", config(plain), outside, false},
+		{"a worktree outside its trusted repository", config(repo), outside, true},
 		{"no repository, a folder above", config(src), plain, true},
 	}
 	for _, c := range cases {
 		if trusted, known := c.trust.Trusted(c.dir); !known || trusted != c.trusted {
 			t.Errorf("%s: trusted=%v known=%v, want %v", c.name, trusted, known, c.trusted)
 		}
+	}
+}
+
+// Only a worktree's gitdir line names a main repository; anything else in a
+// .git file names none, and nothing is trusted on its account.
+func TestMainRepository(t *testing.T) {
+	dir := t.TempDir()
+	repo := filepath.Join(dir, "repos", "ui")
+	cases := map[string]string{
+		"gitdir: " + filepath.ToSlash(filepath.Join(repo, ".git", "worktrees", "x")) + "\n": repo,
+		"gitdir: " + filepath.Join(repo, ".git", "modules", "sub") + "\n":                   "",
+		"not a gitdir line\n": "",
+		"":                    "",
+	}
+	for body, want := range cases {
+		f := filepath.Join(t.TempDir(), ".git")
+		writeConfig(t, f, body)
+		if got := mainRepository(f); got != want {
+			t.Errorf("%q: got %q, want %q", body, got, want)
+		}
+	}
+	if got := mainRepository(filepath.Join(dir, "missing")); got != "" {
+		t.Errorf("a missing file names %q", got)
 	}
 }

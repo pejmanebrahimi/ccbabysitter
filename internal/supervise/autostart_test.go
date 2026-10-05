@@ -269,7 +269,7 @@ func TestTheSwitchStillWritesTheLoginItem(t *testing.T) {
 func TestALoginItemTheLauncherWroteIsSaidInItsWords(t *testing.T) {
 	item := &loginItem{installed: true}
 	f, clock := autostartFixture(t, false, item)
-	const note = "Start at login carried over from an earlier version."
+	const note = "Start at login kept on: CC Babysitter rewrote its login entry."
 	f.d.AutostartNote = note
 	s := New(*f.d)
 	if !s.View().Settings.Autostart {

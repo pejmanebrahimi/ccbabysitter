@@ -75,10 +75,10 @@ func TestLoginItemNote(t *testing.T) {
 	if got := TakeLoginItemNote(dir); got != "" {
 		t.Fatalf("a note in an empty folder: %q", got)
 	}
-	if err := WriteLoginItemNote(dir, "Start at login carried over from an earlier version."); err != nil {
+	if err := WriteLoginItemNote(dir, "Start at login kept on: CC Babysitter rewrote its login entry."); err != nil {
 		t.Fatal(err)
 	}
-	if got := TakeLoginItemNote(dir); got != "Start at login carried over from an earlier version." {
+	if got := TakeLoginItemNote(dir); got != "Start at login kept on: CC Babysitter rewrote its login entry." {
 		t.Fatalf("took %q", got)
 	}
 	if got := TakeLoginItemNote(dir); got != "" {
