@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Fixed: runs of a Claude Desktop scheduled task were listed as ordinary sessions, with a Babysit button, and could be babysat, though Desktop starts the task again on its schedule and a copy brought back could repeat its work. A run is now never babysat: the page lists runs apart, in a folded Scheduled task runs section with no Babysit button, `ccbabysitter list` prints them last under their own heading, `list --json` and `show --json` carry `scheduledTask`, `ccbabysitter babysit` refuses one with the reason, and a run babysat before is let go, with an Activity line saying why.
+
 ## 0.5.1 (2026-10-05)
 
 - Fixed: the warning that a session would not come back showed for a session in a git worktree whose folder the claude CLI trusts through a folder above it, and could not be cleared. A worktree takes its trust from any folder above it; only a repository with a .git folder stops at its own folder.
