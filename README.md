@@ -11,7 +11,7 @@ CC Babysitter is one local page for every Claude Code session on a machine, what
 
 ## Why a babysitter?
 
-I left Claude Code working on my laptop overnight, with Remote Control on and "keep computer awake" ticked. Claude Desktop updated itself in the night and never came back, and I couldn't reach the session until morning. I'm not the only one: [1](https://github.com/anthropics/claude-code/issues/92933), [2](https://github.com/anthropics/claude-code/issues/95364), [3](https://github.com/anthropics/claude-code/issues/95491).
+I left Claude Code working on my laptop overnight, with Remote Control on and "keep computer awake" ticked. In the morning, my session had stopped, and I could not reach it from my phone. Claude Desktop had updated itself in the night and restarted, but it reopened only the session on my screen. The others stayed stopped. I'm not the only one: [1](https://github.com/anthropics/claude-code/issues/92933), [2](https://github.com/anthropics/claude-code/issues/95364), [3](https://github.com/anthropics/claude-code/issues/95491).
 
 On my server I wanted a few sessions running around the clock. That meant tmux, one window per session, and making sure it all came back after every reboot.
 

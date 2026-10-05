@@ -284,7 +284,7 @@ func TestHomeTellsWhyABabysitter(t *testing.T) {
 		`"description": "` + sentence + `"`,
 		`<details class="why">`, "<summary>Why a babysitter? <svg",
 		"I left Claude Code working on my laptop overnight",
-		"Claude Desktop updated itself in the night and never came back",
+		"but it reopened only the session on my screen. The others stayed stopped.",
 		"I'm not the only one:",
 		"On my server I wanted a few sessions running around the clock",
 		"<p>CC Babysitter does both. If a babysat session's app dies, the session comes back in the background with Remote Control on, and the computer stays awake. On a server, babysat sessions survive SSH drops and reboots, no tmux needed. And one page shows every Claude Code session on the machine, in any app, with its tokens and uptime. Your agents can use it too: <code>ccbabysitter babysit self</code>.</p>",
