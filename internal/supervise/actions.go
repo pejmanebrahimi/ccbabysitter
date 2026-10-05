@@ -33,7 +33,7 @@ func (s *Supervisor) babysit(_ context.Context, id string, startAtLogin bool, vi
 	}
 	label := sessionLabel(sn.Name, sn.ID)
 	if s.isScheduledRun(id) {
-		return Result{Message: label + " is a scheduled task run. " + scheduledRunReason}
+		return Result{Message: label + " is a scheduled task run. " + ScheduledRunReason}
 	}
 	if s.find(id) != nil {
 		return Result{OK: true, Message: label + " is already being babysat."}

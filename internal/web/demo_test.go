@@ -426,3 +426,12 @@ func TestDemoBabysitFromTheCommandLineSaysSoAndCarriesProcStart(t *testing.T) {
 		t.Fatalf("the watch carries its procStart: %+v", w)
 	}
 }
+
+// The demonstration's scheduled task run is refused like a real one.
+func TestDemoRefusesToBabysitAScheduledTaskRun(t *testing.T) {
+	d, _ := newTestDemo(t)
+	res := d.Babysit(demoScheduledID, false, supervise.ViaPage)
+	if res.OK || !strings.Contains(res.Message, supervise.ScheduledRunReason) {
+		t.Fatalf("%+v", res)
+	}
+}

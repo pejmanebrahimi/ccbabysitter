@@ -6,9 +6,9 @@ package supervise
 // run alongside the next scheduled run. Whether a session is one is known
 // once its transcript has been read.
 
-// scheduledRunReason is why a run is not babysat, for the answer to a
-// babysit and for Activity.
-const scheduledRunReason = "Claude Desktop starts a scheduled task again on its schedule, so its runs are not babysat."
+// ScheduledRunReason is why a run is not babysat, for the answer to a
+// babysit, for Activity and for the demonstration engine.
+const ScheduledRunReason = "Claude Desktop starts a scheduled task again on its schedule, so its runs are not babysat."
 
 // isScheduledRun reports whether the session's transcript says it is a
 // scheduled task's run. A session whose transcript has not been read yet
@@ -28,7 +28,7 @@ func (s *Supervisor) letGoScheduledRun(id string) bool {
 		s.st.Watches = append(s.st.Watches[:i], s.st.Watches[i+1:]...)
 		s.persist()
 		s.logAuto(sessionLabel(w.Name, w.SessionID), "scheduled task run",
-			"no longer babysitting. "+scheduledRunReason)
+			"no longer babysitting. "+ScheduledRunReason)
 		return true
 	}
 	return false

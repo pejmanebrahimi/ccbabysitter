@@ -56,6 +56,11 @@
       <p class="empty" id="sessions-empty" data-none="No Claude Code sessions are running."></p>
     </details>
 
+    <details class="sect" id="sect-scheduled" hidden>
+      <summary><h2>Scheduled task runs</h2><span class="n" id="scheduled-count">0</span></summary>
+      <div class="rows" id="scheduled"></div>
+    </details>
+
     <details class="sect" id="sect-past">
       <summary><h2>Not running</h2><span class="n" id="past-count">0</span><span class="tag handed" id="past-handed" hidden></span></summary>
       <div class="rows" id="past"></div>
@@ -256,7 +261,7 @@
 <template id="tpl-session">
   <div class="row">
     <span class="hostmark" data-el="host"></span>
-    <span class="nmcell"><span class="nm" data-f="name"></span><span class="tag multi" data-f="multi" hidden></span></span>
+    <span class="nmcell"><span class="nm" data-f="name"></span><span class="tag multi" data-f="multi" hidden></span><span class="tag sched" data-f="sched" hidden>Scheduled task</span></span>
     <span class="pth mono" data-f="cwd"></span>
     <i class="rcdot" data-f="rcdot"></i>
     <span class="status" data-f="status"></span>

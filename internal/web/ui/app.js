@@ -483,12 +483,18 @@
     renderInfo(view);
 
     var watches = (view.watches || []).filter(function (w) { return matches(w.name, w.cwd, w.shortId); });
-    var sessions = (view.sessions || []).filter(function (s) { return matches(s.name, s.cwd, s.shortId); });
+    var listed = (view.sessions || []).filter(function (s) { return matches(s.name, s.cwd, s.shortId); });
+    /* Scheduled task runs are never babysat, so they are listed apart, in
+       a section that only shows when there is one. */
+    var sessions = listed.filter(function (s) { return !s.scheduledTask; });
+    var scheduled = listed.filter(function (s) { return !!s.scheduledTask; });
     var past = (view.notRunning || []).filter(function (p) { return matches(p.name, p.cwd, p.shortId); });
 
     renderBabysatEmpty(view, view.watches || [], watches);
     section("#running-count", "#sessions-empty", sessions.length);
     section("#past-count", "#past-empty", past.length);
+    show($("#sect-scheduled"), scheduled.length > 0);
+    setText($("#scheduled-count"), String(scheduled.length));
     /* The section stays as the person left it, closed at first, and its
        header says when something in it was just handed back. */
     var handed = handedBackCount(past);
@@ -498,6 +504,8 @@
     sync($("#watches"), watches, function (w) { return w.sessionId; },
       function () { return clone("#tpl-watch"); }, fillWatch);
     sync($("#sessions"), sessions, function (s) { return s.id; },
+      function () { return clone("#tpl-session"); }, fillSession);
+    sync($("#scheduled"), scheduled, function (s) { return s.id; },
       function () { return clone("#tpl-session"); }, fillSession);
     sync($("#past"), past, function (p) { return p.id; },
       function () { return clone("#tpl-past"); }, fillPast);
@@ -541,7 +549,9 @@
 
   /* canBabysit is the rule a Running row follows for showing its buttons,
      Babysit among them: every session but one another program owns. */
-  function canBabysit(s) { return !!s.actionable; }
+  /* canBabysit is false for a session of another program and for a
+     scheduled task's run, which Claude Desktop starts again by itself. */
+  function canBabysit(s) { return !!s.actionable && !s.scheduledTask; }
 
   /* heroSteps is what the empty hero asks the person to do next, which
      follows what is running: press Babysit when there is something to
@@ -798,6 +808,7 @@
     var multi = f(node, "multi");
     show(multi, live.length > 1);
     setText(multi, live.length > 1 ? "open in " + live.length + " apps" : "");
+    show(f(node, "sched"), !!s.scheduledTask);
     fillPath(f(node, "cwd"), s.cwd);
     var dot = f(node, "rcdot");
     dot.classList.toggle("on", !!s.remoteControl);

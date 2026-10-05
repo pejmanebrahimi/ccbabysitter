@@ -25,6 +25,7 @@ const (
 	demoCarriedID    = "a1a1a1a1-6666-4666-8666-a1a1a1a1a1a1"
 	demoStartingID   = "b2b2b2b2-7777-4777-8777-b2b2b2b2b2b2"
 	demoStuckID      = "c3c3c3c3-8888-4888-8888-c3c3c3c3c3c3"
+	demoScheduledID  = "c4c4c4c4-8888-4888-8888-c4c4c4c4c4c4"
 	demoCodeBgID     = "d4d4d4d4-9999-4999-8999-d4d4d4d4d4d4"
 	demoTermBgID     = "e5e5e5e5-aaaa-4aaa-8aaa-e5e5e5e5e5e5"
 	demoTwoAppsID    = "f6f6f6f6-bbbb-4bbb-8bbb-f6f6f6f6f6f6"
@@ -255,6 +256,12 @@ func (d *DemoEngine) seed(now time.Time) {
 			stats: claude.Stats{Model: "claude-haiku-4-5", Turns: 4, InputTokens: 5_200, OutputTokens: 800},
 		},
 		{
+			// A scheduled task's run, which is listed apart and never babysat.
+			id: demoScheduledID, name: "Daily report", cwd: "~/notes",
+			host: claude.HostDesktop, entrypoint: "claude-desktop", status: "busy", running: true,
+			stats: claude.Stats{Model: "claude-sonnet-5", Turns: 1, InputTokens: 2_100, OutputTokens: 400, ScheduledTask: true},
+		},
+		{
 			id: demoDesktopID, name: "docs-site", cwd: "~/projects/docs-site",
 			host: claude.HostDesktop, entrypoint: "claude-desktop", remoteControl: true, status: "idle", running: true,
 			stats: claude.Stats{Model: "claude-sonnet-5", Turns: 6, InputTokens: 8_400, OutputTokens: 1_200},
@@ -422,7 +429,7 @@ func (d *DemoEngine) View() supervise.View {
 				ID: it.id, ShortID: it.shortID, PID: demoPID(it), ProcStart: demoProcStart, Cwd: it.cwd, Name: it.name, AlsoCalled: it.alsoCalled,
 				Host: it.host, Entrypoint: it.entrypoint, RemoteControl: it.remoteControl,
 				Status: it.status, Stats: it.stats, Tree: demoTree(), Actionable: it.host != claude.HostOther,
-				FallbackWarning: it.warning, Live: it.liveHosts(),
+				FallbackWarning: it.warning, Live: it.liveHosts(), ScheduledTask: it.stats.ScheduledTask,
 			}
 			if it.host == claude.HostBackground {
 				sv.AttachCmd = hosts.AttachCommand(it.shortID)
@@ -546,6 +553,10 @@ func (d *DemoEngine) Babysit(id string, startAtLogin bool, via supervise.Via) su
 		return supervise.Result{Message: "This session belongs to another program and cannot be babysat."}
 	}
 	label := demoLabel(it)
+	if it.stats.ScheduledTask {
+		d.mu.Unlock()
+		return supervise.Result{Message: label + " is a scheduled task run. " + supervise.ScheduledRunReason}
+	}
 	if it.watched {
 		d.mu.Unlock()
 		return supervise.Result{OK: true, Message: label + " is already being babysat."}
