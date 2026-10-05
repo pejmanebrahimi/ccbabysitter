@@ -52,6 +52,10 @@ type SessionView struct {
 	// FallbackWarning says why a background copy would not start for this
 	// session, for the babysit dialog to show before anything is promised.
 	FallbackWarning string `json:"fallbackWarning"`
+	// ScheduledTask reports whether the session is a run of a Claude
+	// Desktop scheduled task, which is never babysat. The page lists runs
+	// apart from the other sessions.
+	ScheduledTask bool `json:"scheduledTask"`
 	// CanStop reports whether the page offers to stop this session's
 	// background copy, which only a machine with no display does for a
 	// session that is not babysat.
@@ -238,6 +242,7 @@ func (s *Supervisor) sessionView(live []claude.Session) SessionView {
 		Status: sn.Status, Stats: s.stats[sn.ID], Tree: treeView(s.trees[sn.PID]),
 		Live:            make([]claude.Host, 0, len(ranked)),
 		Actionable:      sn.Host != claude.HostOther,
+		ScheduledTask:   s.stats[sn.ID].ScheduledTask,
 		FallbackWarning: s.fallbackWarning(sn.Cwd, sn.Host),
 		CanStop:         s.env.Headless && sn.Host == claude.HostBackground,
 		AttachCmd:       s.attachCmd(sn),

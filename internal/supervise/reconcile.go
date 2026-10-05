@@ -601,7 +601,7 @@ func (s *Supervisor) autoBabysit(snap observe.Snapshot) bool {
 	changed := false
 	if s.firstPass && s.st.Settings.AutoBabysit && s.env.Headless {
 		for _, sn := range snap.Sessions {
-			if sn.Host != claude.HostBackground || s.seen[sn.ID] || s.find(sn.ID) != nil {
+			if sn.Host != claude.HostBackground || s.seen[sn.ID] || s.find(sn.ID) != nil || s.isScheduledRun(sn.ID) {
 				continue
 			}
 			s.st.Watches = append(s.st.Watches, newWatch(sn, s.deps.Now()))

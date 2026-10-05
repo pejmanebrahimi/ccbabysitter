@@ -349,6 +349,9 @@ func (s *Supervisor) applyStats(res statsResult) {
 	}
 	if res.ok {
 		s.stats[res.id] = res.stats
+		if res.stats.ScheduledTask {
+			s.letGoScheduledRun(res.id)
+		}
 	}
 }
 
