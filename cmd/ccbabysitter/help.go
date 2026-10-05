@@ -165,17 +165,17 @@ are not set are left out, except App, Running, Remote Control, Babysat and Token
 		"",
 		`Text lines, in this order: Id, Short id, Name, Also called, Folder, App, Also running
 in, Running, Scheduled task, Remote Control, Status, Babysat, State, Tokens, Model,
-Last activity,
-Uptime, Open with Remote Control, Attach, Attach over ssh, Resume, To switch Remote
-Control on, Warning. Tokens is like: in 1.2k, out 3.4k, cache 50k. App is none when
-it runs nowhere. State is watching, in background, starting or stuck. Scheduled task
-is yes for a run of a Claude Desktop scheduled task, and left out otherwise.
+Last activity, Uptime, Open with Remote Control, Attach, Attach over ssh, Resume, To
+switch Remote Control on, Warning. Tokens is like: in 1.2k, out 3.4k, cache 50k. App
+is none when it runs nowhere. State is watching, in background, starting or stuck.
+Scheduled task is yes for a run of a Claude Desktop scheduled task, and left out
+otherwise.
 
 With --json: {"schema":1,"session":{...}}. These fields are always there: id, shortId,
 name, folder, app, apps, running, remoteControl, status, babysat, tokens {input,
 output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask.
-Empty ones are
-"" or [], and app is "" when it runs nowhere. These are left out when not set:
+Empty ones are "" or [], and app is "" when it runs nowhere. These are left out when
+not set:
 alsoCalled, pid, state, model, lastActivity as RFC 3339 in UTC, remoteUrl, attachCmd,
 sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added.
 In JSON, state is watching, background, starting or stuck. The text says in

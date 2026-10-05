@@ -346,3 +346,61 @@ func TestStatsTellsAScheduledTaskRun(t *testing.T) {
 		t.Fatal("forgotten after a later read")
 	}
 }
+
+// Meta and sidechain records, and queue operations other than enqueue, are
+// not the first prompt; both the reader and ScheduledRun look past them. A
+// reader that starts over, on a truncated file or another path, asks again.
+func TestScheduledRunLooksPastWhatIsNotThePrompt(t *testing.T) {
+	tag := `"<scheduled-task name=\"daily-report\">x</scheduled-task>"`
+	meta := `{"type":"user","isMeta":true,"message":{"role":"user","content":"caveat"}}` + "\n"
+	side := `{"type":"user","isSidechain":true,"message":{"role":"user","content":"side"}}` + "\n"
+	dequeue := `{"type":"queue-operation","operation":"dequeue","content":"anything"}` + "\n"
+	run := `{"type":"user","message":{"role":"user","content":` + tag + `}}` + "\n"
+	plain := `{"type":"user","message":{"role":"user","content":"hi"}}` + "\n"
+	write := func(body string) string {
+		p := filepath.Join(t.TempDir(), "s.jsonl")
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	for name, c := range map[string]struct {
+		body string
+		want bool
+	}{
+		"meta, sidechain and dequeue before a run": {meta + side + dequeue + run, true},
+		"meta before an ordinary prompt":           {meta + plain + run, false},
+		"nothing but bookkeeping":                  {meta + dequeue, false},
+	} {
+		p := write(c.body)
+		if s, _ := (&StatsReader{}).Update(p); s.ScheduledTask != c.want {
+			t.Errorf("reader, %s: %v, want %v", name, s.ScheduledTask, c.want)
+		}
+		if got, ok := ScheduledRun(p); !ok || got != c.want {
+			t.Errorf("ScheduledRun, %s: %v %v, want %v", name, got, ok, c.want)
+		}
+	}
+	if _, ok := ScheduledRun(filepath.Join(t.TempDir(), "missing.jsonl")); ok {
+		t.Error("a missing file was read")
+	}
+
+	// A file rewritten shorter, now a run, is asked about again.
+	p := write(plain + plain + plain)
+	r := &StatsReader{}
+	if s, _ := r.Update(p); s.ScheduledTask {
+		t.Fatal("an ordinary session read as a run")
+	}
+	if err := os.WriteFile(p, []byte(run), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s, _ := r.Update(p); !s.ScheduledTask {
+		t.Fatal("a reader starting over on a truncated file did not ask again")
+	}
+	// So is another path.
+	if s, _ := r.Update(write(plain)); s.ScheduledTask {
+		t.Fatal("a reader on another path kept the old answer")
+	}
+	if s, _ := r.Update(write(run)); !s.ScheduledTask {
+		t.Fatal("a reader on another path did not ask again")
+	}
+}

@@ -4,7 +4,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 ## Unreleased
 
-- Fixed: runs of a Claude Desktop scheduled task were listed as ordinary sessions, with a Babysit button, and could be babysat, though Desktop starts the task again on its schedule and a copy brought back could repeat its work. A run is now never babysat: the page lists runs apart, in a folded Scheduled task runs section with no Babysit button, `ccbabysitter list` prints them last under their own heading, `list --json` and `show --json` carry `scheduledTask`, `ccbabysitter babysit` refuses one with the reason, and a run babysat before is let go, with an Activity line saying why.
+- Fixed: runs of a Claude Desktop scheduled task were listed as ordinary sessions, with a Babysit button, and could be babysat, though Desktop starts the task again on its schedule and a copy brought back could repeat its work. A run is now never babysat: the page lists runs apart, in a folded Scheduled task runs section with no Babysit button, `ccbabysitter list` prints them last under their own heading, `list --json` and `show --json` carry `scheduledTask`, `ccbabysitter babysit` refuses one with the reason, and a run babysat before is let go, with an Activity line saying why, its background copy stopped if CC Babysitter had started one.
 
 ## 0.5.1 (2026-10-05)
 

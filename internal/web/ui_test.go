@@ -1099,7 +1099,7 @@ func TestTheEmptyBabysatHero(t *testing.T) {
 		`"A babysat session comes back on its own. If its app crashes or closes, it carries on in the background, reachable from your other devices."`,
 		`"A babysat session stays on your remote list. If it stops or the server reboots, it comes back in the background with Remote Control on."`,
 		`var START_CMD = "claude --bg --remote-control";`,
-		`show(el(node, "acts"), canBabysit(s));`,
+		`show(node.querySelector('[data-act="babysit"]'), canBabysit(s));`,
 		`copyText(START_CMD);`,
 	} {
 		if !strings.Contains(app, want) {
@@ -1529,6 +1529,13 @@ func TestScheduledTaskRunsAreListedApart(t *testing.T) {
 	for _, want := range []string{
 		`sync($("#scheduled"), scheduled, function (s) { return s.id; },`,
 		`show(f(node, "sched"), !!s.scheduledTask);`,
+		// Only the Babysit button goes: a run living as a background copy
+		// keeps Stop and Copy attach.
+		`show(el(node, "acts"), !!s.actionable);`,
+		`show(node.querySelector('[data-act="babysit"]'), canBabysit(s));`,
+		// With only runs running, the Running section does not claim
+		// nothing is running.
+		`"Only scheduled task runs are running."`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)

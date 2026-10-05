@@ -52,6 +52,7 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 	waiting := 0
 	// The list is copied because acting on a watch can change the list, and
 	// an action reads the watch back out of the live state by id.
+	changed = s.settleScheduledRuns(ctx, snap) || changed
 	for _, w := range append([]state.Watch(nil), s.st.Watches...) {
 		if ctx.Err() != nil {
 			// Out of the loop, not out of the pass: whatever the watches
@@ -66,6 +67,11 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 			// sessions go first. Absence is still counted, so a session that
 			// is really gone is started the moment the grace is over.
 			if s.inGrace() {
+				continue
+			}
+			// A scheduled task's run is never brought back; the next pass
+			// lets the watch go.
+			if s.checkRun(w.SessionID, w.Cwd) {
 				continue
 			}
 			if resumesLeft == 0 {
@@ -601,7 +607,7 @@ func (s *Supervisor) autoBabysit(snap observe.Snapshot) bool {
 	changed := false
 	if s.firstPass && s.st.Settings.AutoBabysit && s.env.Headless {
 		for _, sn := range snap.Sessions {
-			if sn.Host != claude.HostBackground || s.seen[sn.ID] || s.find(sn.ID) != nil || s.isScheduledRun(sn.ID) {
+			if sn.Host != claude.HostBackground || s.seen[sn.ID] || s.find(sn.ID) != nil || s.checkRun(sn.ID, sn.Cwd) {
 				continue
 			}
 			s.st.Watches = append(s.st.Watches, newWatch(sn, s.deps.Now()))
@@ -664,6 +670,7 @@ func (s *Supervisor) sampleStats(snap observe.Snapshot) {
 		}
 		delete(s.statsAt, id)
 		delete(s.stats, id)
+		delete(s.runs, id)
 		s.statsForget = append(s.statsForget, id)
 	}
 	s.flushStatsForget()

@@ -492,6 +492,9 @@
 
     renderBabysatEmpty(view, view.watches || [], watches);
     section("#running-count", "#sessions-empty", sessions.length);
+    if (!state.search && sessions.length === 0 && scheduled.length > 0) {
+      setText($("#sessions-empty"), "Only scheduled task runs are running.");
+    }
     section("#past-count", "#past-empty", past.length);
     show($("#sect-scheduled"), scheduled.length > 0);
     setText($("#scheduled-count"), String(scheduled.length));
@@ -547,10 +550,10 @@
      Control on from the start. */
   var START_CMD = "claude --bg --remote-control";
 
-  /* canBabysit is the rule a Running row follows for showing its buttons,
-     Babysit among them: every session but one another program owns. */
-  /* canBabysit is false for a session of another program and for a
-     scheduled task's run, which Claude Desktop starts again by itself. */
+  /* canBabysit is the rule a row follows for showing its Babysit button:
+     every session but one another program owns and a scheduled task's run,
+     which Claude Desktop starts again by itself. A row's other buttons
+     follow only whether another program owns the session. */
   function canBabysit(s) { return !!s.actionable && !s.scheduledTask; }
 
   /* heroSteps is what the empty hero asks the person to do next, which
@@ -814,7 +817,8 @@
     dot.classList.toggle("on", !!s.remoteControl);
     setTitle(dot, s.remoteControl ? "Remote Control on" : "Remote Control off");
     setText(f(node, "status"), STATUS_WORDS[String(s.status || "").toLowerCase()] || "");
-    show(el(node, "acts"), canBabysit(s));
+    show(el(node, "acts"), !!s.actionable);
+    show(node.querySelector('[data-act="babysit"]'), canBabysit(s));
     show(node.querySelector('[data-act="stop"]'), !!s.canStop);
     var attach = node.querySelector('[data-act="copy-attach"]');
     show(attach, !!s.attachCmd);
