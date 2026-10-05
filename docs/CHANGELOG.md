@@ -2,7 +2,9 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
-## Unreleased
+## 0.5.0 (2026-10-05)
+
+CC Babysitter now runs in the background on Linux, macOS and Windows and starts again when you log in, so you can close the terminal you started it from.
 
 - New: `ccbabysitter quit` and a Quit button in the page's settings stop CC Babysitter. Babysat sessions keep running, but nothing brings them back until you run `ccbabysitter` again. Activity says "asked to quit", followed by ", from the command line" when the command asked.
 - Changed: on Linux, desktop and server alike, `ccbabysitter` starts CC Babysitter in the background through the systemd user manager and gives the terminal back. Start at login is turned on the first time, also for anyone upgrading, and stays off once you turn it off. Run `ccbabysitter --foreground` to keep it in the terminal instead. `--port` now only applies with `--foreground`.
