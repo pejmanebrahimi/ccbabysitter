@@ -132,7 +132,9 @@ stdout is {"schema":1,"running":false} with --json. That is the answer, not an e
 	"list": controlPage(
 		"ccbabysitter list",
 		`Lists every Claude Code session on this machine, babysat or not, running or not.
-Sessions that are not babysat come first, then the babysat ones.`,
+Sessions that are not babysat come first, then the babysat ones. Runs of a Claude
+Desktop scheduled task come last, under their own heading, since they are never
+babysat: Desktop starts the task again on its schedule.`,
 		"",
 		`Text: a header, then one line per session, columns separated by two spaces:
   ID       short id, 8 characters
@@ -143,9 +145,12 @@ Sessions that are not babysat come first, then the babysat ones.`,
   TOKENS   everything used so far, as 12k or 4.5M
   UPTIME   as 45s, 12m, 3h 5m or 2d 4h, - when it is not running
   FOLDER   the folder it works in
+Scheduled task runs follow after an empty line and the line
+"Scheduled task runs, never babysat:", with the same columns.
 With no sessions it says: No Claude Code sessions are running.
 
 With --json: {"schema":1,"sessions":[...]}, an empty array when there are none.
+A scheduled task's run is in the same array, with scheduledTask true.
 Each session has the fields shown by ccbabysitter help show, and the same names.
 In JSON, state is watching, background, starting or stuck, and is left out when the
 session is not babysat. The text says in background for background.`,
@@ -159,14 +164,17 @@ session is not babysat. The text says in background for background.`,
 are not set are left out, except App, Running, Remote Control, Babysat and Tokens.`,
 		"",
 		`Text lines, in this order: Id, Short id, Name, Also called, Folder, App, Also running
-in, Running, Remote Control, Status, Babysat, State, Tokens, Model, Last activity,
+in, Running, Scheduled task, Remote Control, Status, Babysat, State, Tokens, Model,
+Last activity,
 Uptime, Open with Remote Control, Attach, Attach over ssh, Resume, To switch Remote
 Control on, Warning. Tokens is like: in 1.2k, out 3.4k, cache 50k. App is none when
-it runs nowhere. State is watching, in background, starting or stuck.
+it runs nowhere. State is watching, in background, starting or stuck. Scheduled task
+is yes for a run of a Claude Desktop scheduled task, and left out otherwise.
 
 With --json: {"schema":1,"session":{...}}. These fields are always there: id, shortId,
 name, folder, app, apps, running, remoteControl, status, babysat, tokens {input,
-output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit. Empty ones are
+output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask.
+Empty ones are
 "" or [], and app is "" when it runs nowhere. These are left out when not set:
 alsoCalled, pid, state, model, lastActivity as RFC 3339 in UTC, remoteUrl, attachCmd,
 sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added.

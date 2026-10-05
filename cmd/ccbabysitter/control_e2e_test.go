@@ -53,7 +53,7 @@ func TestControlCommandsAgainstTheDemo(t *testing.T) {
 	var free, stoppable *client.Session
 	for i := range doc.Sessions {
 		s := &doc.Sessions[i]
-		if free == nil && s.Running && !s.Babysat && s.App != "other" {
+		if free == nil && s.Running && !s.Babysat && s.App != "other" && !s.ScheduledTask {
 			free = s
 		}
 		if stoppable == nil && s.CanStop {

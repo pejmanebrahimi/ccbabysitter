@@ -65,6 +65,9 @@ type Session struct {
 	Warning       string   `json:"warning,omitempty"`
 	CanStop       bool     `json:"canStop"`
 	CanUnbabysit  bool     `json:"canUnbabysit"`
+	// ScheduledTask is true for a run of a Claude Desktop scheduled task,
+	// which is never babysat.
+	ScheduledTask bool `json:"scheduledTask"`
 	procStart     string
 }
 
@@ -154,6 +157,7 @@ func Sessions(v supervise.View) []Session {
 			Warning:       s.FallbackWarning,
 			CanStop:       s.CanStop,
 			CanUnbabysit:  false,
+			ScheduledTask: s.ScheduledTask,
 			procStart:     s.ProcStart,
 		})
 	}

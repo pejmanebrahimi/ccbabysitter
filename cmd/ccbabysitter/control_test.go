@@ -519,13 +519,13 @@ func TestJSONKeysArePinned(t *testing.T) {
 	doc = oneJSON(t, out)
 	check("show", doc, "schema,session")
 	check("show api session", child(doc, "session"),
-		"app,apps,babysat,canStop,canUnbabysit,folder,id,name,pid,remoteControl,running,shortId,status,tokens,uptimeSeconds")
+		"app,apps,babysat,canStop,canUnbabysit,folder,id,name,pid,remoteControl,running,scheduledTask,shortId,status,tokens,uptimeSeconds")
 	check("show tokens", child(child(doc, "session"), "tokens"), "cacheRead,cacheWrite,input,output")
 
 	// A babysat session adds state, which is only there when set.
 	_, out, _ = runCmd(t, env, "show", "worker", "--json")
 	check("show worker session", child(oneJSON(t, out), "session"),
-		"app,apps,babysat,canStop,canUnbabysit,folder,id,name,pid,remoteControl,running,shortId,state,status,tokens,uptimeSeconds")
+		"app,apps,babysat,canStop,canUnbabysit,folder,id,name,pid,remoteControl,running,scheduledTask,shortId,state,status,tokens,uptimeSeconds")
 
 	_, out, _ = runCmd(t, env, "settings", "--json")
 	doc = oneJSON(t, out)
@@ -702,5 +702,52 @@ func TestClientLaunchURL(t *testing.T) {
 	u, err := c.LaunchURL(context.Background())
 	if err != nil || !strings.HasPrefix(u, ts.URL+"/?token=") || strings.Contains(u, state.ReadPageKey(env.stateDir)) {
 		t.Fatalf("LaunchURL = %q, %v", u, err)
+	}
+}
+
+// A Claude Desktop scheduled task's run is listed after the other
+// sessions, under its own heading, and its JSON and show say what it is.
+// A machine running only runs still lists them.
+func TestListPutsScheduledTaskRunsApart(t *testing.T) {
+	env, e, _ := testEnv(t)
+	e.view.Sessions = append(e.view.Sessions, supervise.SessionView{
+		ID: "45454545-0000-4000-8000-000000000045", ShortID: "45454545", Name: "Daily report", Cwd: "/w/notes", PID: 145,
+		Host: claude.HostDesktop, Live: []claude.Host{claude.HostDesktop}, Status: "busy", ScheduledTask: true,
+	})
+	code, out, _ := runCmd(t, env, "list")
+	head := strings.Index(out, "Scheduled task runs, never babysat:")
+	if code != 0 || head < 0 || strings.Index(out, "Daily report") < head || strings.Index(out, "api") > head {
+		t.Fatalf("list = %d:\n%s", code, out)
+	}
+	_, out, _ = runCmd(t, env, "list", "--json")
+	var doc struct {
+		Sessions []client.Session `json:"sessions"`
+	}
+	if json.Unmarshal([]byte(out), &doc) != nil {
+		t.Fatalf("list --json:\n%s", out)
+	}
+	runs := 0
+	for _, s := range doc.Sessions {
+		if s.ScheduledTask {
+			runs++
+		}
+	}
+	if runs != 1 || !strings.Contains(out, `"scheduledTask":true`) {
+		t.Fatalf("list --json has %d scheduled runs:\n%s", runs, out)
+	}
+	_, out, _ = runCmd(t, env, "show", "45454545")
+	if !strings.Contains(out, "Scheduled task: yes") {
+		t.Fatalf("show:\n%s", out)
+	}
+	_, out, _ = runCmd(t, env, "show", "api")
+	if strings.Contains(out, "Scheduled task") {
+		t.Fatalf("show of an ordinary session:\n%s", out)
+	}
+
+	e.view.Sessions = e.view.Sessions[2:]
+	e.view.Watches = nil
+	_, out, _ = runCmd(t, env, "list")
+	if strings.Contains(out, "No Claude Code sessions are running.") || !strings.Contains(out, "Daily report") {
+		t.Fatalf("only runs:\n%s", out)
 	}
 }

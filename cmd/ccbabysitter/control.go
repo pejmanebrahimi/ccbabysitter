@@ -505,6 +505,15 @@ func onOff(b bool) string {
 	return "off"
 }
 
+// scheduledWords is show's Scheduled task line, which only a scheduled
+// task's run has.
+func scheduledWords(b bool) string {
+	if b {
+		return "yes"
+	}
+	return ""
+}
+
 func yesNo(b bool) string {
 	if b {
 		return "yes"
@@ -533,6 +542,32 @@ func (env controlEnv) printList(asJSON bool, v supervise.View) int {
 		fmt.Fprintln(env.stdout, "No Claude Code sessions are running.")
 		return 0
 	}
+	// A Claude Desktop scheduled task's run is never babysat, so runs are
+	// listed apart, after the other sessions.
+	var others, runs []client.Session
+	for _, s := range sessions {
+		if s.ScheduledTask {
+			runs = append(runs, s)
+		} else {
+			others = append(others, s)
+		}
+	}
+	if len(others) > 0 {
+		env.printTable(others)
+	}
+	if len(runs) > 0 {
+		if len(others) > 0 {
+			fmt.Fprintln(env.stdout)
+		}
+		fmt.Fprintln(env.stdout, "Scheduled task runs, never babysat:")
+		env.printTable(runs)
+	}
+	return 0
+}
+
+// printTable prints sessions as list's columns, with a header, separated
+// by two spaces.
+func (env controlEnv) printTable(sessions []client.Session) {
 	rows := [][]string{{"ID", "NAME", "APP", "RC", "BABYSAT", "TOKENS", "UPTIME", "FOLDER"}}
 	for _, s := range sessions {
 		uptime := "-"
@@ -562,7 +597,6 @@ func (env controlEnv) printList(asJSON bool, v supervise.View) int {
 		}
 		fmt.Fprintln(env.stdout, strings.TrimRight(b.String(), " "))
 	}
-	return 0
 }
 
 func (env controlEnv) printShow(asJSON bool, s client.Session) int {
@@ -598,6 +632,7 @@ func (env controlEnv) printShow(asJSON bool, s client.Session) int {
 		{"App", firstOf(s.App, "none")},
 		{"Also running in", strings.Join(also, ", ")},
 		{"Running", yesNo(s.Running)},
+		{"Scheduled task", scheduledWords(s.ScheduledTask)},
 		{"Remote Control", onOff(s.RemoteControl)},
 		{"Status", s.Status},
 		{"Babysat", yesNo(s.Babysat)},
