@@ -229,13 +229,11 @@ knows_background() {
 }
 
 # mac_agent_running reports whether CC Babysitter's LaunchAgent runs in this
-# Mac's login, or is set to start at login, which a plain run then replaces
-# with the version just installed.
+# Mac's login, which a plain run then restarts on the version just
+# installed. One that was quit, or never started, is left for the person to
+# start; an earlier version's plist is taken care of at the next login.
 mac_agent_running() {
 	[ "$os" = darwin ] || return 1
-	# An earlier version's LaunchAgent that is set to start at login is
-	# rewritten for the new version too, running or not.
-	[ -f "${HOME:-}/Library/LaunchAgents/com.ccbabysitter.plist" ] && return 0
 	has launchctl || return 1
 	launchctl print "gui/$(id -u)/com.ccbabysitter" 2>/dev/null | grep -q 'state = running'
 }
@@ -243,15 +241,6 @@ mac_agent_running() {
 already_running() {
 	has pgrep || return 1
 	pgrep -x -u "$(id -u)" ccbabysitter >/dev/null 2>&1
-}
-
-# mac_terminal_copy reports whether a copy runs on this Mac outside the
-# LaunchAgent, as an earlier version did in a terminal. A plain run would
-# only refuse while it runs, so it is left for the person to quit.
-mac_terminal_copy() {
-	already_running || return 1
-	has launchctl || return 0
-	! launchctl print "gui/$(id -u)/com.ccbabysitter" 2>/dev/null | grep -q 'state = running'
 }
 
 main() {
@@ -323,7 +312,7 @@ main() {
 		fi
 	fi
 
-	if mac_agent_running && knows_background && ! mac_terminal_copy; then
+	if mac_agent_running && knows_background; then
 		# A Mac's background copy, the LaunchAgent: a plain run restarts it
 		# on the new version and prints where its page is, without opening
 		# it again.
