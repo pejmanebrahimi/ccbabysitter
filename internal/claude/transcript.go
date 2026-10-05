@@ -24,6 +24,10 @@ type Stats struct {
 	// none, and the page reads it through the name of the session or the
 	// watch rather than here.
 	Title string `json:"-"`
+	// ScheduledTask reports whether the session is a run of a Claude Desktop
+	// scheduled task: its first prompt starts with the <scheduled-task> tag
+	// the app puts there. The views carry it outside Stats.
+	ScheduledTask bool `json:"-"`
 }
 
 // StatsReader accumulates Stats over a transcript file, reading only the
@@ -45,6 +49,9 @@ type StatsReader struct {
 	// after it yet. If the next read finds nothing new at all, it was not
 	// the automatic name, whose agent-name line follows at once.
 	pendingRead bool
+	// prompted is set once the first prompt has been read, which alone
+	// decides whether the session is a scheduled task's run.
+	prompted bool
 }
 
 // transcriptRecord is the subset of one transcript line this reader needs.
@@ -53,10 +60,13 @@ type StatsReader struct {
 // usable string.
 type transcriptRecord struct {
 	titleRecord
-	Type        string `json:"type"`
-	Timestamp   string `json:"timestamp"`
-	IsMeta      bool   `json:"isMeta"`
-	IsSidechain bool   `json:"isSidechain"`
+	Type      string `json:"type"`
+	Operation string `json:"operation"`
+	// Content is a queued prompt's text, kept raw like the message's.
+	Content     json.RawMessage `json:"content"`
+	Timestamp   string          `json:"timestamp"`
+	IsMeta      bool            `json:"isMeta"`
+	IsSidechain bool            `json:"isSidechain"`
 	Message     struct {
 		ID      string          `json:"id"`
 		Model   string          `json:"model"`
@@ -120,6 +130,7 @@ func (r *StatsReader) reset() {
 	r.seen = nil
 	r.titles = titleTracker{}
 	r.pendingRead = false
+	r.prompted = false
 }
 
 // updateTitle works out the title after a read. A custom-title that ended
@@ -164,6 +175,41 @@ func (r *StatsReader) applyLine(line []byte) {
 		if isTurn(&rec) {
 			r.stats.Turns++
 		}
+		if !rec.IsMeta && !rec.IsSidechain {
+			r.firstPrompt(rec.Message.Content)
+		}
+	case "queue-operation":
+		if rec.Operation == "enqueue" {
+			r.firstPrompt(rec.Content)
+		}
+	}
+}
+
+// scheduledTaskTag is how Claude Desktop starts the prompt of a scheduled
+// task's run, as it is written in the transcript's JSON.
+var scheduledTaskTag = []byte(`"<scheduled-task `)
+
+// firstPrompt looks at the session's first prompt, given as raw JSON, a
+// string or a list of blocks, and notes whether it starts with the
+// scheduled-task tag. Only its first bytes are compared; the text is never
+// decoded. Later prompts change nothing.
+func (r *StatsReader) firstPrompt(content json.RawMessage) {
+	if r.prompted || len(content) == 0 {
+		return
+	}
+	r.prompted = true
+	raw := bytes.TrimSpace(content)
+	if len(raw) > 0 && raw[0] == '[' {
+		var blocks []struct {
+			Text json.RawMessage `json:"text"`
+		}
+		if json.Unmarshal(raw, &blocks) != nil || len(blocks) == 0 {
+			return
+		}
+		raw = bytes.TrimSpace(blocks[0].Text)
+	}
+	if bytes.HasPrefix(raw, scheduledTaskTag) {
+		r.stats.ScheduledTask = true
 	}
 }
 

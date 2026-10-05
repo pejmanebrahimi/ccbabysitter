@@ -298,3 +298,51 @@ func TestStatsMissingFileReturnsErrorAndCurrentStats(t *testing.T) {
 		t.Fatalf("a missing file must still return the stats accumulated so far: %+v", s)
 	}
 }
+
+// A Claude Desktop scheduled-task run starts its conversation with a
+// <scheduled-task> tag, first on the queued prompt and again on the user
+// record. Only the first prompt counts: a session where the tag turns up
+// later, or only further into the text, is an ordinary one.
+func TestStatsTellsAScheduledTaskRun(t *testing.T) {
+	queued := `{"type":"queue-operation","operation":"enqueue","timestamp":"2026-10-05T05:28:47Z","content":"<scheduled-task name=\"daily-report\" file=\"/home/dev/.claude/scheduled-tasks/daily-report/SKILL.md\">\nWrite the report.\n</scheduled-task>"}` + "\n"
+	dequeued := `{"type":"queue-operation","operation":"dequeue","timestamp":"2026-10-05T05:28:47Z"}` + "\n"
+	asUser := `{"type":"user","timestamp":"2026-10-05T05:28:48Z","message":{"role":"user","content":"<scheduled-task name=\"daily-report\">\nWrite the report.\n</scheduled-task>"}}` + "\n"
+	asBlocks := `{"type":"user","timestamp":"2026-10-05T05:28:48Z","message":{"role":"user","content":[{"type":"text","text":"<scheduled-task name=\"daily-report\">x</scheduled-task>"}]}}` + "\n"
+	plain := `{"type":"user","timestamp":"2026-10-05T05:28:48Z","message":{"role":"user","content":"hi"}}` + "\n"
+	quoted := `{"type":"user","timestamp":"2026-10-05T05:28:48Z","message":{"role":"user","content":"what does <scheduled-task name=\"x\"> mean?"}}` + "\n"
+	cases := []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"queued prompt", queued + dequeued + asUser, true},
+		{"user record only", asUser, true},
+		{"text blocks", asBlocks, true},
+		{"an ordinary session", plain, false},
+		{"the tag in a later prompt", plain + asUser, false},
+		{"the tag not at the start", quoted, false},
+	}
+	for _, c := range cases {
+		p := filepath.Join(t.TempDir(), "s.jsonl")
+		if err := os.WriteFile(p, []byte(c.body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		s, err := (&StatsReader{}).Update(p)
+		if err != nil || s.ScheduledTask != c.want {
+			t.Errorf("%s: scheduled %v, err %v; want %v", c.name, s.ScheduledTask, err, c.want)
+		}
+	}
+	// Read in pieces, the answer is the same, and it stays once given.
+	p := filepath.Join(t.TempDir(), "s.jsonl")
+	if err := os.WriteFile(p, []byte(queued), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := &StatsReader{}
+	if s, _ := r.Update(p); !s.ScheduledTask {
+		t.Fatal("not seen from the queued prompt")
+	}
+	appendLine(t, p, dequeued+asUser+plain)
+	if s, _ := r.Update(p); !s.ScheduledTask {
+		t.Fatal("forgotten after a later read")
+	}
+}
