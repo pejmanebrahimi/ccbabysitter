@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/client"
+	"ccbabysitter.dev/ccbabysitter/internal/hosts"
 	"ccbabysitter.dev/ccbabysitter/internal/procs"
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 	"ccbabysitter.dev/ccbabysitter/internal/supervise"
@@ -32,6 +33,7 @@ type controlEnv struct {
 	stateDir string
 	self     func(v supervise.View) (int, bool) // real: client.FindSelf(v, os.Getpid(), procs.NewReal())
 	open     func(url string) error             // real: openBrowser
+	headless func() bool                        // real: hosts.Headless; nil means a display
 	stdout   io.Writer
 	stderr   io.Writer
 }
@@ -46,9 +48,10 @@ func realControlEnv() controlEnv {
 		self: func(v supervise.View) (int, bool) {
 			return client.FindSelf(v, os.Getpid(), procs.NewReal())
 		},
-		open:   openBrowser,
-		stdout: os.Stdout,
-		stderr: os.Stderr,
+		open:     openBrowser,
+		headless: hosts.Headless,
+		stdout:   os.Stdout,
+		stderr:   os.Stderr,
 	}
 }
 
@@ -294,7 +297,9 @@ func runControl(name string, args []string, env controlEnv) int {
 		return env.printResult(a.json, res, "")
 	}
 
-	// open needs the view only to know whether there is a display; the
+	// open decides whether there is a display where it runs, as a plain
+	// ccbabysitter does: the browser would start here, not where CC
+	// Babysitter runs. It needs the view only for the port to forward; the
 	// address it opens is a one-time one, and nothing it prints carries the
 	// page's key.
 	if name == "open" {
@@ -302,11 +307,15 @@ func runControl(name string, args []string, env controlEnv) int {
 		if err != nil {
 			return env.failErr(a.json, false, "", err)
 		}
-		if view.Env.Headless {
-			user, address := currentUserAndAddress(env.stateDir)
-			port, _ := strconv.Atoi(portOf(view.URL))
-			msg := "This machine has no display to open the page on. From your computer, connect with:\n  " +
-				tunnelHint(port, user, address) + "\nThen run ccbabysitter status in a terminal here for the address to open."
+		if env.headless != nil && env.headless() {
+			msg := "This machine has no display to open the page on."
+			if port, err := strconv.Atoi(portOf(view.URL)); err == nil && port > 0 {
+				user, address := currentUserAndAddress(env.stateDir)
+				msg += " From your computer, connect with:\n  " + tunnelHint(port, user, address) + "\nThen run"
+			} else {
+				msg += " Run"
+			}
+			msg += " ccbabysitter status in a terminal here for the address to open."
 			return env.printResult(a.json, supervise.Result{OK: true, Message: msg}, "")
 		}
 		u, err := c.LaunchURL(ctx)

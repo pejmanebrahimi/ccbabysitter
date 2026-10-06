@@ -788,12 +788,47 @@ func TestOpenPrintsNoKey(t *testing.T) {
 // nothing.
 func TestOpenOnAHeadlessMachinePrintsTheTunnel(t *testing.T) {
 	env, e, _ := testEnv(t)
-	e.view.Env.Headless = true
+	e.view.URL = "http://127.0.0.1:47391/"
+	env.headless = func() bool { return true }
 	opened := false
 	env.open = func(string) error { opened = true; return nil }
 	code, out, _ := runCmd(t, env, "open")
 	if code != 0 || opened || !strings.Contains(out, "\n  ssh -L ") || !strings.Contains(out, "ccbabysitter status") {
 		t.Fatalf("open = %d %q, opened %v", code, out, opened)
+	}
+}
+
+// Whether there is a display is decided where open runs, as a plain
+// ccbabysitter does, not where CC Babysitter runs: a service set up as a
+// server has no display of its own while the person runs open at the
+// screen, and the other way round over ssh.
+func TestOpenDecidesTheDisplayWhereItRuns(t *testing.T) {
+	env, e, ts := testEnv(t)
+	e.view.URL = ts.URL
+	e.view.Env.Headless = true
+	env.headless = func() bool { return false }
+	opened := false
+	env.open = func(string) error { opened = true; return nil }
+	if code, out, _ := runCmd(t, env, "open"); code != 0 || !opened || strings.Contains(out, "ssh -L") {
+		t.Fatalf("headless service, caller at a screen: open = %d %q, opened %v", code, out, opened)
+	}
+	e.view.Env.Headless = false
+	env.headless = func() bool { return true }
+	opened = false
+	if code, out, _ := runCmd(t, env, "open"); code != 0 || opened || !strings.Contains(out, "ssh -L ") {
+		t.Fatalf("service with a display, caller over ssh: open = %d %q, opened %v", code, out, opened)
+	}
+}
+
+// With no port to forward, open prints no broken ssh line.
+func TestOpenWithoutAPortPrintsNoTunnel(t *testing.T) {
+	env, e, _ := testEnv(t)
+	e.view.URL = ""
+	env.headless = func() bool { return true }
+	env.open = func(string) error { t.Fatal("opened a browser"); return nil }
+	code, out, _ := runCmd(t, env, "open")
+	if code != 0 || strings.Contains(out, "ssh -L") || !strings.Contains(out, "no display") {
+		t.Fatalf("open = %d %q", code, out)
 	}
 }
 

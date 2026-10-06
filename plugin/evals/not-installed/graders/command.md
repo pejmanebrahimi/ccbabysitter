@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'ccbabysitter\.dev/install\.(sh|ps1)'
+pattern: 'install\.sh \| sh && ~/\.local/bin/ccbabysitter|install\.ps1 \| iex; ccbabysitter'
 flags: i
 target: last_message
 ---

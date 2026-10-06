@@ -11,7 +11,7 @@ CC Babysitter is a separate program on this computer. For a session it babysits,
 
 ## Rules
 
-- Never run `ccbabysitter` with no command, `ccbabysitter status`, or `ccbabysitter --foreground`. Their output carries the page's key, which must never enter this chat. To show the page, use `ccbabysitter open`. When CC Babysitter's own answer tells the person to run `ccbabysitter status`, pass that on; do not run it.
+- Never run `ccbabysitter` with no command, `ccbabysitter status`, `ccbabysitter --foreground`, `ccbabysitter --no-open` or `ccbabysitter --demo`. Their output carries the page's key, which must never enter this chat. To show the page, use `ccbabysitter open`. When CC Babysitter's own answer tells the person to run `ccbabysitter status`, pass that on; do not run it.
 - Run each CC Babysitter command on its own and exactly as written here, with nothing added: no `;`, `&&`, `|`, `2>&1` or `echo`. The exit code shows in the result, and anything added makes the command ask for permission.
 - Ask the person with AskUserQuestion cards, never by asking them to type yes or no. Only where that tool is not available, ask the same question in plain words.
 - Ask on a card every time before `ccbabysitter stop`, `ccbabysitter settings NAME VALUE`, `ccbabysitter install`, `ccbabysitter uninstall` and `ccbabysitter quit`. Never run `ccbabysitter reset`: explain what it deletes and give the command for them to run.
@@ -27,7 +27,7 @@ Whether it is running shows in the next command: exit code 3 means not running (
 
 ## 2. Not installed
 
-Say: CC Babysitter isn't installed on this computer. Run this in your terminal app; it installs CC Babysitter and starts it, and its page opens in your browser. Then give the one command for this system:
+Say: CC Babysitter isn't installed on this computer. Run this in your terminal app; it installs CC Babysitter and starts it, and its page opens in your browser (when `version --json` said `"headless":true`, say instead that it prints how to connect from another computer). Then give the one command for this system:
 
 - macOS and Linux: `curl -fsSL https://ccbabysitter.dev/install.sh | sh && ~/.local/bin/ccbabysitter`
 - Windows (PowerShell): `irm https://ccbabysitter.dev/install.ps1 | iex; ccbabysitter`
@@ -36,7 +36,7 @@ Say "your terminal app" and mean it: run with `!` here, its output, page key inc
 
 ## 3. Not running (exit code 3)
 
-Say: CC Babysitter is installed but not running. Start it by running `ccbabysitter` in your terminal app; it keeps running in the background from then on, and its page opens in your browser. Then the same card, and on Done carry on. Remember that it was just started.
+Say: CC Babysitter is installed but not running. Start it by running `ccbabysitter` in your terminal app; it keeps running in the background from then on, and its page opens in your browser (or, on a machine with no display, it prints how to connect from another computer). Then the same card, and on Done carry on. Remember that it was just started.
 
 ## 4. Babysit
 
@@ -47,7 +47,7 @@ The session is the request's target, or this session when there is none: `ccbaby
 - `not-in-session`: this command does not run inside a Claude Code session, so ask on a card which session is meant, from `ccbabysitter list --json`.
 - Any other refusal (exit code 1): say CC Babysitter's reason in plain words, for example that a scheduled task run is never babysat.
 
-On success, say what it answered, including any warning, such as "Won't come back if its app closes" with its command, which you give exactly. On a Mac (`version --json` from a Mac, or `uname` says Darwin), run `pmset -g batt`: if it lists an InternalBattery, this is a MacBook, so add that keeping it awake needs the lid open, or an external display.
+On success, say what it answered, including any warning, such as "Won't come back if its app closes" with its command, which you give exactly. On macOS (the platform Claude Code reports for this session), run `pmset -g batt`: if it lists an InternalBattery, this is a MacBook, so add that keeping it awake needs the lid open, or an external display.
 
 ## 5. The page
 
@@ -64,6 +64,7 @@ When the person asks for the page, panel or dashboard, run `ccbabysitter open` s
 - Quit, install or uninstall: a card first, then the command.
 - Reset: explain that it deletes CC Babysitter's state folder, then give `ccbabysitter reset` for them to run.
 - How it works, or what a command does: `ccbabysitter help` or `ccbabysitter help <command>`, and answer from what it says; it works even when CC Babysitter is not running and matches the installed version.
+- The page's address: tell the person to run `ccbabysitter status` in their terminal app, since the address carries the page's key; do not run it. To just see the page, use `ccbabysitter open`.
 - What it did, or why: `ccbabysitter activity` (or `ccbabysitter activity <session>`) and `ccbabysitter show <session> --json`.
 - Not installed: answer questions from reference.md beside this file, and point to https://github.com/pejmanebrahimi/ccbabysitter for the rest.
 
