@@ -145,8 +145,8 @@ babysat: Desktop starts the task again on its schedule.`,
   TOKENS   everything used so far, as 12k or 4.5M
   UPTIME   as 45s, 12m, 3h 5m or 2d 4h, - when it is not running
   FOLDER   the folder it works in
-Scheduled task runs follow after an empty line and the line
-"Scheduled task runs, never babysat:", with the same columns.
+Scheduled task runs follow, after an empty line when other sessions come first,
+under the line "Scheduled task runs, never babysat:", with the same columns.
 With no sessions it says: No Claude Code sessions are running.
 
 With --json: {"schema":1,"sessions":[...]}, an empty array when there are none.
@@ -186,7 +186,8 @@ background for background, so filter on background when using --json.`,
 	"babysit": controlPage(
 		"ccbabysitter babysit S [--start-at-login]",
 		`Keeps S alive. If the app it runs in dies, it comes back in the background and
-stays reachable. This is the page's Babysit button.`,
+stays reachable. This is the page's Babysit button. A run of a Claude Desktop
+scheduled task is refused: Desktop starts the task again on its schedule.`,
 		`  --start-at-login   also start CC Babysitter when you log in, as the page's box does
 `,
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.

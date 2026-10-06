@@ -192,6 +192,10 @@ func (r *StatsReader) applyLine(line []byte) {
 // task's run, as it is written in the transcript's JSON.
 var scheduledTaskTag = []byte(`"<scheduled-task `)
 
+// scheduledContentTag is the same tag as the value of a content field, for
+// a first prompt line too long to read whole.
+var scheduledContentTag = []byte(`"content":"<scheduled-task `)
+
 // firstPrompt looks at the session's first prompt, given as raw JSON, and
 // notes whether it is a scheduled task's run. Later prompts change nothing.
 func (r *StatsReader) firstPrompt(content json.RawMessage) {
@@ -240,7 +244,9 @@ func ScheduledRun(path string) (run, ok bool) {
 	for {
 		line, readErr := br.ReadBytes('\n')
 		if readErr != nil {
-			return false, true
+			// A line cut off by the read limit is looked at as far as it
+			// goes: a first prompt that long still starts with the tag.
+			return bytes.Contains(line, scheduledContentTag), true
 		}
 		var rec transcriptRecord
 		if json.Unmarshal(bytes.TrimSpace(line), &rec) != nil {

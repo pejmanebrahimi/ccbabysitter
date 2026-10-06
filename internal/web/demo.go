@@ -200,8 +200,9 @@ func (d *DemoEngine) waitTick() {
 
 // seed sets up the scripted world's starting point: one watch in each of
 // the four states, with an In background one for each app a session can
-// come from, five sessions that are not babysat, one of them open in two
-// apps at once and one owned by another program, and four conversations
+// come from, seven sessions that are not babysat, one of them open in two
+// apps at once, one owned by another program and one a scheduled task's
+// run, and four conversations
 // that are not running, one of them handed back to VS Code and one a
 // background session whose copy was stopped. The In
 // background ones went there today, yesterday and four days ago.

@@ -1432,14 +1432,18 @@
       if (act === "copy-attach") { copyText(w.attachCmd || ""); }
       if (act === "copy-ssh") { copyText(w.sshAttachCmd || ""); }
     });
-    onAction($("#sessions"), function (act, id) {
+    /* A scheduled task run's row has the same buttons as a Running row,
+       Babysit aside, so both lists answer them the same way. */
+    function onSessionAction(act, id) {
       var s = sessionById(id);
       if (!s) { return; }
       if (act === "babysit") { openBabysit(id); }
       if (act === "stop") { openStop(id); }
       if (act === "copy-attach") { copyText(s.attachCmd || ""); }
       if (act === "copy-ssh") { copyText(s.sshAttachCmd || ""); }
-    });
+    }
+    onAction($("#sessions"), onSessionAction);
+    onAction($("#scheduled"), onSessionAction);
     onAction($("#past"), function (act, id) {
       var p = pastById(id);
       if (!p) { return; }

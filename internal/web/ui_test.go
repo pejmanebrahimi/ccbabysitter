@@ -1536,6 +1536,9 @@ func TestScheduledTaskRunsAreListedApart(t *testing.T) {
 		// With only runs running, the Running section does not claim
 		// nothing is running.
 		`"Only scheduled task runs are running."`,
+		// A run's row answers its buttons like a Running row does.
+		`onAction($("#sessions"), onSessionAction);`,
+		`onAction($("#scheduled"), onSessionAction);`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)

@@ -404,3 +404,24 @@ func TestScheduledRunLooksPastWhatIsNotThePrompt(t *testing.T) {
 		t.Fatal("a reader on another path did not ask again")
 	}
 }
+
+// A first prompt line longer than the read limit still starts with the tag,
+// and is a run.
+func TestScheduledRunWithAPromptPastTheReadLimit(t *testing.T) {
+	long := strings.Repeat("x", scheduledRunReadLimit+1000)
+	body := `{"type":"queue-operation","operation":"enqueue","timestamp":"2026-10-05T05:28:47Z","content":"<scheduled-task name=\"daily-report\">` + long + `</scheduled-task>"}` + "\n"
+	p := filepath.Join(t.TempDir(), "s.jsonl")
+	if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if run, ok := ScheduledRun(p); !ok || !run {
+		t.Fatalf("run %v ok %v", run, ok)
+	}
+	plain := `{"type":"user","message":{"role":"user","content":"` + long + `"}}` + "\n"
+	if err := os.WriteFile(p, []byte(plain), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if run, _ := ScheduledRun(p); run {
+		t.Fatal("a long ordinary prompt read as a run")
+	}
+}
