@@ -121,10 +121,7 @@ type Supervisor struct {
 	backoffUntil map[string]time.Time
 	seen         map[string]bool
 	stats        map[string]claude.Stats
-	// runs remembers, per session, whether its transcript's first prompt
-	// says it is a scheduled task's run, once checkRun has read it.
-	runs    map[string]bool
-	statsAt map[string]time.Time
+	statsAt      map[string]time.Time
 	// statsInFlight names the sessions the worker has been asked about and
 	// has not answered for yet, so the same read is never queued twice.
 	statsInFlight map[string]bool
@@ -193,7 +190,6 @@ func New(d Deps) *Supervisor {
 		backoffUntil:  map[string]time.Time{},
 		seen:          map[string]bool{},
 		stats:         map[string]claude.Stats{},
-		runs:          map[string]bool{},
 		statsAt:       map[string]time.Time{},
 		statsInFlight: map[string]bool{},
 		trees:         map[int]procs.TreeStats{},

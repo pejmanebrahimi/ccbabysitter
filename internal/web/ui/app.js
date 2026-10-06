@@ -817,7 +817,9 @@
     dot.classList.toggle("on", !!s.remoteControl);
     setTitle(dot, s.remoteControl ? "Remote Control on" : "Remote Control off");
     setText(f(node, "status"), STATUS_WORDS[String(s.status || "").toLowerCase()] || "");
-    show(el(node, "acts"), !!s.actionable);
+    /* The row's buttons show while one of them is wanted, so a run in its
+       own app gets no empty row. */
+    show(el(node, "acts"), !!s.actionable && (canBabysit(s) || !!s.canStop || !!s.attachCmd || !!s.sshAttachCmd));
     show(node.querySelector('[data-act="babysit"]'), canBabysit(s));
     show(node.querySelector('[data-act="stop"]'), !!s.canStop);
     var attach = node.querySelector('[data-act="copy-attach"]');

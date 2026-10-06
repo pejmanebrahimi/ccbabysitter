@@ -1531,7 +1531,7 @@ func TestScheduledTaskRunsAreListedApart(t *testing.T) {
 		`show(f(node, "sched"), !!s.scheduledTask);`,
 		// Only the Babysit button goes: a run living as a background copy
 		// keeps Stop and Copy attach.
-		`show(el(node, "acts"), !!s.actionable);`,
+		`show(el(node, "acts"), !!s.actionable && (canBabysit(s) || !!s.canStop || !!s.attachCmd || !!s.sshAttachCmd));`,
 		`show(node.querySelector('[data-act="babysit"]'), canBabysit(s));`,
 		// With only runs running, the Running section does not claim
 		// nothing is running.
