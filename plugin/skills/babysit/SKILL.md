@@ -19,6 +19,17 @@ CC Babysitter is a separate program on this computer. For a session it babysits,
 - Answer in the person's language. Say what CC Babysitter answered in plain words, but keep its commands exactly as written.
 - In a place with no shell (claude.ai chat or Cowork), say that this works only in Claude Code, on the computer CC Babysitter runs on, and stop.
 
+## Where answers come from
+
+Two references beside this file hold what CC Babysitter's own documentation says. Read the one that fits the question:
+
+| Question | Read |
+|---|---|
+| A command, flag, JSON field or exit code | references/commands.md (the CLI's help pages), or `ccbabysitter help <command>` when it is installed, which matches the installed version |
+| How it behaves: what babysitting does, restarts and start at login, the hard rules, uninstalling, requirements | references/how-it-works.md (from the README) |
+
+Do not guess beyond them. When neither answers the question, say so, and point to https://github.com/pejmanebrahimi/ccbabysitter.
+
 ## 1. Find CC Babysitter
 
 Run `ccbabysitter version --json`. It answers whether or not CC Babysitter is running; its `headless` is true on a machine with no display. If the command is not found, try the default install folder: `~/.local/bin/ccbabysitter version --json` on macOS and Linux, or on Windows `"$LOCALAPPDATA/Programs/CCBabysitter/ccbabysitter.exe" version --json` from Git Bash or `& "$env:LOCALAPPDATA\Programs\CCBabysitter\ccbabysitter.exe" version --json` from PowerShell (right after an install, Claude Code still has the old PATH); if that works, use that path in place of the plain command name from here on. If neither works, it is not installed: for a question about CC Babysitter go to section 6; for anything else, section 2.
@@ -63,9 +74,10 @@ When the person asks for the page, panel or dashboard, run `ccbabysitter open` s
 - Settings: `ccbabysitter settings` shows them; a card first, then `ccbabysitter settings NAME VALUE`.
 - Quit, install or uninstall: a card first, then the command.
 - Reset: explain that it deletes CC Babysitter's state folder, then give `ccbabysitter reset` for them to run.
-- How it works, or what a command does: `ccbabysitter help` or `ccbabysitter help <command>`, and answer from what it says; it works even when CC Babysitter is not running and matches the installed version.
+- What a command does: `ccbabysitter help <command>`, and answer from what it says; it works even when CC Babysitter is not running and matches the installed version.
+- How it behaves (what happens on a restart, what babysitting does, what it never does): references/how-it-works.md.
 - The page's address: tell the person to run `ccbabysitter status` in their terminal app, since the address carries the page's key; do not run it. To just see the page, use `ccbabysitter open`.
 - What it did, or why: `ccbabysitter activity` (or `ccbabysitter activity <session>`) and `ccbabysitter show <session> --json`.
-- Not installed: answer questions from reference.md beside this file, and point to https://github.com/pejmanebrahimi/ccbabysitter for the rest.
+- Not installed: answer from the two references, and point to https://github.com/pejmanebrahimi/ccbabysitter for the rest.
 
-Exit codes: 0 done, 1 refused, 2 wrong usage, 3 not running, 4 no such session, more than one, or no session to call self. Every command, flag and JSON field is in reference.md.
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 not running, 4 no such session, more than one, or no session to call self. Every command, flag and JSON field is in references/commands.md.
