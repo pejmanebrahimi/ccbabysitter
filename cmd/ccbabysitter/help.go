@@ -31,6 +31,7 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
   ccbabysitter activity [S]    what CC Babysitter did and why, newest first
   ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
+  ccbabysitter open            open the page in your browser, printing no key
   ccbabysitter quit            quit CC Babysitter. Babysat sessions keep running where they are
   ccbabysitter help COMMAND    everything about one command
 
@@ -268,6 +269,19 @@ With --json: {"schema":1,"settings":{"autostart":false,"autoBabysit":true,
   ccbabysitter settings theme dark
 `),
 
+	"open": controlPage(
+		"ccbabysitter open",
+		`Opens the running copy's page in your default browser, with a one-time address,
+as starting CC Babysitter does. Nothing it prints carries the page's key, so it is
+safe to run from an AI agent. On a machine with no display it opens nothing and says
+how to connect from another computer. It never starts CC Babysitter.`,
+		"",
+		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {"schema":1,"ok":true,"message":"..."}.
+ok is false when the browser could not be opened, with exit code 1.`,
+		`  ccbabysitter open
+`),
 	"quit": controlPage(
 		"ccbabysitter quit",
 		`Quits the running copy of CC Babysitter, as the page's Quit button does. Babysat
@@ -318,8 +332,9 @@ Example:
 	"version": `ccbabysitter version [--json]
 
 Prints the name and the version, and exits with 0. With --json, prints
-{"schema":1,"name":"CC Babysitter","version":"..."} instead. Any other word after
-version is a usage error, exit code 2.
+{"schema":1,"name":"CC Babysitter","version":"...","headless":false} instead, where
+headless is true on a machine with no display. It works whether or not CC Babysitter
+is running. Any other word after version is a usage error, exit code 2.
 
 Example:
   ccbabysitter version

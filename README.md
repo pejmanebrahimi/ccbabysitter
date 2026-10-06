@@ -159,6 +159,7 @@ ccbabysitter retry S         try again on a babysat session that is stuck
 ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
 ccbabysitter activity [S]    what CC Babysitter did and why, newest first
 ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
+ccbabysitter open            open the page in your browser, printing no key
 ccbabysitter quit            quit CC Babysitter. Babysat sessions keep running where they are
 ccbabysitter help COMMAND    everything about one command
 ```

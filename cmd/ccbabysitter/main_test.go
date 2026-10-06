@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -208,11 +209,19 @@ func TestExtraWordsAfterOneShotCommandsAreUsageErrors(t *testing.T) {
 	}
 }
 
+// version --json also says whether this machine has a display, which an
+// AI agent needs before offering to open the page, without running
+// anything that prints the page's key.
 func TestVersionJSON(t *testing.T) {
-	var rc int
-	out := captureStdout(t, func() { rc = run([]string{"version", "--json"}) })
-	want := `{"schema":1,"name":"CC Babysitter","version":"` + buildinfo.Version + `"}` + "\n"
-	if rc != 0 || out != want {
-		t.Fatalf("version --json = %d, %q; want %q", rc, out, want)
+	saved := versionHeadless
+	t.Cleanup(func() { versionHeadless = saved })
+	for _, headless := range []bool{false, true} {
+		versionHeadless = func() bool { return headless }
+		var rc int
+		out := captureStdout(t, func() { rc = run([]string{"version", "--json"}) })
+		want := `{"schema":1,"name":"CC Babysitter","version":"` + buildinfo.Version + `","headless":` + fmt.Sprint(headless) + `}` + "\n"
+		if rc != 0 || out != want {
+			t.Fatalf("version --json = %d, %q; want %q", rc, out, want)
+		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -749,5 +750,73 @@ func TestListPutsScheduledTaskRunsApart(t *testing.T) {
 	_, out, _ = runCmd(t, env, "list")
 	if strings.Contains(out, "No Claude Code sessions are running.") || !strings.Contains(out, "Daily report") {
 		t.Fatalf("only runs:\n%s", out)
+	}
+}
+
+// open asks the running copy for a one-time address and opens the browser
+// on it, and says so without printing any key.
+func TestOpenOpensTheBrowserWithALaunchAddress(t *testing.T) {
+	env, e, ts := testEnv(t)
+	e.view.URL = ts.URL // the launch address is built from the view's URL
+	var opened string
+	env.open = func(u string) error { opened = u; return nil }
+	code, out, _ := runCmd(t, env, "open")
+	if code != 0 || out != "Opened the CC Babysitter page in your browser.\n" {
+		t.Fatalf("open = %d %q", code, out)
+	}
+	if !strings.HasPrefix(opened, ts.URL+"/?token=") {
+		t.Fatalf("opened %q", opened)
+	}
+}
+
+// Whatever open prints never carries the page's key.
+func TestOpenPrintsNoKey(t *testing.T) {
+	env, e, ts := testEnv(t)
+	e.view.URL = ts.URL
+	env.open = func(string) error { return nil }
+	key := state.ReadPageKey(env.stateDir)
+	for _, args := range [][]string{{"open"}, {"open", "--json"}} {
+		_, out, errOut := runCmd(t, env, args...)
+		if key == "" || strings.Contains(out+errOut, key) || strings.Contains(out+errOut, "token=") {
+			t.Fatalf("%v printed the key: %q %q", args, out, errOut)
+		}
+	}
+}
+
+// On a machine with no display there is no browser to open: open says how
+// to connect from another computer, on a line of its own, and opens
+// nothing.
+func TestOpenOnAHeadlessMachinePrintsTheTunnel(t *testing.T) {
+	env, e, _ := testEnv(t)
+	e.view.Env.Headless = true
+	opened := false
+	env.open = func(string) error { opened = true; return nil }
+	code, out, _ := runCmd(t, env, "open")
+	if code != 0 || opened || !strings.Contains(out, "\n  ssh -L ") || !strings.Contains(out, "ccbabysitter status") {
+		t.Fatalf("open = %d %q, opened %v", code, out, opened)
+	}
+}
+
+// A browser that does not start is an error with what to do instead.
+func TestOpenSaysWhenTheBrowserDidNotOpen(t *testing.T) {
+	env, e, ts := testEnv(t)
+	e.view.URL = ts.URL
+	env.open = func(string) error { return errors.New("no browser") }
+	code, _, errOut := runCmd(t, env, "open")
+	if code != 1 || !strings.Contains(errOut, "ccbabysitter status") {
+		t.Fatalf("open = %d %q", code, errOut)
+	}
+}
+
+// open is a control command: words after it are wrong, and when nothing
+// runs it says so with exit code 3, starting nothing.
+func TestOpenUsageAndNotRunning(t *testing.T) {
+	env, _, _ := testEnv(t)
+	if code, _, _ := runCmd(t, env, "open", "extra"); code != 2 {
+		t.Fatalf("open extra = %d", code)
+	}
+	stopped := controlEnv{stateDir: t.TempDir(), self: func(supervise.View) (int, bool) { return 0, false }}
+	if code, _, errOut := runCmd(t, stopped, "open"); code != 3 || !strings.Contains(errOut, "Start it with: ccbabysitter") {
+		t.Fatalf("open, not running = %d %q", code, errOut)
 	}
 }

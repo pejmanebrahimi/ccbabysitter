@@ -95,6 +95,9 @@ func run(args []string) int {
 
 // runVersion prints the name and the version, or with --json one JSON
 // document. Anything else after version is a usage error.
+// versionHeadless is hosts.Headless, a variable so tests can set it.
+var versionHeadless = hosts.Headless
+
 func runVersion(args []string) int {
 	switch {
 	case len(args) == 0:
@@ -102,10 +105,11 @@ func runVersion(args []string) int {
 		return 0
 	case len(args) == 1 && (args[0] == "--json" || args[0] == "-json"):
 		doc, err := json.Marshal(struct {
-			Schema  int    `json:"schema"`
-			Name    string `json:"name"`
-			Version string `json:"version"`
-		}{1, buildinfo.Name, buildinfo.Version})
+			Schema   int    `json:"schema"`
+			Name     string `json:"name"`
+			Version  string `json:"version"`
+			Headless bool   `json:"headless"`
+		}{1, buildinfo.Name, buildinfo.Version, versionHeadless()})
 		if err != nil {
 			return 1
 		}
