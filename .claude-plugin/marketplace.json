@@ -1,0 +1,11 @@
+{
+  "name": "ccbabysitter",
+  "owner": { "name": "Pejman Ebrahimi" },
+  "plugins": [
+    {
+      "name": "ccbabysitter",
+      "source": "./plugin",
+      "description": "Babysit Claude Code sessions with CC Babysitter: keep them alive and reachable, from any language."
+    }
+  ]
+}

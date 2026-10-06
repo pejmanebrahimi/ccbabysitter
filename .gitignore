@@ -11,3 +11,6 @@
 
 # Local site assembly
 /_site/
+
+# Local plugin eval results
+/plugin/evals/results/

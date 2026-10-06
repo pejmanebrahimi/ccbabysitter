@@ -1,0 +1,11 @@
+{
+  "name": "ccbabysitter",
+  "displayName": "CC Babysitter",
+  "version": "0.5.2",
+  "description": "Say \"babysit this session\" in any language: CC Babysitter keeps it alive and reachable if its app closes, and answers questions about what it did.",
+  "author": { "name": "Pejman Ebrahimi", "url": "https://github.com/pejmanebrahimi" },
+  "homepage": "https://ccbabysitter.dev",
+  "repository": "https://github.com/pejmanebrahimi/ccbabysitter",
+  "license": "MIT",
+  "keywords": ["babysit", "remote-control", "keep-alive", "sessions", "background"]
+}

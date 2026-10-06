@@ -14,7 +14,7 @@ const repoRoot = "../.."
 // shippedRoots are the folders whose every file is published, and
 // shippedFiles are the published files that sit at the top of the tree.
 var (
-	shippedRoots = []string{"cmd", "internal", "scripts", ".github", "site"}
+	shippedRoots = []string{"cmd", "internal", "scripts", ".github", "site", "plugin", ".claude-plugin"}
 	shippedFiles = []string{
 		"README.md", "CONTRIBUTING.md", "SECURITY.md", "LICENSE", "AGENTS.md", "CLAUDE.md",
 		filepath.Join("docs", "CHANGELOG.md"), "go.mod", ".gitignore", ".gitattributes",
@@ -99,6 +99,11 @@ func shippedPaths(t *testing.T) []string {
 				return err
 			}
 			if d.IsDir() {
+				// Local eval results: gitignored, and they hold replies in
+				// other languages and may hold real session text.
+				if filepath.ToSlash(path) == repoRoot+"/plugin/evals/results" {
+					return filepath.SkipDir
+				}
 				return nil
 			}
 			// Binary assets of the website; site/site_test.go checks its text files.
