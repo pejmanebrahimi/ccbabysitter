@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -88,5 +89,76 @@ func TestPluginReference(t *testing.T) {
 	got, err := os.ReadFile(path)
 	if err != nil || string(got) != b.String() {
 		t.Fatalf("reference.md is not the help pages; run: go test ./cmd/ccbabysitter -run TestPluginReference -update-reference")
+	}
+}
+
+var commandWord = regexp.MustCompile("`ccbabysitter ([a-z]+)([^`]*)`")
+
+// Every ccbabysitter command and flag the skill and its README name exists
+// in the CLI.
+func TestSkillNamesOnlyRealCommands(t *testing.T) {
+	for _, name := range []string{filepath.Join("skills", "babysit", "SKILL.md"), "README.md"} {
+		data, err := os.ReadFile(filepath.Join(pluginDir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range commandWord.FindAllStringSubmatch(string(data), -1) {
+			cmd := m[1]
+			page, ok := helpPages[cmd]
+			if !ok {
+				t.Errorf("%s names ccbabysitter %s, which is not a command", name, cmd)
+				continue
+			}
+			for _, flagTok := range regexp.MustCompile(`--[a-z-]+`).FindAllString(m[2], -1) {
+				if flagTok != "--json" && flagTok != "--url" && !strings.Contains(page, flagTok) {
+					t.Errorf("%s names %s %s, which help %s does not have", name, cmd, flagTok, cmd)
+				}
+			}
+		}
+	}
+}
+
+// The skill never runs anything whose output carries the page's key:
+// allowed-tools never lets it run status, a plain ccbabysitter or
+// --foreground, and its text names them only in the rule that forbids
+// them, and a plain ccbabysitter only as something the person runs in
+// their terminal app.
+func TestSkillNeverRunsAKeyedCommand(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	front, body, ok := strings.Cut(strings.TrimPrefix(string(data), "---\n"), "\n---\n")
+	if !ok {
+		t.Fatal("SKILL.md has no frontmatter")
+	}
+	for _, bad := range []string{"ccbabysitter status", "ccbabysitter --foreground", "ccbabysitter)", "ccbabysitter *)"} {
+		if strings.Contains(front, bad) {
+			t.Errorf("allowed-tools lets the skill run %q", bad)
+		}
+	}
+	for _, want := range []string{"name: babysit", "description:", "allowed-tools:", "argument-hint:"} {
+		if !strings.Contains(front, want) {
+			t.Errorf("frontmatter has no %q", want)
+		}
+	}
+	rule := false
+	for _, line := range strings.Split(body, "\n") {
+		if strings.HasPrefix(line, "- Never run `ccbabysitter` with no command") {
+			rule = true
+			continue
+		}
+		if strings.Contains(line, "`ccbabysitter status`") && !strings.Contains(line, "do not run it") {
+			t.Errorf("the skill names ccbabysitter status outside the rule: %q", line)
+		}
+		if strings.Contains(line, "--foreground") {
+			t.Errorf("the skill names --foreground outside the rule: %q", line)
+		}
+		if strings.Contains(line, "`ccbabysitter`") && !strings.Contains(line, "terminal app") {
+			t.Errorf("the skill names a plain ccbabysitter not for the terminal app: %q", line)
+		}
+	}
+	if !rule {
+		t.Error("the rule against keyed commands is gone")
 	}
 }
