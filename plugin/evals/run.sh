@@ -22,5 +22,5 @@ for dir in $PATH; do
 done
 IFS=$old_ifs
 PATH=$path "$claude" plugin eval "$here/.." --trust-plugin --ablation none \
-	--allow-tools "Bash(ccbabysitter *)" "Bash(ccbabysitter)" "Bash(~/.local/bin/ccbabysitter *)" "Bash(pmset -g batt)" "Bash(uname)" "Bash(uname *)" \
+	--allow-tools "Bash(ccbabysitter *)" "Bash(ccbabysitter)" "Bash(pmset -g batt)" "Bash(uname)" "Bash(uname *)" \
 	"$@"

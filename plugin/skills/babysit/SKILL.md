@@ -21,7 +21,7 @@ CC Babysitter is a separate program on this computer. For a session it babysits,
 
 ## 1. Find CC Babysitter
 
-Run `ccbabysitter version --json`. It answers whether or not CC Babysitter is running; its `headless` is true on a machine with no display. If the command is not found, try the default install folder: `~/.local/bin/ccbabysitter version --json` on macOS and Linux, or `& "$env:LOCALAPPDATA\Programs\CCBabysitter\ccbabysitter.exe" version --json` on Windows; if that works, use that path in place of the plain command name from here on. If neither works, it is not installed: for a question about CC Babysitter go to section 6; for anything else, section 2.
+Run `ccbabysitter version --json`. It answers whether or not CC Babysitter is running; its `headless` is true on a machine with no display. If the command is not found, try the default install folder: `~/.local/bin/ccbabysitter version --json` on macOS and Linux, or on Windows `"$LOCALAPPDATA/Programs/CCBabysitter/ccbabysitter.exe" version --json` from Git Bash or `& "$env:LOCALAPPDATA\Programs\CCBabysitter\ccbabysitter.exe" version --json` from PowerShell (right after an install, Claude Code still has the old PATH); if that works, use that path in place of the plain command name from here on. If neither works, it is not installed: for a question about CC Babysitter go to section 6; for anything else, section 2.
 
 Whether it is running shows in the next command: exit code 3 means not running (section 3).
 

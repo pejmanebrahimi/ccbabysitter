@@ -162,3 +162,33 @@ func TestSkillNeverRunsAKeyedCommand(t *testing.T) {
 		t.Error("the rule against keyed commands is gone")
 	}
 }
+
+// The eval runner grants only commands by bare name, which find the fake
+// first on PATH. A path into the home folder would reach a real
+// ccbabysitter if the eval sandbox ever let it through.
+func TestEvalsNeverGrantARealBinary(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(pluginDir, "evals", "run.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, grant := range regexp.MustCompile(`"Bash\(([^)]*)\)"`).FindAllStringSubmatch(string(data), -1) {
+		if strings.ContainsAny(grant[1], "~/$") {
+			t.Errorf("run.sh grants a command by path: %s", grant[0])
+		}
+	}
+}
+
+// On Windows, Claude Code's shell is usually Git Bash, and right after the
+// install it still has the old PATH, so the skill also gives the install
+// folder in Git Bash form, not only in PowerShell form.
+func TestSkillFindsWindowsInstallFromGitBash(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"$LOCALAPPDATA/Programs/CCBabysitter/ccbabysitter.exe" version --json`, `& "$env:LOCALAPPDATA\Programs\CCBabysitter\ccbabysitter.exe" version --json`} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("SKILL.md does not give %s", want)
+		}
+	}
+}
