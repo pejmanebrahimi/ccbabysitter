@@ -1,0 +1,30 @@
+#!/bin/sh
+# A stand-in for ccbabysitter in the plugin's evals, so no eval touches a
+# real session. EVAL_CCB_STATE is running (default), stopped, or missing
+# (as if it were not installed).
+state=${EVAL_CCB_STATE:-running}
+if [ "$state" = missing ]; then
+	echo "sh: ccbabysitter: command not found" >&2
+	exit 127
+fi
+case "$1" in
+version) if [ "$2" = --json ]; then echo "{\"schema\":1,\"name\":\"CC Babysitter\",\"version\":\"0.6.0\",\"headless\":${EVAL_CCB_HEADLESS:-false}}"; else echo "CC Babysitter 0.6.0"; fi; exit 0 ;;
+help) if [ "$2" = unbabysit ]; then echo "ccbabysitter unbabysit S"; echo "Stops babysitting S. The session keeps running where it is."; else echo "ccbabysitter $2"; echo "See the README."; fi; exit 0 ;;
+esac
+if [ "$state" = stopped ]; then
+	echo "CC Babysitter is not running. Start it with: ccbabysitter" >&2
+	exit 3
+fi
+case "$1 $2" in
+"babysit self") if [ -n "${EVAL_CCB_BACKGROUND:-}" ]; then echo "Babysitting This session in the background. Remote Control is on."; else echo "Babysitting This session in the desktop app. Remote Control is on."; fi; exit 0 ;;
+"babysit nothere") echo '{"schema":1,"code":"not-found","error":"No session matches nothere. See ccbabysitter list."}'; exit 4 ;;
+"babysit api") echo '{"schema":1,"code":"ambiguous","error":"2 sessions match api: 11111111, 22222222. Use one of the ids."}'; exit 4 ;;
+"babysit 11111111"|"babysit 22222222") echo "Babysitting that session. Remote Control is on."; exit 0 ;;
+"list --json") echo '{"schema":1,"sessions":[{"id":"11111111-0000-4000-8000-000000000001","shortId":"11111111","name":"api-server","folder":"/home/dev/api","app":"background","running":true,"babysat":false},{"id":"22222222-0000-4000-8000-000000000002","shortId":"22222222","name":"api-docs","folder":"/home/dev/docs","app":"desktop","running":true,"babysat":false}]}'; exit 0 ;;
+"show self") if [ -n "${EVAL_CCB_BACKGROUND:-}" ]; then app=background; else app=desktop; fi; echo "{\"schema\":1,\"session\":{\"shortId\":\"33333333\",\"name\":\"This session\",\"app\":\"$app\",\"babysat\":true,\"state\":\"watching\"}}"; exit 0 ;;
+"activity "*|"activity ") echo "2026-10-06 03:12:04  This session  resumed as background 33333333. (automatic: host process exited)"; exit 0 ;;
+"open "*|"open ") echo "Opened the CC Babysitter page in your browser."; exit 0 ;;
+"stop "*) echo "Stopped. Open it again any time from Not running."; exit 0 ;;
+esac
+echo "fake ccbabysitter: unexpected $*" >&2
+exit 2

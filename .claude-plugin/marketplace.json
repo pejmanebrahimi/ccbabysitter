@@ -1,6 +1,9 @@
 {
   "name": "ccbabysitter",
-  "owner": { "name": "Pejman Ebrahimi" },
+  "owner": {
+    "name": "Pejman Ebrahimi"
+  },
+  "description": "CC Babysitter's own marketplace: the plugin that babysits Claude Code sessions.",
   "plugins": [
     {
       "name": "ccbabysitter",
