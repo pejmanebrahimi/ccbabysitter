@@ -616,3 +616,54 @@ func TestTheSkyHasItsStylesAndData(t *testing.T) {
 		}
 	}
 }
+
+// TestInstallTabs checks the install commands are tabs, in this order, with
+// macOS & Linux selected in the static HTML for every visitor, that the tab
+// labels are the names in site.js, and that a long command wraps in its box
+// rather than scrolling.
+func TestInstallTabs(t *testing.T) {
+	home := readSite(t, "index.html")
+	if !strings.Contains(home, `<div class="tabs" role="tablist" aria-label="Install for" data-tabs="install">`) {
+		t.Error("index.html has no install tab list")
+	}
+	if strings.Contains(home, "data-env-switch") {
+		t.Error("index.html still has the rotating switch")
+	}
+	tab := regexp.MustCompile(`<button class="tab" type="button" role="tab" aria-selected="(true|false)" aria-controls="install"( tabindex="-1")?>([^<]*)</button>`)
+	var labels, selected []string
+	for _, m := range tab.FindAllStringSubmatch(home, -1) {
+		labels = append(labels, m[3])
+		selected = append(selected, m[1])
+		if (m[1] == "true") == (m[2] != "") {
+			t.Errorf("tab %q: only the selected tab is in the Tab order", m[3])
+		}
+	}
+	if got := strings.Join(labels, "|"); got != "macOS &amp; Linux|Windows|Claude Code|Go" {
+		t.Errorf("tabs are %q", got)
+	}
+	if got := strings.Join(selected, "|"); got != "true|false|false|false" {
+		t.Errorf("selected tabs are %q", got)
+	}
+	js := readSite(t, "assets/site.js")
+	var names []string
+	for _, m := range regexp.MustCompile(`\{ name: "([^"]*)"`).FindAllStringSubmatch(js, -1) {
+		names = append(names, m[1])
+	}
+	if got := strings.Join(names, "|"); got != strings.Join(labels, "|") {
+		t.Errorf("site.js names %q, tabs %q", got, strings.Join(labels, "|"))
+	}
+	if !strings.Contains(js, `{ name: "Claude Code", prompt: "&gt;", cmd: "/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter" }`) {
+		t.Error("site.js has no Claude Code entry")
+	}
+	if strings.Contains(js, "navigator.platform") {
+		t.Error("site.js still picks a tab by platform")
+	}
+	css := readSite(t, "assets/site.css")
+	if !strings.Contains(css, `.tab[aria-selected="true"]`) {
+		t.Error("site.css does not style the selected tab")
+	}
+	text := regexp.MustCompile(`\.cmd \.text \{[^}]*\}`).FindString(css)
+	if !strings.Contains(text, "white-space: normal") || !strings.Contains(text, "overflow-wrap: anywhere") || strings.Contains(text, "overflow-x") {
+		t.Errorf("a long command does not wrap: %q", text)
+	}
+}

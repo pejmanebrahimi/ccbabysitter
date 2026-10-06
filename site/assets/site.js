@@ -1,5 +1,5 @@
-/* The page's small behaviours: the light and dark switch, the environment
-   switch of an install command, and copying a command. Each one works
+/* The page's small behaviours: the light and dark switch, the tabs of the
+   install command, and copying a command. Each one works
    without the others. */
 "use strict";
 (function () {
@@ -7,6 +7,7 @@
   var ENVS = [
     { name: "macOS &amp; Linux", prompt: "$", cmd: "curl -fsSL https://ccbabysitter.dev/install.sh | sh" },
     { name: "Windows", prompt: "&gt;", cmd: "irm https://ccbabysitter.dev/install.ps1 | iex" },
+    { name: "Claude Code", prompt: "&gt;", cmd: "/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter" },
     { name: "Go", prompt: "$", cmd: "go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest" }
   ];
 
@@ -71,19 +72,31 @@
   var themeButton = document.querySelector("[data-theme-switch]");
   if (themeButton) themeButton.addEventListener("click", function () { switchTheme(); });
 
-  var start = /Win/.test((navigator && navigator.platform) || "") ? 1 : 0;
-  Array.prototype.forEach.call(document.querySelectorAll("[data-env-switch]"), function (sw) {
-    var line = document.getElementById(sw.getAttribute("data-env-switch"));
-    if (!line) return;
-    var k = start;
-    function show() {
+  // The install tabs. The static HTML shows the first tab selected; a click
+  // or an arrow key selects another and puts its command in the line.
+  Array.prototype.forEach.call(document.querySelectorAll("[data-tabs]"), function (list) {
+    var line = document.getElementById(list.getAttribute("data-tabs"));
+    var tabs = list.querySelectorAll("[role=tab]");
+    if (!line || !tabs.length) return;
+    function select(k, focus) {
       var e = commandFor(k);
-      sw.querySelector("[data-env-name]").innerHTML = e.name;
+      for (var i = 0; i < tabs.length; i++) {
+        tabs[i].setAttribute("aria-selected", i === k ? "true" : "false");
+        tabs[i].setAttribute("tabindex", i === k ? "0" : "-1");
+      }
       line.querySelector("[data-prompt]").innerHTML = e.prompt;
       line.querySelector("[data-cmd]").textContent = e.cmd;
+      if (focus) tabs[k].focus();
     }
-    sw.addEventListener("click", function () { k += 1; show(); });
-    if (k !== 0) show();
+    Array.prototype.forEach.call(tabs, function (tab, i) {
+      tab.addEventListener("click", function () { select(i, false); });
+      tab.addEventListener("keydown", function (ev) {
+        var moves = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 };
+        if (!(ev.key in moves)) return;
+        ev.preventDefault();
+        select((moves[ev.key] + tabs.length) % tabs.length, true);
+      });
+    });
   });
 
   Array.prototype.forEach.call(document.querySelectorAll("[data-copy]"), function (btn) {

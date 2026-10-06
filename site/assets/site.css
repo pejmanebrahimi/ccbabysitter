@@ -50,13 +50,13 @@ html:has(.top), body:has(.top) { background: var(--ground); }
 .tagline { color: var(--grey); margin: 4px 0 40px; max-width: 440px; }
 
 /* install line */
-.env { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 12.5px; color: var(--grey); cursor: pointer; user-select: none; margin: 0 0 10px; padding: 2px 0; background: none; border: 0; }
-.env:hover { color: var(--ink); }
-.env svg { width: 10px; height: 10px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 0 10px; }
+.tab { font: inherit; font-size: 12.5px; color: var(--grey); cursor: pointer; padding: 2px 0; background: none; border: 0; border-bottom: 1px solid transparent; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--prompt); }
 .cmd { display: flex; align-items: center; gap: 12px; width: 100%; font: 14px "Geist Mono", ui-monospace, Menlo, monospace; color: var(--ink); text-align: left;
        cursor: pointer; padding: 12px 0; background: none; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.cmd .text { white-space: nowrap; overflow-x: auto; min-width: 0; flex: 1 1 auto; scrollbar-width: none; }
-.cmd .text::-webkit-scrollbar { display: none; }
+.cmd .text { white-space: normal; overflow-wrap: anywhere; min-width: 0; flex: 1 1 auto; }
 .cmd .p { color: var(--prompt); }
 .cmd .cursor { width: 8px; height: 15px; background: var(--ink); display: inline-block; vertical-align: -2px; animation: blink 1.1s steps(1) infinite; margin-left: 4px; }
 @keyframes blink { 50% { opacity: 0; } }

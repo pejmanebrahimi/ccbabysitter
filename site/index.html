@@ -57,11 +57,12 @@
         <p>Sure, you could raise it yourself with a watchdog script, tmux and systemd. Some of us prefer a babysitter.</p>
       </div>
     </details>
-    <button class="env" type="button" data-env-switch="install" aria-controls="install">
-      <svg viewBox="0 0 7 7" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="4" y="0" width="1" height="1"/><rect x="3" y="1" width="1" height="1"/><rect x="2" y="2" width="1" height="3"/><rect x="3" y="5" width="1" height="1"/><rect x="4" y="6" width="1" height="1"/></svg>
-      <span class="sr">Install for </span><span data-env-name>macOS &amp; Linux</span>
-      <svg viewBox="0 0 7 7" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="2" y="0" width="1" height="1"/><rect x="3" y="1" width="1" height="1"/><rect x="4" y="2" width="1" height="3"/><rect x="3" y="5" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/></svg>
-    </button>
+    <div class="tabs" role="tablist" aria-label="Install for" data-tabs="install">
+      <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="install">macOS &amp; Linux</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="install" tabindex="-1">Windows</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="install" tabindex="-1">Claude Code</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="install" tabindex="-1">Go</button>
+    </div>
     <button class="cmd" type="button" id="install" data-copy>
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>curl -fsSL https://ccbabysitter.dev/install.sh | sh</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>

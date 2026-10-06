@@ -59,11 +59,60 @@ console.log(show(s.chooseTheme("light", true)));`)
 	}
 }
 
-func TestEnvironmentsCycle(t *testing.T) {
-	out := runNode(t, `console.log([0,1,2,3,-1].map(function (i) { return s.commandFor(i).cmd; }).join("|"));`)
-	want := "curl -fsSL https://ccbabysitter.dev/install.sh | sh|irm https://ccbabysitter.dev/install.ps1 | iex|go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest|curl -fsSL https://ccbabysitter.dev/install.sh | sh|go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest"
+// TestCommandForEachTab checks that the i-th tab's command is the i-th
+// entry of ENVS, in tab order.
+func TestCommandForEachTab(t *testing.T) {
+	out := runNode(t, `console.log([0,1,2,3].map(function (i) { return s.commandFor(i).cmd; }).join("|"));`)
+	want := "curl -fsSL https://ccbabysitter.dev/install.sh | sh|irm https://ccbabysitter.dev/install.ps1 | iex|/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter|go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest"
 	if out != want {
 		t.Fatalf("got %q", out)
+	}
+}
+
+// TestTabsSelect runs the tab script on a small fake page: macOS & Linux
+// stays selected at start even on Windows, a click selects a tab and sets
+// its command and prompt, and the arrow keys move the selection round.
+func TestTabsSelect(t *testing.T) {
+	out := runNode(t, `
+function el(attrs) {
+  var e = { attrs: attrs || {}, on: {}, innerHTML: "", textContent: "", focused: false,
+    getAttribute: function (n) { return n in this.attrs ? this.attrs[n] : null; },
+    setAttribute: function (n, v) { this.attrs[n] = String(v); },
+    addEventListener: function (type, f) { this.on[type] = f; },
+    focus: function () { this.focused = true; } };
+  return e;
+}
+var tabs = [0, 1, 2, 3].map(function (i) { return el({ role: "tab", "aria-selected": i === 0 ? "true" : "false" }); });
+var list = el({ "data-tabs": "install" });
+list.querySelectorAll = function () { return tabs; };
+var prompt = el(), cmd = el();
+prompt.innerHTML = "$"; cmd.textContent = "curl -fsSL https://ccbabysitter.dev/install.sh | sh";
+var line = el({ id: "install" });
+line.querySelector = function (q) { return q === "[data-prompt]" ? prompt : q === "[data-cmd]" ? cmd : null; };
+navigator = { platform: "Win32" };
+var document = { documentElement: el(), querySelector: function () { return null; },
+  querySelectorAll: function (q) { return q === "[data-tabs]" ? [list] : []; },
+  getElementById: function (id) { return id === "install" ? line : null; } };
+`+"eval(require('fs').readFileSync('assets/site.js', 'utf8'));"+`
+function state() { return tabs.map(function (t) { return t.attrs["aria-selected"] === "true" ? "1" : "0"; }).join("") + " " + prompt.innerHTML + " " + cmd.textContent; }
+console.log(state());
+tabs[2].on.click();
+console.log(state());
+tabs[2].on.keydown({ key: "ArrowRight", preventDefault: function () {} });
+console.log(state() + " " + tabs[3].focused + " " + tabs[3].attrs.tabindex + tabs[2].attrs.tabindex);
+tabs[3].on.keydown({ key: "ArrowRight", preventDefault: function () {} });
+console.log(state());
+tabs[0].on.keydown({ key: "ArrowLeft", preventDefault: function () {} });
+console.log(state());`)
+	want := strings.Join([]string{
+		"1000 $ curl -fsSL https://ccbabysitter.dev/install.sh | sh",
+		"0010 &gt; /plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter",
+		"0001 $ go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest true 0-1",
+		"1000 $ curl -fsSL https://ccbabysitter.dev/install.sh | sh",
+		"0001 $ go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest",
+	}, "\n")
+	if out != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", out, want)
 	}
 }
 
