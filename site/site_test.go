@@ -556,7 +556,8 @@ func TestCNAMEAndLLMs(t *testing.T) {
 		t.Error("CNAME must be ccbabysitter.dev")
 	}
 	l := readSite(t, "llms.txt")
-	for _, want := range []string{"# CC Babysitter", "curl -fsSL https://ccbabysitter.dev/install.sh | sh", "https://github.com/pejmanebrahimi/ccbabysitter#quick-start", "https://github.com/pejmanebrahimi/ccbabysitter", "ccbabysitter babysit self", "ccbabysitter --help"} {
+	for _, want := range []string{"# CC Babysitter", "curl -fsSL https://ccbabysitter.dev/install.sh | sh", "https://github.com/pejmanebrahimi/ccbabysitter#quick-start", "https://github.com/pejmanebrahimi/ccbabysitter", "ccbabysitter babysit self", "ccbabysitter --help",
+		"/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter", "`ccbabysitter open`: open the page in the browser without printing its key"} {
 		if !strings.Contains(l, want) {
 			t.Errorf("llms.txt is missing %q", want)
 		}
