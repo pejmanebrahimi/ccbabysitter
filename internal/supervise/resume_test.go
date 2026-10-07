@@ -139,16 +139,16 @@ func TestResumeBackgroundFlagsAndCopyRecovery(t *testing.T) {
 func TestExitReasonNamesAnIdleRetire(t *testing.T) {
 	f := newFixture(t, nil)
 	s := &Supervisor{deps: *f.d}
-	id := "304152c6-817e-4b42-89da-b16ceb5dd457"
-	if got := s.exitReason(id, "304152c6"); got != "host process exited" {
+	id := "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+	if got := s.exitReason(id, "1a2b3c4d"); got != "host process exited" {
 		t.Fatalf("no daemon log: %q", got)
 	}
 	now := time.Now().UTC()
-	line := "[" + now.Add(-3*time.Second).Format(time.RFC3339Nano) + "] [bg] bg retire 304152c6: settled, idle 8h\n"
+	line := "[" + now.Add(-3*time.Second).Format(time.RFC3339Nano) + "] [bg] bg retire 1a2b3c4d: settled, idle 8h\n"
 	if err := os.WriteFile(f.d.DaemonLog, []byte(line), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if got := s.exitReason(id, "304152c6"); got != "Claude Code stopped it after 8 hours idle" {
+	if got := s.exitReason(id, "1a2b3c4d"); got != "Claude Code stopped it after 8 hours idle" {
 		t.Fatalf("a recent retire: %q", got)
 	}
 	if got := s.exitReason("dddddddd-0000-4000-8000-000000000001", "dddddddd"); got != "host process exited" {

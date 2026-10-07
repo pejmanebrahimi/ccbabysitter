@@ -15,7 +15,7 @@ func DaemonLogPath() string { return filepath.Join(Dir(), "daemon.log") }
 
 // retireLine matches the daemon's line for stopping an idle background
 // session, such as
-// "[2026-10-06T14:07:36.616Z] [bg] bg retire 304152c6: settled, idle 8h".
+// "[2026-10-06T14:07:36.616Z] [bg] bg retire 1a2b3c4d: settled, idle 8h".
 var retireLine = regexp.MustCompile(`^\[([^\]]+)\] \[bg\] bg retire ([0-9a-f]{8}): [^,]+, idle ([0-9hms.]+)`)
 
 var shortIDPattern = regexp.MustCompile(`^[0-9a-f]{8}$`)
