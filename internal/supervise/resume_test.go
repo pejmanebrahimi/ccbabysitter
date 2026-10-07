@@ -46,7 +46,7 @@ func newFixture(t *testing.T, respond func(args []string) (string, error)) *fixt
 		Env: func() hosts.Env {
 			return hosts.Env{Platform: "windows", CLIFound: true, CLIPresent: true, DesktopInstalled: true, VSCodeInstalled: true}
 		},
-		ProjectsDir: t.TempDir(), Now: time.Now, Backoff: 10 * time.Second, StartupGrace: -1,
+		ProjectsDir: t.TempDir(), DaemonLog: filepath.Join(t.TempDir(), "daemon.log"), Now: time.Now, Backoff: 10 * time.Second, StartupGrace: -1,
 		Home: "/home/dev", ClaudeConfig: filepath.Join(t.TempDir(), "claude.json"),
 		RCSettleTimeout: 200 * time.Millisecond,
 	}
@@ -131,6 +131,28 @@ func TestResumeBackgroundFlagsAndCopyRecovery(t *testing.T) {
 	}
 	if strings.Contains(joined, "--name") {
 		t.Fatalf("a resume never passes a name:\n%s", joined)
+	}
+}
+
+// When Claude Code's daemon stopped an idle background session, Activity
+// says so instead of "host process exited", which reads like a crash.
+func TestExitReasonNamesAnIdleRetire(t *testing.T) {
+	f := newFixture(t, nil)
+	s := &Supervisor{deps: *f.d}
+	id := "304152c6-817e-4b42-89da-b16ceb5dd457"
+	if got := s.exitReason(id, "304152c6"); got != "host process exited" {
+		t.Fatalf("no daemon log: %q", got)
+	}
+	now := time.Now().UTC()
+	line := "[" + now.Add(-3*time.Second).Format(time.RFC3339Nano) + "] [bg] bg retire 304152c6: settled, idle 8h\n"
+	if err := os.WriteFile(f.d.DaemonLog, []byte(line), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.exitReason(id, "304152c6"); got != "Claude Code stopped it after 8 hours idle" {
+		t.Fatalf("a recent retire: %q", got)
+	}
+	if got := s.exitReason("dddddddd-0000-4000-8000-000000000001", "dddddddd"); got != "host process exited" {
+		t.Fatalf("another session: %q", got)
 	}
 }
 
