@@ -2,6 +2,8 @@ package claude
 
 import (
 	"context"
+	"errors"
+	"os/exec"
 	"runtime"
 	"strings"
 	"testing"
@@ -46,10 +48,13 @@ func TestFakeRunnerSetRespondAndDefault(t *testing.T) {
 	}
 }
 
+// A program that is not installed fails with exec.ErrNotFound on every
+// system, which the observer relies on to say "not installed" once.
 func TestExecRunnerMissingBinaryErrors(t *testing.T) {
 	r := ExecRunner{Bin: "definitely-not-a-real-binary-xyz"}
-	if _, err := r.Run(context.Background(), "", "--version"); err == nil {
-		t.Fatal("expected error")
+	_, err := r.Run(context.Background(), "", "--version")
+	if !errors.Is(err, exec.ErrNotFound) {
+		t.Fatalf("want exec.ErrNotFound, got %v", err)
 	}
 }
 
