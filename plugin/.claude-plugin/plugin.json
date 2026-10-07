@@ -1,7 +1,7 @@
 {
   "name": "ccbabysitter",
   "displayName": "CC Babysitter",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Say \"babysit this session\": CC Babysitter keeps it alive and reachable if its app closes, and answers questions about what it did.",
   "author": { "name": "Pejman Ebrahimi", "url": "https://github.com/pejmanebrahimi" },
   "homepage": "https://ccbabysitter.dev",

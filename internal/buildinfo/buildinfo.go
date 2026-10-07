@@ -3,7 +3,7 @@ package buildinfo
 
 // Version is MAJOR.MINOR.PATCH, or MAJOR.MINOR.PATCH-<pre> such as 0.5.0-rc.1
 // for a pre-release. Bump per docs/CHANGELOG.md when a build is handed out.
-const Version = "0.5.2"
+const Version = "0.6.0"
 
 // Name is the product name shown in the UI and the console.
 const Name = "CC Babysitter"
