@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Fixed: on a machine without the `claude` CLI, Activity got "agents --json did not answer:" every minute with nothing after the colon. It now says once that the Claude Code CLI is not installed, and says it again only after the CLI has worked in between; when the CLI answers with nothing, the line gives its error (#40).
+
 ## 0.6.0 (2026-10-07)
 
 - New: `ccbabysitter open` opens the page in your browser and prints no key, so an AI agent can run it. On a machine with no display it says how to connect instead.

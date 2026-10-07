@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -131,6 +132,78 @@ func TestSilentCLIIsReportedAtMostOncePerMinute(t *testing.T) {
 	if n := countSilenceLines(log); n != 2 {
 		t.Fatalf("after a minute the line is written again, got %d", n)
 	}
+}
+
+// A machine without the claude CLI used to get "agents --json did not
+// answer: " every minute, with nothing after the colon. Now it is told once
+// that the CLI is not installed, and told again only after the CLI has
+// answered in between.
+func TestMissingCLIIsSaidOnce(t *testing.T) {
+	files := [][]byte{}
+	missing := true
+	r := claude.NewFakeRunner(func([]string) (string, error) {
+		if missing {
+			return "", &exec.Error{Name: "claude", Err: exec.ErrNotFound}
+		}
+		return "[]", nil
+	})
+	log, err := state.NewLog(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := New(func() [][]byte { return files }, procs.NewFake(), r, log)
+	clock := time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
+	o.now = func() time.Time { return clock }
+	ctx := context.Background()
+	notInstalled := func() int {
+		n := 0
+		for _, e := range log.Recent(100, "") {
+			if strings.Contains(e.Message, "did not answer") {
+				t.Fatalf("a missing CLI is not a silent one: %q", e.Message)
+			}
+			if strings.Contains(e.Message, "The Claude Code CLI is not installed") {
+				n++
+			}
+		}
+		return n
+	}
+	for i := 0; i < 5; i++ {
+		o.Agents(ctx)
+		clock = clock.Add(2 * time.Minute)
+	}
+	if n := notInstalled(); n != 1 {
+		t.Fatalf("said %d times, want once", n)
+	}
+	missing = false
+	if _, ok := o.Agents(ctx); !ok {
+		t.Fatal("an installed CLI answers")
+	}
+	missing = true
+	o.Agents(ctx)
+	if n := notInstalled(); n != 2 {
+		t.Fatalf("after the CLI answered once, a new loss is said again: %d", n)
+	}
+}
+
+// An empty answer logs the reason the CLI gave, not an empty line.
+func TestSilentCLIGivesItsReason(t *testing.T) {
+	files := [][]byte{}
+	log, err := state.NewLog(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := claude.NewFakeRunner(func([]string) (string, error) { return "", errors.New("exit status 2") })
+	o := New(func() [][]byte { return files }, procs.NewFake(), r, log)
+	o.Agents(context.Background())
+	for _, e := range log.Recent(10, "") {
+		if strings.Contains(e.Message, "did not answer") {
+			if !strings.HasSuffix(e.Message, "exit status 2") {
+				t.Fatalf("the reason is missing: %q", e.Message)
+			}
+			return
+		}
+	}
+	t.Fatal("no line was written")
 }
 
 func countSilenceLines(log *state.Log) int {
