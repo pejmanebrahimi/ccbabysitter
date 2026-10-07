@@ -1,6 +1,6 @@
 # How CC Babysitter works
 
-Generated from README.md; do not edit by hand.
+Generated from README.md at the top of the CC Babysitter repository; do not edit by hand.
 
 ## Why a babysitter?
 

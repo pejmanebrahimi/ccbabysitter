@@ -14,7 +14,7 @@
 - `ccbabysitter list --json`: every session on the machine, as JSON
 - `ccbabysitter open`: open the page in the browser without printing its key
 - `ccbabysitter --help`: all commands, and `ccbabysitter help <command>` for one
-- In Claude Code: `/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter`, then ask to babysit a session in any language
+- In Claude Code: `/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter`, then ask it to babysit a session
 
 ## Links
 

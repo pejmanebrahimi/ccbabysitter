@@ -6,7 +6,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 - New: `ccbabysitter open` opens the page in your browser and prints no key, so an AI agent can run it. On a machine with no display it says how to connect instead.
 - New: `ccbabysitter version --json` also says `headless`, true on a machine with no display.
-- New: a Claude Code plugin. Install it with `/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter` and say "babysit this session" in any language; it also opens the page and answers questions about CC Babysitter.
+- New: a Claude Code plugin. Install it with `/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter` and say "babysit this session"; it also opens the page and answers questions about CC Babysitter.
 
 ## 0.5.2 (2026-10-06)
 

@@ -94,7 +94,7 @@ Install the plugin in Claude Code:
 /plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter
 ```
 
-Then ask in your own words, in any language:
+Then ask in your own words:
 
 - "babysit this session"
 - "is the api session babysat?"

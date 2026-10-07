@@ -8,7 +8,7 @@
     {
       "name": "ccbabysitter",
       "source": "./plugin",
-      "description": "Babysit Claude Code sessions with CC Babysitter: keep them alive and reachable, from any language."
+      "description": "Babysit Claude Code sessions with CC Babysitter: keep them alive and reachable."
     }
   ]
 }

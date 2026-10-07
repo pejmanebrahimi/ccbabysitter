@@ -1,6 +1,6 @@
 # CC Babysitter for Claude Code
 
-Say "babysit this session" in Claude Code, in any language, and [CC Babysitter](https://ccbabysitter.dev) keeps it alive: the computer stays awake, and if the session's app closes, the same session comes back in the background with Remote Control on, so you can still reach it from your phone. You can also ask whether a session is babysat, open CC Babysitter's page, or ask how it works and what it did.
+Say "babysit this session" in Claude Code, and [CC Babysitter](https://ccbabysitter.dev) keeps it alive: the computer stays awake, and if the session's app closes, the same session comes back in the background with Remote Control on, so you can still reach it from your phone. You can also ask whether a session is babysat, open CC Babysitter's page, or ask how it works and what it did.
 
 This plugin works in Claude Code only, on the computer CC Babysitter runs on. On claude.ai and in Cowork it can only say so.
 
