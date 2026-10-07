@@ -271,4 +271,9 @@ func TestSkillShowsCommandsBeforeCards(t *testing.T) {
 			t.Errorf("SKILL.md does not say %q", want)
 		}
 	}
+	// "A card first, then the command" read like asking before showing a
+	// command; where the skill runs a command itself after asking, it says so.
+	if strings.Contains(string(data), "a card first, then the command.") {
+		t.Error(`SKILL.md still says "a card first, then the command."`)
+	}
 }
