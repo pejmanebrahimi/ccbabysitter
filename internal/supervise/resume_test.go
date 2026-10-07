@@ -140,7 +140,7 @@ func TestExitReasonNamesAnIdleRetire(t *testing.T) {
 	f := newFixture(t, nil)
 	s := &Supervisor{deps: *f.d}
 	id := "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
-	if got := s.exitReason(id, "1a2b3c4d"); got != "host process exited" {
+	if got := s.exitReason(id, "1a2b3c4d", time.Time{}); got != "host process exited" {
 		t.Fatalf("no daemon log: %q", got)
 	}
 	now := time.Now().UTC()
@@ -148,11 +148,16 @@ func TestExitReasonNamesAnIdleRetire(t *testing.T) {
 	if err := os.WriteFile(f.d.DaemonLog, []byte(line), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if got := s.exitReason(id, "1a2b3c4d"); got != "Claude Code stopped it after 8 hours idle" {
+	if got := s.exitReason(id, "1a2b3c4d", time.Time{}); got != "Claude Code stopped it after 8 hours idle" {
 		t.Fatalf("a recent retire: %q", got)
 	}
-	if got := s.exitReason("dddddddd-0000-4000-8000-000000000001", "dddddddd"); got != "host process exited" {
+	if got := s.exitReason("dddddddd-0000-4000-8000-000000000001", "dddddddd", time.Time{}); got != "host process exited" {
 		t.Fatalf("another session: %q", got)
+	}
+	// The same line no longer explains an exit after the session was
+	// brought back: that copy ended for some other reason.
+	if got := s.exitReason(id, "1a2b3c4d", now); got != "host process exited" {
+		t.Fatalf("a retire before the last rescue: %q", got)
 	}
 }
 

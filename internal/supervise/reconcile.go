@@ -186,7 +186,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 		return false, false
 	}
 
-	reason := s.exitReason(w.SessionID, w.ShortID)
+	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
 	short, res := s.deps.resumeBackground(ctx, w.SessionID, w.Name, w.Cwd, w.HasSavedOptions)
 	cur := s.find(w.SessionID)
 	if cur == nil {
@@ -815,14 +815,20 @@ const retireWindow = 5 * time.Minute
 
 // exitReason is the reason Activity gives for bringing a session back: the
 // CLI daemon stopping it after it sat idle, when its log says so, and
-// otherwise the plain fact that the process running it exited.
-func (s *Supervisor) exitReason(id, short string) string {
+// otherwise the plain fact that the process running it exited. A retire line
+// counts only when it is recent and newer than the session's last rescue,
+// lastResume: an older one explained an exit that was already dealt with.
+func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
 	if s.deps.DaemonLog == "" {
 		return "host process exited"
 	}
 	now := s.deps.Now()
+	from := now.Add(-retireWindow)
+	if lastResume.After(from) {
+		from = lastResume
+	}
 	for _, sh := range []string{strings.ToLower(short), strings.ToLower(shortOf(id))} {
-		if idle, ok := claude.Retired(s.deps.DaemonLog, sh, now, retireWindow); ok {
+		if idle, ok := claude.Retired(s.deps.DaemonLog, sh, from, now); ok {
 			return "Claude Code stopped it after " + idleWords(idle) + " idle"
 		}
 	}
@@ -830,7 +836,7 @@ func (s *Supervisor) exitReason(id, short string) string {
 }
 
 // idleWords says a duration the way a person would: whole hours as hours,
-// otherwise whole minutes.
+// otherwise whole minutes, and anything shorter as under a minute.
 func idleWords(d time.Duration) string {
 	plural := func(n int64, unit string) string {
 		if n == 1 {
@@ -844,5 +850,5 @@ func idleWords(d time.Duration) string {
 	if d >= time.Minute {
 		return plural(int64(d/time.Minute), "minute")
 	}
-	return d.String()
+	return "under a minute"
 }

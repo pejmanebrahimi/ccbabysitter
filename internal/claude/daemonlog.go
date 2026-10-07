@@ -25,11 +25,11 @@ var shortIDPattern = regexp.MustCompile(`^[0-9a-f]{8}$`)
 const retireTail = 256 << 10
 
 // Retired reports whether the CLI daemon's log at path says the daemon
-// stopped the idle background session short within window before now, and
-// how long that session had been idle. It reads only the end of the log and
+// stopped the idle background session short after from and no later than
+// to, and how long that session had been idle. It reads only the end of the log and
 // never writes. A missing log, an odd line or a format it does not know is
 // simply no answer: the daemon's log is the CLI's own and may change.
-func Retired(path, short string, now time.Time, window time.Duration) (time.Duration, bool) {
+func Retired(path, short string, from, to time.Time) (time.Duration, bool) {
 	if !shortIDPattern.MatchString(short) {
 		return 0, false
 	}
@@ -57,7 +57,7 @@ func Retired(path, short string, now time.Time, window time.Duration) (time.Dura
 			continue
 		}
 		at, err := time.Parse(time.RFC3339Nano, m[1])
-		if err != nil || at.After(now) || now.Sub(at) > window {
+		if err != nil || !at.After(from) || at.After(to) {
 			continue
 		}
 		d, err := time.ParseDuration(m[3])

@@ -4,7 +4,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 ## Unreleased
 
-- Changed: when Claude Code's daemon stops an idle background session (after 1 hour, 8 with Remote Control on) and CC Babysitter brings it back, Activity now gives the reason as "Claude Code stopped it after 8 hours idle" instead of "host process exited", which read like a crash (#49).
+- Changed: when Claude Code's daemon stops a background session that sat idle and CC Babysitter brings it back, Activity now gives the reason as "Claude Code stopped it after 8 hours idle" instead of "host process exited", which read like a crash (#49).
 
 ## 0.6.0 (2026-10-07)
 
