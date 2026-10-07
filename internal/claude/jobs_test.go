@@ -3,8 +3,15 @@ package claude
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+// savedBool is SavedOptions' first answer, for the checks that need only it.
+func savedBool(dir, id string) bool {
+	saved, _ := SavedOptions(dir, id)
+	return saved
+}
 
 func writeJob(t *testing.T, dir, short, body string) {
 	t.Helper()
@@ -18,30 +25,56 @@ func writeJob(t *testing.T, dir, short, body string) {
 
 // A session the CLI has run in the background keeps a job record with its
 // own saved options, and only a record for that very session counts.
-func TestHasSavedOptions(t *testing.T) {
+func TestSavedOptions(t *testing.T) {
 	id := "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
 	dir := t.TempDir()
-	if HasSavedOptions(dir, id) {
+	if savedBool(dir, id) {
 		t.Fatal("no record: no saved options")
 	}
 	writeJob(t, dir, "1a2b3c4d", `{"state":"done","sessionId":"`+id+`","template":"bg","respawnFlags":["--remote-control"]}`)
-	if !HasSavedOptions(dir, id) {
+	if !savedBool(dir, id) {
 		t.Fatal("a record for the session: saved options")
 	}
-	if !HasSavedOptions(dir, "1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D") {
+	if !savedBool(dir, "1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D") {
 		t.Fatal("an id in upper case is the same session")
 	}
 	other := "1a2b3c4d-0000-4000-8000-000000000001"
-	if HasSavedOptions(dir, other) {
+	if savedBool(dir, other) {
 		t.Fatal("a record under the same short id for another session does not count")
 	}
 	writeJob(t, dir, "aaaaaaaa", `{"sessionId":`)
-	if HasSavedOptions(dir, "aaaaaaaa-0000-4000-8000-000000000001") {
+	if savedBool(dir, "aaaaaaaa-0000-4000-8000-000000000001") {
 		t.Fatal("a damaged record does not count")
 	}
 	for _, bad := range []string{"", "..", "../../etc", "1a2b3c4d"} {
-		if HasSavedOptions(dir, bad) {
+		if savedBool(dir, bad) {
 			t.Fatalf("%q is not a session id", bad)
 		}
+	}
+}
+
+// The saved options say whether the session keeps Remote Control on, which
+// decides how long a resume waits for it to connect.
+func TestSavedOptionsRemoteControl(t *testing.T) {
+	dir := t.TempDir()
+	on := "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+	off := "5e6f7a8b-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+	writeJob(t, dir, "1a2b3c4d", `{"sessionId":"`+on+`","respawnFlags":["--remote-control","--model","sonnet"]}`)
+	writeJob(t, dir, "5e6f7a8b", `{"sessionId":"`+off+`","respawnFlags":["--model","sonnet"]}`)
+	if saved, rc := SavedOptions(dir, on); !saved || !rc {
+		t.Fatalf("saved with Remote Control: %v %v", saved, rc)
+	}
+	if saved, rc := SavedOptions(dir, off); !saved || rc {
+		t.Fatalf("saved without Remote Control: %v %v", saved, rc)
+	}
+}
+
+// A record far larger than any real one is not read as one.
+func TestSavedOptionsIgnoresAHugeRecord(t *testing.T) {
+	dir := t.TempDir()
+	id := "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+	writeJob(t, dir, "1a2b3c4d", `{"sessionId":"`+id+`","pad":"`+strings.Repeat("x", 2<<20)+`"}`)
+	if saved, _ := SavedOptions(dir, id); saved {
+		t.Fatal("a record over 1 MiB does not count")
 	}
 }

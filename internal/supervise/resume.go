@@ -107,13 +107,18 @@ func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSa
 	// copy and removing it.
 	original := strings.ToLower(shortOf(id))
 	// A session handed back to its app is watched afresh, which forgets that
-	// it ran in the background before; the CLI's own job record remembers.
-	if !hasSaved && claude.HasSavedOptions(d.JobsDir, id) {
-		hasSaved = true
+	// it ran in the background before; the CLI's own job record remembers,
+	// along with whether those saved options turn Remote Control on.
+	savedRC := false
+	if !hasSaved {
+		if saved, rc := claude.SavedOptions(d.JobsDir, id); saved {
+			hasSaved, savedRC = true, rc
+		}
 	}
-	// Flags are only passed when the session has never saved its own, so
-	// this is exactly the question "did we ask for Remote Control".
-	askedForRC := !hasSaved
+	// Remote Control is expected when the resume asks for it, which it does
+	// only for a session that has never saved its own options, or when the
+	// options the session saved turn it on.
+	askedForRC := !hasSaved || savedRC
 
 	out, runErr := d.Runner.Run(ctx, cwd, hosts.BackgroundResumeArgs(id, hasSaved)...)
 	recovered := false
