@@ -303,7 +303,7 @@ func (o *Observer) Agents(ctx context.Context) ([]claude.AgentEntry, bool) {
 			return nil, false
 		}
 		if o.shouldReportSilence() {
-			reason := firstLine(out)
+			reason := strings.TrimSpace(firstLine(out))
 			if reason == "" && runErr != nil {
 				reason = runErr.Error()
 			}

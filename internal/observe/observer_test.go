@@ -185,25 +185,31 @@ func TestMissingCLIIsSaidOnce(t *testing.T) {
 	}
 }
 
-// An empty answer logs the reason the CLI gave, not an empty line.
+// An empty answer logs the reason the CLI gave, not an empty line, also
+// when the answer is only a Windows line ending.
 func TestSilentCLIGivesItsReason(t *testing.T) {
-	files := [][]byte{}
-	log, err := state.NewLog(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	r := claude.NewFakeRunner(func([]string) (string, error) { return "", errors.New("exit status 2") })
-	o := New(func() [][]byte { return files }, procs.NewFake(), r, log)
-	o.Agents(context.Background())
-	for _, e := range log.Recent(10, "") {
-		if strings.Contains(e.Message, "did not answer") {
-			if !strings.HasSuffix(e.Message, "exit status 2") {
-				t.Fatalf("the reason is missing: %q", e.Message)
+	for _, out := range []string{"", "\r\n", "  \n"} {
+		files := [][]byte{}
+		log, err := state.NewLog(t.TempDir())
+		if err != nil {
+			t.Fatal(err)
+		}
+		r := claude.NewFakeRunner(func([]string) (string, error) { return out, errors.New("exit status 2") })
+		o := New(func() [][]byte { return files }, procs.NewFake(), r, log)
+		o.Agents(context.Background())
+		written := false
+		for _, e := range log.Recent(10, "") {
+			if strings.Contains(e.Message, "did not answer") {
+				written = true
+				if !strings.HasSuffix(e.Message, "did not answer: exit status 2") {
+					t.Fatalf("output %q: the reason is missing: %q", out, e.Message)
+				}
 			}
-			return
+		}
+		if !written {
+			t.Fatalf("output %q: no line was written", out)
 		}
 	}
-	t.Fatal("no line was written")
 }
 
 func countSilenceLines(log *state.Log) int {
