@@ -46,7 +46,7 @@ func newFixture(t *testing.T, respond func(args []string) (string, error)) *fixt
 		Env: func() hosts.Env {
 			return hosts.Env{Platform: "windows", CLIFound: true, CLIPresent: true, DesktopInstalled: true, VSCodeInstalled: true}
 		},
-		ProjectsDir: t.TempDir(), Now: time.Now, Backoff: 10 * time.Second, StartupGrace: -1,
+		ProjectsDir: t.TempDir(), JobsDir: t.TempDir(), Now: time.Now, Backoff: 10 * time.Second, StartupGrace: -1,
 		Home: "/home/dev", ClaudeConfig: filepath.Join(t.TempDir(), "claude.json"),
 		RCSettleTimeout: 200 * time.Millisecond,
 	}
@@ -131,6 +131,37 @@ func TestResumeBackgroundFlagsAndCopyRecovery(t *testing.T) {
 	}
 	if strings.Contains(joined, "--name") {
 		t.Fatalf("a resume never passes a name:\n%s", joined)
+	}
+}
+
+// A session handed back to its app is watched afresh, which forgets that it
+// ran in the background before. Claude Code's own job record for it still
+// says it keeps saved options, so the resume is flagless from the first try
+// and no copy is forked.
+func TestResumeBackgroundObeysTheJobRecord(t *testing.T) {
+	id := "dddddddd-0000-4000-8000-000000000002"
+	f := newFixture(t, func(args []string) (string, error) {
+		if strings.Contains(strings.Join(args, " "), "--remote-control") {
+			return "note: background session dddddddd keeps its own saved options, so the flags you passed started a copy as aabbccdd.\nbackgrounded \u00b7 aabbccdd", nil
+		}
+		return "note: woke session dddddddd with its saved options.\nbackgrounded \u00b7 dddddddd", nil
+	})
+	f.d.SettleTimeout = 50 * time.Millisecond
+	dir := filepath.Join(f.d.JobsDir, "dddddddd")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "state.json"), []byte(`{"sessionId":"`+id+`","respawnFlags":["--remote-control"]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	short, res := f.d.resumeBackground(context.Background(), id, "n", "/home/dev/ws", false)
+	if !res.OK || short != "dddddddd" {
+		t.Fatalf("%+v %q", res, short)
+	}
+	calls := f.r.CallList()
+	joined := strings.Join(calls, "\n")
+	if strings.Contains(joined, "--remote-control") || strings.Contains(joined, "stop ") || len(calls) != 1 {
+		t.Fatalf("one flagless resume, no copy to stop:\n%s", joined)
 	}
 }
 

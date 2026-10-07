@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Fixed: after Back to Desktop, the next rescue of that session first passed `--remote-control`, which made the CLI fork a copy; CC Babysitter stopped and removed the copy and retried without flags, but Activity showed "resume forked a copy", and a copy that lived long enough left an empty Remote Control entry in Claude Desktop under Other. A session the CLI keeps a background job record for is now resumed without flags from the first try (#55).
+
 ## 0.6.0 (2026-10-07)
 
 - New: `ccbabysitter open` opens the page in your browser and prints no key, so an AI agent can run it. On a machine with no display it says how to connect instead.
