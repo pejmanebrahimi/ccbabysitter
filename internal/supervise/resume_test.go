@@ -165,6 +165,28 @@ func TestResumeBackgroundObeysTheJobRecord(t *testing.T) {
 	}
 }
 
+// A damaged job record is no record: the resume behaves as it does without
+// one and asks for Remote Control.
+func TestResumeBackgroundIgnoresADamagedJobRecord(t *testing.T) {
+	id := "dddddddd-0000-4000-8000-000000000003"
+	f := newFixture(t, func([]string) (string, error) {
+		return "note: woke session dddddddd.\nbackgrounded \u00b7 dddddddd", nil
+	})
+	f.d.SettleTimeout = 50 * time.Millisecond
+	dir := filepath.Join(f.d.JobsDir, "dddddddd")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "state.json"), []byte(`{"sessionId":`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.d.resumeBackground(context.Background(), id, "n", "/home/dev/ws", false)
+	calls := f.r.CallList()
+	if len(calls) == 0 || !strings.Contains(calls[0], "--remote-control") {
+		t.Fatalf("a damaged record must not stop the first resume asking for Remote Control: %v", calls)
+	}
+}
+
 func TestResumeBackgroundFailsHonestly(t *testing.T) {
 	id := "eeeeeeee-0000-4000-8000-000000000001"
 	f := newFixture(t, func([]string) (string, error) { return "error: nope", errors.New("exit 1") })

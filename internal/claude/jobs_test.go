@@ -78,3 +78,18 @@ func TestSavedOptionsIgnoresAHugeRecord(t *testing.T) {
 		t.Fatal("a record over 1 MiB does not count")
 	}
 }
+
+// The CLI may name a job's folder by its own job id rather than the start
+// of the session id; the record is found by the session id inside it.
+func TestSavedOptionsUnderAnotherFolderName(t *testing.T) {
+	dir := t.TempDir()
+	id := "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+	writeJob(t, dir, "9f8e7d6c", `{"sessionId":"`+id+`","respawnFlags":["--remote-control"]}`)
+	writeJob(t, dir, "0a0b0c0d", `{"sessionId":"0a0b0c0d-0000-4000-8000-000000000001"}`)
+	if saved, rc := SavedOptions(dir, id); !saved || !rc {
+		t.Fatalf("a record in a folder named by the job id: %v %v", saved, rc)
+	}
+	if saved, _ := SavedOptions(dir, "2b3c4d5e-5e6f-4a7b-8c9d-0e1f2a3b4c5d"); saved {
+		t.Fatal("no record for this session in any folder")
+	}
+}
