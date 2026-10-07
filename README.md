@@ -240,3 +240,5 @@ See `CONTRIBUTING.md` to send a change, and `SECURITY.md` to report a vulnerabil
 ## License
 
 MIT. See `LICENSE`.
+
+CC Babysitter is an independent open-source project. It is not made by, affiliated with or endorsed by Anthropic. Claude and Claude Code are trademarks of Anthropic.
