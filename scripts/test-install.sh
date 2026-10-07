@@ -790,20 +790,67 @@ EOF
 	if [ "$(wc -l <"$c/wget.log" | tr -d ' ')" = 2 ]; then ok; else bad "wget calls: $(cat "$c/wget.log")"; fi
 	expect_clean
 
-	# The default download, from GitHub, uses the latest release URL. A wget
-	# shim records the call and fails, so nothing leaves this machine.
-	new_case fallbacks-default-url
-	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >>"%s"\nexit 8\n' "$c/wget.log" >"$c/shim/wget"
+	# The default download follows each redirect through an HTTPS address.
+	# The wget shim serves the final files without leaving this machine.
+	new_case fallbacks-default-https
+	cat >"$c/shim/wget" <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >>"$c/wget.log"
+[ "\$1" = --max-redirect=0 ] || exit 2
+[ "\$2" = --server-response ] || exit 2
+[ "\$3" = -O ] || exit 2
+out="\$4"
+requested="\$5"
+case "\$requested" in
+https://github.com/pejmanebrahimi/ccbabysitter/releases/latest/download/$host_asset)
+	printf '  HTTP/1.1 302 Found\r\n  Location: https://downloads.example/$host_asset\r\n' >&2
+	exit 8
+	;;
+https://downloads.example/$host_asset)
+	cp "$srv/good/$host_asset" "\$out"
+	;;
+https://github.com/pejmanebrahimi/ccbabysitter/releases/latest/download/checksums.txt)
+	printf '  HTTP/1.1 302 Found\r\n  Location: https://downloads.example/checksums.txt\r\n' >&2
+	exit 8
+	;;
+https://downloads.example/checksums.txt)
+	cp "$srv/good/checksums.txt" "\$out"
+	;;
+*) exit 4 ;;
+esac
+EOF
+	chmod 755 "$c/shim/wget"
+	path="$c/shim:$work/fallback-bin"
+	run_install
+	expect_status 0
+	expect_installed "$c/home/.local/bin" "$want_version"
+	if [ "$(wc -l <"$c/wget.log" | tr -d ' ')" = 4 ] &&
+		grep -F -q -- " https://downloads.example/$host_asset" "$c/wget.log" &&
+		grep -F -q -- " https://downloads.example/checksums.txt" "$c/wget.log"; then
+		ok
+	else
+		bad "wget calls: $(cat "$c/wget.log")"
+	fi
+	expect_clean
+
+	# A redirect from the default HTTPS address to HTTP is refused before
+	# wget gets a chance to request the insecure address.
+	new_case fallbacks-default-http-redirect
+	cat >"$c/shim/wget" <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >>"$c/wget.log"
+[ "\$1" = --max-redirect=0 ] || exit 2
+[ "\$2" = --server-response ] || exit 2
+[ "\$3" = -O ] || exit 2
+printf '  HTTP/1.1 302 Found\r\n  Location: http://insecure.example/$host_asset\r\n' >&2
+exit 8
+EOF
 	chmod 755 "$c/shim/wget"
 	path="$c/shim:$work/fallback-bin"
 	run_install
 	expect_status 1
-	if grep -F -q -- "-qO $c/tmp/" "$c/wget.log" &&
-		grep -F -q -- " https://github.com/pejmanebrahimi/ccbabysitter/releases/latest/download/$host_asset" "$c/wget.log"; then
-		ok
-	else
-		bad "wget was called as: $(cat "$c/wget.log")"
-	fi
+	expect_out "wget refused a non-HTTPS redirect to http://insecure.example/$host_asset. Nothing was installed."
+	if [ "$(wc -l <"$c/wget.log" | tr -d ' ')" = 1 ]; then ok; else bad "wget calls: $(cat "$c/wget.log")"; fi
 	expect_absent "$c/home/.local"
 	expect_clean
 }

@@ -100,15 +100,65 @@ base_url() {
 	esac
 }
 
+# wget_https URL FILE follows the default GitHub download one redirect at
+# a time. Every address is checked before wget is allowed to request it, so
+# an HTTPS-to-HTTP redirect cannot carry either the binary or checksums over
+# plaintext. Wget normally allows 20 redirects, so keep the same limit.
+wget_https() {
+	wget_url="$1"
+	wget_file="$2"
+	wget_redirects=0
+	while :; do
+		case "$wget_url" in
+		https://*) ;;
+		*) die "wget refused a non-HTTPS download address: $wget_url. Nothing was installed." ;;
+		esac
+
+		wget_response="$tmp_dir/wget-response"
+		if wget --max-redirect=0 --server-response -O "$wget_file" "$wget_url" 2>"$wget_response"; then
+			rm -f "$wget_response"
+			return 0
+		fi
+
+		wget_next=$(awk 'tolower($1) == "location:" { sub(/^[^:]*:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit }' "$wget_response")
+		rm -f "$wget_response"
+		[ -n "$wget_next" ] || return 1
+
+		case "$wget_next" in
+		https://*) wget_url="$wget_next" ;;
+		http://* | *://*) die "wget refused a non-HTTPS redirect to $wget_next. Nothing was installed." ;;
+		//*) wget_url="https:$wget_next" ;;
+		/*)
+			wget_host=${wget_url#https://}
+			wget_host=${wget_host%%/*}
+			wget_url="https://$wget_host$wget_next"
+			;;
+		\?*)
+			wget_base=${wget_url%%\#*}
+			wget_base=${wget_base%%\?*}
+			wget_url="$wget_base$wget_next"
+			;;
+		*)
+			wget_base=${wget_url%%\#*}
+			wget_base=${wget_base%%\?*}
+			case "$wget_base" in
+			https://*/*) wget_url="${wget_base%/*}/$wget_next" ;;
+			*) wget_url="$wget_base/$wget_next" ;;
+			esac
+			;;
+		esac
+
+		wget_redirects=$((wget_redirects + 1))
+		[ "$wget_redirects" -le 20 ] || return 1
+	done
+}
+
 # download URL FILE
 # curl is tried first, and for the default GitHub download it is held to
-# HTTPS and TLS 1.2 or later. wget cannot pin the protocol of a redirect
-# for a single download, so with wget the download relies on GitHub's
-# redirects staying on HTTPS. The SHA-256 check against checksums.txt
-# catches a damaged download, but checksums.txt comes over the same
-# channel, so it does not prove the file was not tampered with. With
-# CCBABYSITTER_DOWNLOAD_URL set, neither pin applies and the address is
-# used as given.
+# HTTPS and TLS 1.2 or later. With wget, the default download follows each
+# redirect through wget_https, which refuses any address outside HTTPS.
+# With CCBABYSITTER_DOWNLOAD_URL set, neither pin applies and the address
+# is used as given.
 download() {
 	if has curl; then
 		if [ -z "${CCBABYSITTER_DOWNLOAD_URL:-}" ]; then
@@ -117,7 +167,11 @@ download() {
 			curl -fsSL -o "$2" "$1"
 		fi
 	else
-		wget -qO "$2" "$1"
+		if [ -z "${CCBABYSITTER_DOWNLOAD_URL:-}" ]; then
+			wget_https "$1" "$2"
+		else
+			wget -qO "$2" "$1"
+		fi
 	fi
 }
 
