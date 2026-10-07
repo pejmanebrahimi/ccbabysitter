@@ -249,3 +249,26 @@ func TestSkillFindsWindowsInstallFromGitBash(t *testing.T) {
 		}
 	}
 }
+
+// With a real card tool, Claude kept its reply short and asked on the card
+// without ever showing the install command, then said it was "above". The
+// skill has to say the command goes in the reply itself, before any card.
+// And quitting lasts only until the next login: stopping for good is
+// uninstall, never a settings change made after quitting.
+func TestSkillShowsCommandsBeforeCards(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"in its own code block in your reply, before any card",
+		"Never refer to a command you have not shown in that same reply",
+		"Quitting lasts only until the next login",
+		"to stop it for good, offer `ccbabysitter uninstall`",
+		"never a settings change after quitting",
+	} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("SKILL.md does not say %q", want)
+		}
+	}
+}

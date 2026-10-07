@@ -13,6 +13,7 @@ CC Babysitter is a separate program on this computer. For a session it babysits,
 
 - Never run `ccbabysitter` with no command, `ccbabysitter status`, `ccbabysitter --foreground`, `ccbabysitter --no-open` or `ccbabysitter --demo`. Their output carries the page's key, which must never enter this chat. To show the page, use `ccbabysitter open`. When CC Babysitter's own answer tells the person to run `ccbabysitter status`, pass that on; do not run it.
 - Run each CC Babysitter command on its own and exactly as written here, with nothing added: no `;`, `&&`, `|`, `2>&1` or `echo`. The exit code shows in the result, and anything added makes the command ask for permission.
+- When you give the person a command to run, put it in its own code block in your reply, before any card. Never refer to a command you have not shown in that same reply, and never put it only on a card.
 - Ask the person with AskUserQuestion cards, never by asking them to type yes or no. Only where that tool is not available, ask the same question in plain words.
 - Ask on a card every time before `ccbabysitter stop`, `ccbabysitter settings NAME VALUE`, `ccbabysitter install`, `ccbabysitter uninstall` and `ccbabysitter quit`. Never run `ccbabysitter reset`: explain what it deletes and give the command for them to run.
 - Never install or update anything yourself.
@@ -38,7 +39,7 @@ Whether it is running shows in the next command: exit code 3 means not running (
 
 ## 2. Not installed
 
-Say: CC Babysitter isn't installed on this computer. Run this in your terminal app; it installs CC Babysitter and starts it, and its page opens in your browser (when `version --json` said `"headless":true`, say instead that it prints how to connect from another computer). Then give the one command for this system:
+Say: CC Babysitter isn't installed on this computer. Run this in your terminal app; it installs CC Babysitter and starts it, and its page opens in your browser (when `version --json` said `"headless":true`, say instead that it prints how to connect from another computer). Then give the one command for this system, in its own code block:
 
 - macOS and Linux: `curl -fsSL https://ccbabysitter.dev/install.sh | sh && ~/.local/bin/ccbabysitter`
 - Windows (PowerShell): `irm https://ccbabysitter.dev/install.ps1 | iex; ccbabysitter`
@@ -72,7 +73,7 @@ When the person asks for the page, panel or dashboard, run `ccbabysitter open` s
 - Stop babysitting: `ccbabysitter unbabysit <session>`. Try a stuck one again: `ccbabysitter retry <session>`.
 - Stop a background copy: a card first, then `ccbabysitter stop <session> --yes`.
 - Settings: `ccbabysitter settings` shows them; a card first, then `ccbabysitter settings NAME VALUE`.
-- Quit, install or uninstall: a card first, then the command.
+- Quit, install or uninstall: a card first, then the command. Quitting lasts only until the next login, since start at login stays on; to stop it for good, offer `ccbabysitter uninstall`, which also removes start at login, and never a settings change after quitting: CC Babysitter must be running to change a setting.
 - Reset: explain that it deletes CC Babysitter's state folder, then give `ccbabysitter reset` for them to run.
 - What a command does: `ccbabysitter help <command>`, and answer from what it says; it works even when CC Babysitter is not running and matches the installed version.
 - How it behaves (what happens on a restart, what babysitting does, what it never does): references/how-it-works.md.
