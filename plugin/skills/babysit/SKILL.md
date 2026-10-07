@@ -48,7 +48,7 @@ Say "your terminal app" and mean it: run with `!` here, its output, page key inc
 
 ## 3. Not running (exit code 3)
 
-Say: CC Babysitter is installed but not running. Start it by running `ccbabysitter` in your terminal app; it keeps running in the background from then on, and its page opens in your browser (or, on a machine with no display, it prints how to connect from another computer). Then the same card, and on Done carry on. Remember that it was just started.
+Say: CC Babysitter is installed but not running. Start it by running `ccbabysitter`, in its own code block, in your terminal app; it keeps running in the background from then on, and its page opens in your browser (or, on a machine with no display, it prints how to connect from another computer). Then the same card, and on Done carry on. Remember that it was just started.
 
 ## 4. Babysit
 
@@ -73,7 +73,7 @@ When the person asks for the page, panel or dashboard, run `ccbabysitter open` s
 - Stop babysitting: `ccbabysitter unbabysit <session>`. Try a stuck one again: `ccbabysitter retry <session>`.
 - Stop a background copy: a card first, then `ccbabysitter stop <session> --yes`.
 - Settings: `ccbabysitter settings` shows them; a card first, then `ccbabysitter settings NAME VALUE`.
-- Quit, install or uninstall: a card first, then the command. Quitting lasts only until the next login, since start at login stays on; to stop it for good, offer `ccbabysitter uninstall`, which also removes start at login, and never a settings change after quitting: CC Babysitter must be running to change a setting.
+- Quit, install or uninstall: a card first, then the command. Quitting lasts only until the next login (or boot, on a server) when start at login is on; to stop it for good, offer `ccbabysitter uninstall`, which also removes start at login, and never a settings change after quitting: CC Babysitter must be running to change a setting.
 - Reset: explain that it deletes CC Babysitter's state folder, then give `ccbabysitter reset` for them to run.
 - What a command does: `ccbabysitter help <command>`, and answer from what it says; it works even when CC Babysitter is not running and matches the installed version.
 - How it behaves (what happens on a restart, what babysitting does, what it never does): references/how-it-works.md.
