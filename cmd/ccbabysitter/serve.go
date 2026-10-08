@@ -444,6 +444,7 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 
 			ProjectsDir:        claude.ProjectsDir(),
 			JobsDir:            claude.JobsDir(),
+			DaemonLog:          claude.DaemonLogPath(),
 			URL:                pageURL,
 			SSHTarget:          target.get,
 			Autostart:          autostartInstaller,

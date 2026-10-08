@@ -39,8 +39,9 @@ CC Babysitter reads Claude Code's own local files and never writes to them:
 
 - the session files in `~/.claude/sessions`: each session's id, folder, name and process;
 - the transcripts in `~/.claude/projects`: token and turn counts, the model and the session's title. It reads no message content, except the first characters of a session's first message, to tell a run of a Claude Desktop scheduled task from an ordinary session, and it keeps nothing of it;
-- Claude Code's settings in `~/.claude.json`, to see whether a folder is trusted.
-- the background job records in `~/.claude/jobs`, when bringing a babysat session back: only whether it ran in the background before, and whether its saved options turn Remote Control on.
+- Claude Code's settings in `~/.claude.json`, to see whether a folder is trusted;
+- the background job records in `~/.claude/jobs`, when bringing a babysat session back: only whether it ran in the background before, and whether its saved options turn Remote Control on;
+- the end of the background daemon's log, `~/.claude/daemon.log`, when a babysat session ends: only whether Claude Code stopped it for being idle.
 
 ## Privacy
 

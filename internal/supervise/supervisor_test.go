@@ -193,6 +193,51 @@ func TestHostDiesThenFallback(t *testing.T) {
 	}
 }
 
+// When Claude Code's daemon stopped the session for being idle, the rescue
+// that follows gives that as its reason in Activity.
+func TestRescueAfterAnIdleRetireSaysSo(t *testing.T) {
+	id := "bbbbbbbb-0000-4000-8000-000000000002"
+	f := newFixture(t, nil)
+	f.r.SetRespond(func(args []string) (string, error) {
+		a := strings.Join(args, " ")
+		switch {
+		case a == "agents --json":
+			return "[]", nil
+		case strings.HasPrefix(a, "--bg --resume"):
+			f.p.SetAlive(9, true)
+			f.setFiles(sess(9, id, "bg", "cli", "bbbbbbbb"))
+			return "backgrounded \u00b7 bbbbbbbb \u00b7 demo-a1", nil
+		}
+		return "", nil
+	})
+	f.writeTranscript(t, "/home/dev/ws", id)
+	f.p.SetAlive(7, true)
+	f.setFiles(sess(7, id, "interactive", "claude-desktop", ""))
+	f.d.Obs.RefreshNow()
+	s, _, cancel := newSup(t, f)
+	defer cancel()
+
+	if res := s.Babysit(id, false, ViaPage); !res.OK {
+		t.Fatal(res.Message)
+	}
+	line := "[" + time.Now().UTC().Add(-2*time.Second).Format(time.RFC3339Nano) + "] [bg] bg retire bbbbbbbb: settled, idle 8h\n"
+	if err := os.WriteFile(f.d.DaemonLog, []byte(line), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.p.SetAlive(7, false)
+
+	if !waitFor(t, f, func() bool {
+		for _, e := range f.d.Log.Recent(50, "") {
+			if e.Automatic && e.Reason == "Claude Code stopped it after 8 hours idle" {
+				return true
+			}
+		}
+		return false
+	}) {
+		t.Fatalf("the rescue does not give the idle reason: %v", f.d.Log.Recent(20, ""))
+	}
+}
+
 func TestSameSnapshotTwiceCountsOnce(t *testing.T) {
 	id := "dddddddd-0000-4000-8000-000000000001"
 	f := newFixture(t, func([]string) (string, error) { return "[]", nil })

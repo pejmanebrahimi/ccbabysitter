@@ -6,6 +6,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 - Fixed: the Claude Code plugin could ask whether you had installed CC Babysitter without ever showing the install command, and after quitting CC Babysitter it offered a settings change that cannot work once it has quit. It now shows every command in the reply before asking, and offers `ccbabysitter uninstall` to stop CC Babysitter for good (#58).
 - Fixed: after Back to Desktop, the next rescue of that session first passed `--remote-control`, which made the CLI fork a copy; CC Babysitter stopped and removed the copy and retried without flags, but Activity showed "resume forked a copy", and a copy that lived long enough left an empty Remote Control entry in Claude Desktop under Other. A session the CLI keeps a background job record for is now resumed without flags from the first try (#55).
+- Changed: when Claude Code's daemon stops a background session that sat idle and CC Babysitter brings it back, Activity now gives the reason as "Claude Code stopped it after 8 hours idle" instead of "host process exited", which read like a crash (#49).
 
 ## 0.6.0 (2026-10-07)
 
