@@ -4,7 +4,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 ## Unreleased
 
-- Changed: Activity says why a babysat session went down, when CC Babysitter can tell, instead of "host process exited": Claude Desktop closed, Claude Desktop restarted for an update with both versions, the session ended while Claude Desktop kept running, the computer restarted, VS Code or the session's terminal closed, or the background copy ended. The Claude Desktop reasons need macOS or Windows. Sessions taken down together get one line for all of them as the first is brought back. Where nothing tells, the reason is "the process running it exited" (#68).
+- Changed: Activity says why a babysat session went down, when CC Babysitter can tell, instead of "host process exited": Claude Desktop closed, closed and updated, or restarted for an update, with both versions; the session ended while Claude Desktop kept running; the computer restarted; VS Code or the session's terminal closed; or the background copy ended. The Claude Desktop reasons need macOS or Windows. When several sessions went down together, one line says so as the first is brought back. Where nothing tells, the reason is "the process running it exited". The In background card gives the same reason, for example "At 22:11, Claude Desktop restarted for an update." (#68).
 
 ## 0.6.1 (2026-10-08)
 

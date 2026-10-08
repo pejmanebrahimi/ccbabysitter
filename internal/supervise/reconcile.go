@@ -140,18 +140,9 @@ func (s *Supervisor) countAbsence(snap observe.Snapshot) {
 		}
 		s.absent[w.SessionID]++
 	}
-	for id := range s.absent {
-		if s.find(id) == nil {
-			delete(s.absent, id)
-			delete(s.lastHost, id)
-			delete(s.causes, id)
-			delete(s.announced, id)
-		}
-	}
-	first := !s.countedOnce
-	s.countedOnce = true
+	s.forgetGone()
 	if len(gone) > 0 {
-		s.explainExits(gone, first)
+		s.explainExits(gone)
 	}
 	if len(again) > 0 {
 		s.lookAgain(again)
@@ -201,8 +192,6 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if claude.Listed(list, w.SessionID) {
 		return false, false
 	}
-	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
-	s.announce(w.SessionID, reason)
 	s.logInfo(label, "resuming: "+agentsSeen(list, w.SessionID, w.ShortID))
 	// A shutdown between the check above and the resume below would leave a
 	// resume that was cut short looking exactly like a session that refused
@@ -213,6 +202,8 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 		return false, false
 	}
 
+	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
+	s.announce(w.SessionID, reason)
 	short, res := s.deps.resumeBackground(ctx, w.SessionID, w.Name, w.Cwd, w.HasSavedOptions)
 	cur := s.find(w.SessionID)
 	if cur == nil {
@@ -244,6 +235,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 			// same stay in the background, so the time it began is kept.
 			if cur.BackgroundSince.IsZero() {
 				cur.BackgroundSince = now
+				cur.BackgroundCause = reason
 			}
 		}
 		cur.LastResume = now
@@ -255,7 +247,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 			msg += ". " + clause
 		}
 		s.logAuto(label, reason, msg)
-		s.toldCause(reason)
+		s.rescued(w.SessionID, reason)
 		return true, true
 	}
 
@@ -488,6 +480,7 @@ func (s *Supervisor) rejoin(w state.Watch, snap observe.Snapshot) bool {
 		}
 		cur.PromiseState = "inplace"
 		cur.BackgroundSince = time.Time{}
+		cur.BackgroundCause = ""
 		cur.OriginHost = sn.Host
 		// Remote Control is never recorded as switched off by an app that
 		// simply does not report it: it is a promise this watch made once.

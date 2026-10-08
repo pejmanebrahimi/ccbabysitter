@@ -91,6 +91,10 @@ type Watch struct {
 	// kept while the copy is started again and cleared once the watch
 	// leaves the background.
 	BackgroundSince time.Time `json:"backgroundSince,omitzero"`
+	// BackgroundCause is why the watch went to the background: the reason
+	// its first rescue gave in Activity. It is kept and cleared with
+	// BackgroundSince, and empty when not known.
+	BackgroundCause string `json:"backgroundCause,omitempty"`
 }
 
 // State is the entire contents of state.json. A file written by another

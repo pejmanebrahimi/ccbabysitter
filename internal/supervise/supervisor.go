@@ -127,8 +127,7 @@ type Supervisor struct {
 	// missing, announced the sessions one line already named the cause
 	// for, desktopVersion the desktop app's version last seen running and
 	// when it was read, and pending a desktop app that looked closed and
-	// may turn out to have restarted for an update. countedOnce says the
-	// first look since start has been taken, and rebooted that the
+	// may turn out to have restarted for an update. rebooted says the
 	// computer restarted since the run before this one.
 	lastHost         map[string]claude.Host
 	causes           map[string]string
@@ -136,7 +135,6 @@ type Supervisor struct {
 	desktopVersion   string
 	desktopVersionAt time.Time
 	pending          *pendingDesktop
-	countedOnce      bool
 	rebooted         bool
 	// statsInFlight names the sessions the worker has been asked about and
 	// has not answered for yet, so the same read is never queued twice.

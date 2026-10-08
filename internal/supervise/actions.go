@@ -267,6 +267,7 @@ func (s *Supervisor) notedAlreadyLive(id string, res Result) {
 				cur.BackgroundSince = s.deps.Now()
 			}
 		}
+		s.lastHost[id] = claude.HostBackground
 		cur.HasSavedOptions = true
 		if res.ShortID != "" {
 			cur.ShortID = res.ShortID
@@ -274,6 +275,7 @@ func (s *Supervisor) notedAlreadyLive(id string, res Result) {
 	} else {
 		cur.PromiseState = "inplace"
 		cur.BackgroundSince = time.Time{}
+		cur.BackgroundCause = ""
 		cur.OriginHost = res.AlreadyLiveIn
 	}
 	s.absent[id] = 0

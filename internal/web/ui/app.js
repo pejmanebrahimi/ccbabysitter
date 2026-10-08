@@ -104,6 +104,16 @@
     return MONTHS[t.getMonth()] + " " + t.getDate() + " at " + at;
   }
 
+  /* wentDown is how an In background card says why the session went to
+     the background: after the time it happened, the reason its rescue gave
+     in Activity, without the versions. It is empty without a reason. */
+  function wentDown(cause, when) {
+    var c = String(cause || "").replace(/ from [0-9.]+ to [0-9.]+$/, "");
+    if (!c) { return ""; }
+    if (!when) { return c.charAt(0).toUpperCase() + c.slice(1); }
+    return when.charAt(0).toUpperCase() + when.slice(1) + ", " + c;
+  }
+
   /* stayFor says how long a session has been in the background: in
      minutes under an hour, in hours under two days, in days after that. */
   function stayFor(iso, now) {
@@ -756,8 +766,9 @@
     markBusy(node, w.sessionId);
   }
 
-  /* fillRescue writes the panel an In background card shows: what closed
-     and when, that the session kept going, and how long it has been in the
+  /* fillRescue writes the panel an In background card shows: why it went
+     to the background and when, or what closed when that is not known,
+     that the session kept going, and how long it has been in the
      background. The page renders on every view the stream brings, which
      keeps the time current without a timer of its own. */
   function fillRescue(node, w, rescued) {
@@ -765,7 +776,9 @@
     if (!rescued) { return; }
     var now = new Date();
     var when = closedWhen(w.backgroundSince, now);
-    setText(f(node, "rescue"), (ORIGIN_PHRASE[w.originHost] || "Its app") + " closed" + (when ? " " + when : "") + ". " +
+    var down = wentDown(w.backgroundCause, when) ||
+      (ORIGIN_PHRASE[w.originHost] || "Its app") + " closed" + (when ? " " + when : "");
+    setText(f(node, "rescue"), down + ". " +
       (w.name || w.shortId) + (w.remoteControl ? " kept running and stayed reachable from your other devices." : " kept running in the background."));
     chip(el(node, "from"), w.originHost, "from");
     chip(el(node, "to"), "background", "to");

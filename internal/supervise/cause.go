@@ -3,6 +3,7 @@ package supervise
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,9 +28,10 @@ const unknownExit = "the process running it exited"
 // Reasons that name the app or the computer going down, which close every
 // session in them at once and are worth one line for all of them.
 const (
-	desktopClosed     = "Claude Desktop closed"
-	computerRestarted = "the computer restarted"
-	desktopUpdatedFmt = "Claude Desktop restarted for an update from %s to %s"
+	desktopClosed       = "Claude Desktop closed"
+	computerRestarted   = "the computer restarted"
+	desktopUpdatedFmt   = "Claude Desktop closed and updated from %s to %s"
+	desktopRestartedFmt = "Claude Desktop restarted for an update from %s to %s"
 )
 
 // desktopKeptRunning is the reason for a session that went down while
@@ -43,22 +45,22 @@ var versionPattern = regexp.MustCompile(`^[0-9]+(\.[0-9]+)+$`)
 func realVersion(v string) bool { return versionPattern.MatchString(v) }
 
 // causeFor is the reason a babysat session went down, from the app it ran
-// in, the desktop app as it was the moment the session went missing, the
-// desktop version last seen running before that, and whether the computer
-// had just restarted. It is "" when nothing tells.
-func causeFor(host claude.Host, apps AppsNow, knownVersion string, restarted bool) string {
-	if restarted {
-		return computerRestarted
-	}
+// in, the desktop app as it is now, and the desktop version last seen
+// running. A new version on disk means the app updated; seen running
+// again, it restarted for the update. It is "" when nothing tells.
+func causeFor(host claude.Host, apps AppsNow, knownVersion string) string {
 	switch host {
 	case claude.HostDesktop:
 		if !apps.DesktopKnown {
 			return ""
 		}
-		if realVersion(knownVersion) && realVersion(apps.DesktopVersion) && knownVersion != apps.DesktopVersion {
+		updated := realVersion(knownVersion) && realVersion(apps.DesktopVersion) && knownVersion != apps.DesktopVersion
+		switch {
+		case updated && apps.DesktopRunning:
+			return fmt.Sprintf(desktopRestartedFmt, knownVersion, apps.DesktopVersion)
+		case updated:
 			return fmt.Sprintf(desktopUpdatedFmt, knownVersion, apps.DesktopVersion)
-		}
-		if apps.DesktopRunning {
+		case apps.DesktopRunning:
 			return desktopKeptRunning
 		}
 		return desktopClosed
@@ -72,17 +74,28 @@ func causeFor(host claude.Host, apps AppsNow, knownVersion string, restarted boo
 	return ""
 }
 
+// Ranks of the reasons a look at Claude Desktop can give, by how much each
+// explains.
+const (
+	rankKeptRunning = 1 + iota
+	rankClosed
+	rankUpdated
+	rankRestarted
+)
+
 // desktopRank orders the reasons a look at Claude Desktop can give by how
 // much each explains, so a later look replaces only a weaker one. Other
 // reasons are 0.
 func desktopRank(reason string) int {
 	switch {
 	case strings.HasPrefix(reason, "Claude Desktop restarted for an update"):
-		return 3
+		return rankRestarted
+	case strings.HasPrefix(reason, "Claude Desktop closed and updated"):
+		return rankUpdated
 	case reason == desktopClosed:
-		return 2
+		return rankClosed
 	case reason == desktopKeptRunning:
-		return 1
+		return rankKeptRunning
 	}
 	return 0
 }
@@ -90,7 +103,7 @@ func desktopRank(reason string) int {
 // groupable reports whether a reason closes several sessions at once, so
 // one line can name it for all of them.
 func groupable(reason string) bool {
-	return reason == desktopClosed || reason == computerRestarted || strings.HasPrefix(reason, "Claude Desktop restarted for an update")
+	return reason == computerRestarted || desktopRank(reason) >= rankClosed
 }
 
 // pendingDesktop is a desktop app that looked closed when sessions went
@@ -114,7 +127,8 @@ const (
 	// bootSlack is how far, in seconds, two readings of the boot time may
 	// be apart and still be the same boot: Windows works it out from the
 	// time since boot, and a clock change moves it. A restart moves it by
-	// at least the time the computer was up.
+	// at least the time the computer was up. A shutdown with Windows Fast
+	// Startup does not move it at all, and is not told.
 	bootSlack = 60
 )
 
@@ -127,15 +141,37 @@ func (s *Supervisor) appsNow() AppsNow {
 	return s.deps.Apps()
 }
 
-// anyInDesktop reports whether a babysat session was last seen running in
-// the desktop app, or was babysat there and has not been seen since.
+// appsOnce asks for the desktop app's state the first time it is wanted,
+// and not again.
+func (s *Supervisor) appsOnce() func() AppsNow {
+	var apps *AppsNow
+	return func() AppsNow {
+		if apps == nil {
+			now := s.appsNow()
+			apps = &now
+		}
+		return *apps
+	}
+}
+
+// hostOf is the app a babysat session was last seen running in. Until it
+// is seen, that is the background for a watch our copy carries, and the
+// app it was babysat in otherwise.
+func (s *Supervisor) hostOf(w state.Watch) claude.Host {
+	if host, ok := s.lastHost[w.SessionID]; ok {
+		return host
+	}
+	if w.PromiseState == "fallback" {
+		return claude.HostBackground
+	}
+	return w.OriginHost
+}
+
+// anyInDesktop reports whether a babysat session runs in the desktop app,
+// as far as the last look saw.
 func (s *Supervisor) anyInDesktop() bool {
 	for _, w := range s.st.Watches {
-		host, ok := s.lastHost[w.SessionID]
-		if !ok {
-			host = w.OriginHost
-		}
-		if host == claude.HostDesktop && s.absent[w.SessionID] == 0 {
+		if s.hostOf(w) == claude.HostDesktop && s.absent[w.SessionID] == 0 {
 			return true
 		}
 	}
@@ -174,28 +210,25 @@ func (s *Supervisor) noteBoot() {
 
 // explainExits works out, the moment babysat sessions are first seen
 // missing, why they went down, and keeps the reason for their rescue line.
-// first says this is the first look since the program started, when a
-// session missing after a restart went down with the computer.
-func (s *Supervisor) explainExits(gone []state.Watch, first bool) {
-	apps := s.appsNow()
-	restarted := first && s.rebooted
+// A session not seen running since the program started went down while it
+// was not running, so how the apps look now says nothing about why: only a
+// restart of the computer since the run before is told.
+func (s *Supervisor) explainExits(gone []state.Watch) {
+	apps := s.appsOnce()
 	for _, w := range gone {
-		host, ok := s.lastHost[w.SessionID]
-		if !ok {
-			host = w.OriginHost
-		}
-		reason := causeFor(host, apps, s.desktopVersion, restarted)
-		if reason == "" {
+		host, seen := s.lastHost[w.SessionID]
+		if !seen {
+			if s.rebooted {
+				s.setCause(w.SessionID, computerRestarted)
+			}
 			continue
 		}
-		s.causes[w.SessionID] = reason
-		if desktopRank(reason) > 0 {
-			// Read the version afresh once sessions run in the app again,
-			// whatever this turns out to have been.
-			s.desktopVersionAt = time.Time{}
+		var now AppsNow
+		if host == claude.HostDesktop {
+			now = apps()
 		}
-		if reason == desktopClosed && s.pending == nil {
-			s.pending = &pendingDesktop{at: s.deps.Now(), from: s.desktopVersion}
+		if reason := causeFor(host, now, s.desktopVersion); reason != "" {
+			s.setCause(w.SessionID, reason)
 		}
 	}
 }
@@ -206,31 +239,36 @@ func (s *Supervisor) explainExits(gone []state.Watch, first bool) {
 // and an update can change its version only after it quit: what this look
 // tells replaces a weaker reason.
 func (s *Supervisor) lookAgain(again []state.Watch) {
-	var apps *AppsNow
+	apps := s.appsOnce()
 	for _, w := range again {
 		old := s.causes[w.SessionID]
 		if desktopRank(old) == 0 {
 			continue
 		}
-		if apps == nil {
-			now := s.appsNow()
-			apps = &now
+		if reason := causeFor(claude.HostDesktop, apps(), s.desktopVersion); desktopRank(reason) > desktopRank(old) {
+			s.setCause(w.SessionID, reason)
 		}
-		reason := causeFor(claude.HostDesktop, *apps, s.desktopVersion, false)
-		if desktopRank(reason) <= desktopRank(old) {
-			continue
-		}
-		s.causes[w.SessionID] = reason
-		if reason == desktopClosed && s.pending == nil {
-			s.pending = &pendingDesktop{at: s.deps.Now(), from: s.desktopVersion}
-		}
+	}
+}
+
+// setCause keeps reason as why id went down. After any reason from Claude
+// Desktop its version is read afresh once sessions run in it again, and a
+// desktop app that closed is followed up, to tell whether it restarted for
+// an update.
+func (s *Supervisor) setCause(id, reason string) {
+	s.causes[id] = reason
+	rank := desktopRank(reason)
+	if rank > 0 {
+		s.desktopVersionAt = time.Time{}
+	}
+	if (rank == rankClosed || rank == rankUpdated) && s.pending == nil {
+		s.pending = &pendingDesktop{at: s.deps.Now(), from: s.desktopVersion}
 	}
 }
 
 // announce writes, as the first of several sessions taken down by the same
 // app or restart is brought back, one line naming the cause for all of
-// them: every babysat session due to be brought back for it. A session
-// that comes back by itself before then is not counted, and nothing is
+// them: every babysat session due to be brought back for it. Nothing is
 // said for one session alone.
 func (s *Supervisor) announce(id, reason string) {
 	if !groupable(reason) || s.announced[id] {
@@ -248,7 +286,17 @@ func (s *Supervisor) announce(id, reason string) {
 	for _, d := range due {
 		s.announced[d] = true
 	}
-	s.logInfo("", strings.ToUpper(reason[:1])+reason[1:]+". Bringing back "+plural(len(due), "babysat session", "babysat sessions")+".")
+	s.logInfo("", strings.ToUpper(reason[:1])+reason[1:]+": "+strconv.Itoa(len(due))+" babysat sessions went down.")
+}
+
+// rescued notes that id was brought back with reason: it now runs in the
+// background, and what explained its way down is done with. A rescue that
+// said Claude Desktop closed gets its follow-up once the app is back.
+func (s *Supervisor) rescued(id, reason string) {
+	s.lastHost[id] = claude.HostBackground
+	delete(s.causes, id)
+	delete(s.announced, id)
+	s.toldCause(reason)
 }
 
 // toldCause notes that a rescue gave reason in Activity, so a desktop app
@@ -259,11 +307,36 @@ func (s *Supervisor) toldCause(reason string) {
 	}
 }
 
+// forgetGone drops what is kept about the way down of sessions that are no
+// longer babysat.
+func (s *Supervisor) forgetGone() {
+	for id := range s.absent {
+		if s.find(id) == nil {
+			delete(s.absent, id)
+		}
+	}
+	for id := range s.lastHost {
+		if s.find(id) == nil {
+			delete(s.lastHost, id)
+		}
+	}
+	for id := range s.causes {
+		if s.find(id) == nil {
+			delete(s.causes, id)
+		}
+	}
+	for id := range s.announced {
+		if s.find(id) == nil {
+			delete(s.announced, id)
+		}
+	}
+}
+
 // followUpDesktop deals with a desktop app that looked closed, once it is
 // running again soon after. Back with a new version, it had restarted for
-// an update: sessions still to be brought back give the update as their
-// reason, and when a rescue already said the app closed, one line says
-// what really happened.
+// an update: sessions still to be brought back give that as their reason,
+// and when a rescue already said the app closed, one line says it is back
+// updated.
 func (s *Supervisor) followUpDesktop() {
 	if s.pending == nil {
 		return
@@ -284,13 +357,13 @@ func (s *Supervisor) followUpDesktop() {
 	if !realVersion(p.from) || !realVersion(apps.DesktopVersion) || p.from == apps.DesktopVersion {
 		return
 	}
-	updated := fmt.Sprintf(desktopUpdatedFmt, p.from, apps.DesktopVersion)
+	restarted := fmt.Sprintf(desktopRestartedFmt, p.from, apps.DesktopVersion)
 	for id, reason := range s.causes {
-		if reason == desktopClosed {
-			s.causes[id] = updated
+		if rank := desktopRank(reason); rank == rankClosed || rank == rankUpdated {
+			s.causes[id] = restarted
 		}
 	}
 	if p.told {
-		s.logInfo("", "Claude Desktop is back as "+apps.DesktopVersion+": it had restarted for an update from "+p.from+".")
+		s.logInfo("", "Claude Desktop is back, updated from "+p.from+" to "+apps.DesktopVersion+".")
 	}
 }
