@@ -71,6 +71,14 @@ ol.steps > li::before { content: counter(step); position: absolute; left: 0; top
 .shot { margin: 6px 0 22px; }
 .shot img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; }
 .shot figcaption { margin-top: 8px; font-size: 13px; color: var(--grey); }
+/* each shot comes in light and dark, and the one for the page's theme shows */
+.shot .dark-only { display: none; }
+:root[data-theme="dark"] .shot .light-only { display: none; }
+:root[data-theme="dark"] .shot .dark-only { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .shot .light-only { display: none; }
+  :root:not([data-theme="light"]) .shot .dark-only { display: block; }
+}
 
 /* Previous and Next, then the edit link */
 .pager { display: flex; justify-content: space-between; gap: 16px; margin: 56px 0 18px; padding-top: 20px; border-top: 1px solid var(--line); }

@@ -31,6 +31,7 @@ go test -race ./...
 gofmt -l .        # must print nothing
 sh scripts/test-install.sh    # when scripts/ changes
 vale README.md site           # when README.md or site/ changes; see CONTRIBUTING.md
+node scripts/docs-shots.mjs   # when internal/web/ui or internal/web/demo.go changes
 ```
 
 The page and site tests run JavaScript under `node` and skip themselves when it is missing; install Node.js if you touch `internal/web/ui` or `site`. CI runs the tests on Linux, macOS and Windows.

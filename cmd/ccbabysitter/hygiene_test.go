@@ -121,7 +121,7 @@ func shippedPaths(t *testing.T) []string {
 				return nil
 			}
 			// Binary assets of the website; site/site_test.go checks its text files.
-			if ext := strings.ToLower(filepath.Ext(path)); ext == ".png" || ext == ".woff2" {
+			if ext := strings.ToLower(filepath.Ext(path)); ext == ".png" || ext == ".webp" || ext == ".woff2" {
 				return nil
 			}
 			paths = append(paths, path)

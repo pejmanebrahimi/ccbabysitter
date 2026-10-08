@@ -17,7 +17,7 @@ import (
 // binary reports whether a file is not text and is skipped by the text checks.
 func binary(path string) bool {
 	switch strings.ToLower(filepath.Ext(path)) {
-	case ".png", ".woff2":
+	case ".png", ".webp", ".woff2":
 		return true
 	}
 	return false
