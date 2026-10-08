@@ -425,6 +425,10 @@ a.b { display: inline-block; text-decoration: none; }
    groups is drawn only between the ones that are there. */
 .fieldset:not([hidden]) ~ .fieldset { padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--border); }
 .fieldset h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.report { margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-2); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.about-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--dim); }
+.about-list li { margin: 5px 0; }
+.about-list a, .fieldset .quiet a { color: var(--text); }
 .seg { display: flex; gap: 2px; padding: 3px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
 .seg-b {
   flex: 1; border: none; background: none; color: var(--dim); cursor: pointer;

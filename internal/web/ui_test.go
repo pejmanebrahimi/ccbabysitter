@@ -986,6 +986,90 @@ func TestTheLidIsMentionedOnlyWhereItSleeps(t *testing.T) {
 	}
 }
 
+// The About panel opens from the header beside Settings, in the same kind
+// of drawer, and says which version runs, how to update it and how to
+// report a problem: by email, as a GitHub issue, or privately for a
+// security problem. Nothing in it carries the page's address or key.
+func TestTheAboutPanel(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	for _, want := range []string{
+		`<button class="b" id="open-about">About</button>`,
+		`<aside class="drawer" id="drawer-about" hidden aria-labelledby="about-h">`,
+		`<pre class="mono report" data-f="about-version"></pre>`,
+		`<button class="b small" id="about-copy-version">Copy for a bug report</button>`,
+		`<code class="mono" data-f="about-update" data-unix="curl -fsSL https://ccbabysitter.dev/install.sh | sh" data-windows="irm https://ccbabysitter.dev/install.ps1 | iex"></code>`,
+		`<button class="b small" id="about-copy-update">Copy</button>`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter/releases/latest"`,
+		`href="mailto:hello@ccbabysitter.dev"`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter/issues/new/choose"`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter/security/advisories/new"`,
+		`href="https://ccbabysitter.dev"`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter#readme"`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE"`,
+		"It is not made by, affiliated with or endorsed by Anthropic.",
+	} {
+		if !strings.Contains(index, want) {
+			t.Errorf("index.html does not contain %s", want)
+		}
+	}
+	about := between(t, index, `<aside class="drawer" id="drawer-about"`, `</aside>`)
+	for _, gone := range []string{"token", "127.0.0.1", "data-f=\"url\""} {
+		if strings.Contains(about, gone) {
+			t.Errorf("the About panel has %q", gone)
+		}
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`$("#open-about").addEventListener("click", openAbout);`,
+		`openDrawer("about");`,
+		`copyText(versionReport(state.view || {}));`,
+		`copyText(updateCommand(((state.view || {}).env || {}).platform, updateCommands()));`,
+		`$("#drawer-" + state.drawer).hidden = true;`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+}
+
+// The version details to copy name CC Babysitter's version, the system and
+// its processor, whether it has a display, and the versions of Claude Code
+// it found, in plain text; the update command is, of the install commands
+// the page carries, the one for the system. Both are run as the page runs
+// them, when node is there.
+func TestTheAboutVersionReport(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node is not installed")
+	}
+	app := readUI(t, "ui/app.js")
+	fns := "var SYSTEM_NAMES = " + between(t, app, "var SYSTEM_NAMES = ", ";\n") + ";\n"
+	for _, name := range []string{"versionReport(view)", "updateCommand(platform, commands)"} {
+		head := "function " + name + " {"
+		fns += head + between(t, app, head, "\n  }") + "\n}\n"
+	}
+	script := fns + `
+console.log(JSON.stringify(versionReport({version: "0.6.1", env: {platform: "darwin", arch: "arm64", cliVersion: "2.1.280", desktopInstalled: true, desktopVersion: "2.7032.0", vscodeExtVersion: "2.1.280"}})));
+console.log(JSON.stringify(versionReport({version: "0.6.1", env: {platform: "linux", arch: "amd64", headless: true, cliFound: false}})));
+console.log(JSON.stringify(versionReport({})));
+var commands = {unix: "curl -fsSL https://ccbabysitter.dev/install.sh | sh", windows: "irm https://ccbabysitter.dev/install.ps1 | iex"};
+console.log(updateCommand("windows", commands));
+console.log(updateCommand("darwin", commands));
+console.log(updateCommand(undefined, commands));
+`
+	got := runNode(t, script)
+	want := []string{
+		`"CC Babysitter 0.6.1\nSystem: macOS, arm64\nClaude Code CLI: 2.1.280\nClaude Desktop: 2.7032.0\nVS Code extension: 2.1.280"`,
+		`"CC Babysitter 0.6.1\nSystem: Linux, amd64, no display\nClaude Code CLI: not found"`,
+		`"CC Babysitter unknown\nSystem: unknown\nClaude Code CLI: not found"`,
+		"irm https://ccbabysitter.dev/install.ps1 | iex",
+		"curl -fsSL https://ccbabysitter.dev/install.sh | sh",
+		"curl -fsSL https://ccbabysitter.dev/install.sh | sh",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 // Back to the app a session came from ends the background copy after a
 // dialog that says what happens, in one of three versions.
 func TestTheBackDialog(t *testing.T) {

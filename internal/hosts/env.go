@@ -48,6 +48,9 @@ type Env struct {
 	DesktopVersion   string     `json:"desktopVersion"`
 	VSCodeInstalled  bool       `json:"vscodeInstalled"`
 	VSCodeExtVersion string     `json:"vscodeExtVersion"`
+	// Arch is the processor the program runs on, as Go names it, such as
+	// arm64 or amd64.
+	Arch string `json:"arch"`
 	// LidSleeps says that closing this computer's lid now puts it to sleep,
 	// keep-awake or not: it has a lid, and the system is set to sleep when
 	// it closes. A Mac on an external display, a laptop set to do nothing,
@@ -69,6 +72,7 @@ const (
 // tests can script every answer without touching a real machine.
 type Probes struct {
 	Platform        string
+	Arch            string
 	LookPath        func(string) (string, error)
 	Getenv          func(string) string
 	RegistryHandler func(scheme string) (string, bool)
@@ -150,6 +154,7 @@ func detect(ctx context.Context, p Probes, runner claude.Runner, snapshotHasDesk
 	}
 
 	env.Headless = isHeadless(p)
+	env.Arch = p.Arch
 	env.LidSleeps = p.LidSleeps != nil && p.LidSleeps()
 	return env
 }
@@ -329,6 +334,7 @@ func RealProbes(desktopProcess func(substr string) bool) Probes {
 
 	return Probes{
 		LidSleeps: lidSleeps,
+		Arch:      runtime.GOARCH,
 		Platform:  platform,
 		Home:      home,
 		LookPath:  exec.LookPath,

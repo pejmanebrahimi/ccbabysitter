@@ -97,3 +97,14 @@ func TestDetectLidSleeps(t *testing.T) {
 		t.Fatal("the probe's answer was lost")
 	}
 }
+
+// The environment names the processor, for the version details a bug
+// report carries.
+func TestDetectArch(t *testing.T) {
+	r := claude.NewFakeRunner(func(args []string) (string, error) { return "2.1.275 (Claude Code)\n", nil })
+	p := probes("darwin")
+	p.Arch = "arm64"
+	if got := Detect(context.Background(), p, r, false).Arch; got != "arm64" {
+		t.Fatalf("arch %q", got)
+	}
+}

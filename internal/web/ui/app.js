@@ -535,7 +535,8 @@
        from before it, which must not undo what the person just did. */
     if (!state.saving) {
       applyTheme(view.settings ? view.settings.theme : "dark");
-      if (state.drawer) { paintSettings(view); }
+      if (state.drawer === "settings") { paintSettings(view); }
+      fillAbout(view);
     }
     fillBabysitDialog();
     fillStopDialog();
@@ -1305,25 +1306,74 @@
     renderActivityFilter();
   }
 
-  /* ---------- settings drawer ---------- */
+  /* ---------- drawers ---------- */
 
-  function openDrawer() {
+  /* openDrawer opens the drawer by its name, settings or about, one at a
+     time, with focus on its first control. */
+  function openDrawer(name) {
     if (state.drawer) { return; }
     state.returnFocus = document.activeElement;
-    state.drawer = "settings";
+    state.drawer = name;
     $("#scrim").hidden = false;
-    var node = $("#drawer-settings");
+    var node = $("#drawer-" + name);
     node.hidden = false;
-    var first = node.querySelector("button, select, input");
+    var first = node.querySelector("button, select, input, a");
     if (first) { first.focus(); }
   }
 
   function closeDrawer() {
     if (!state.drawer) { return; }
-    $("#drawer-settings").hidden = true;
+    $("#drawer-" + state.drawer).hidden = true;
     state.drawer = null;
     $("#scrim").hidden = true;
     if (state.returnFocus && state.returnFocus.focus) { state.returnFocus.focus(); }
+  }
+
+  /* ---------- about drawer ---------- */
+
+  var SYSTEM_NAMES = { darwin: "macOS", windows: "Windows", linux: "Linux" };
+
+  /* versionReport is the About panel's version details, as plain text to
+     copy into a bug report: CC Babysitter's version, the system, and the
+     versions of Claude Code it found. It carries no address and no key. */
+  function versionReport(view) {
+    var env = view.env || {};
+    var system = SYSTEM_NAMES[env.platform] || env.platform || "unknown";
+    if (env.arch) { system += ", " + env.arch; }
+    if (env.headless) { system += ", no display"; }
+    var lines = [
+      "CC Babysitter " + (view.version || "unknown"),
+      "System: " + system,
+      "Claude Code CLI: " + (env.cliVersion || (env.cliFound ? "found" : "not found"))
+    ];
+    if (env.desktopInstalled) { lines.push("Claude Desktop: " + (env.desktopVersion || "installed")); }
+    if (env.vscodeExtVersion) { lines.push("VS Code extension: " + env.vscodeExtVersion); }
+    return lines.join("\n");
+  }
+
+  /* updateCommand is, of the install commands the page carries, the one
+     for the system: run again, it updates to the latest release. */
+  function updateCommand(platform, commands) {
+    return platform === "windows" ? commands.windows : commands.unix;
+  }
+
+  /* updateCommands are the install commands, which the page itself carries,
+     so this script names no address of its own. */
+  function updateCommands() {
+    return f($("#drawer-about"), "about-update").dataset;
+  }
+
+  /* fillAbout writes the About panel from the view, on every render, so it
+     stays current while it is open. */
+  function fillAbout(view) {
+    var drawer = $("#drawer-about");
+    setText(f(drawer, "about-version"), versionReport(view));
+    setText(f(drawer, "about-update"), updateCommand((view.env || {}).platform, updateCommands()));
+  }
+
+  function openAbout() {
+    fillAbout(state.view || {});
+    openDrawer("about");
   }
 
   function pressSegment(group, attribute, value) {
@@ -1367,7 +1417,7 @@
   function openSettings() {
     settingsError("");
     paintSettings(state.view || {});
-    openDrawer();
+    openDrawer("settings");
   }
 
   /* putSetting sends one change and answers with what went wrong, or with
@@ -1614,6 +1664,9 @@
     });
 
     $("#open-settings").addEventListener("click", openSettings);
+    $("#open-about").addEventListener("click", openAbout);
+    $("#about-copy-version").addEventListener("click", function () { copyText(versionReport(state.view || {})); });
+    $("#about-copy-update").addEventListener("click", function () { copyText(updateCommand(((state.view || {}).env || {}).platform, updateCommands())); });
     $("#scrim").addEventListener("click", closeDrawer);
     $$('[data-close="drawer"]').forEach(function (button) { button.addEventListener("click", closeDrawer); });
     $("#set-theme-seg").addEventListener("click", onThemeButton);
