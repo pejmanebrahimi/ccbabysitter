@@ -1,0 +1,19 @@
+extends: existence
+message: "Drop '%s': say the next thing plainly."
+level: error
+ignorecase: true
+tokens:
+  - moreover
+  - furthermore
+  - additionally
+  - crucially
+  - notably
+  - importantly
+  - consequently
+  - ultimately
+  - hence
+  - thus
+  - in conclusion
+  - in summary
+  - it is worth noting
+  - it's worth noting

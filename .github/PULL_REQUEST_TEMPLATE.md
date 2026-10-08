@@ -10,3 +10,4 @@
 - [ ] `go test ./...`
 - [ ] `gofmt -l .` prints nothing
 - [ ] Tried by hand:
+- [ ] Docs or website changed: `vale README.md site` passes, I read the page aloud, and it does one job

@@ -17,6 +17,8 @@ gofmt -l .
 
 To try the page without touching any real session, run `go run ./cmd/ccbabysitter --demo`.
 
+The writing of the README and the website is checked with [Vale](https://vale.sh), as CI does. Install it (`brew install vale`, or a release from its GitHub page), then run `vale README.md site` from the top of the tree. Error-level findings fail the check, and warnings and suggestions are advice. `.vale.ini` says which rules apply and why some are turned down, and the Go tests run Vale too when it is installed. The styles in `.vale/styles` are copied verbatim from their releases, and are the one exception to plain ASCII. A linter is only a floor: also read a changed page aloud, and check that it does one job.
+
 If you change `scripts/install.sh`, run `scripts/test-install.sh`. It builds CC Babysitter, serves the release files from this machine, and runs the script against them with a temporary home folder. It needs `go`, `python3`, `curl`, and `sha256sum` or `shasum`.
 
 ## Issues

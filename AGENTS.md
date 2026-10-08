@@ -30,6 +30,7 @@ go vet ./...
 go test -race ./...
 gofmt -l .        # must print nothing
 sh scripts/test-install.sh    # when scripts/ changes
+vale README.md site           # when README.md or site/ changes; see CONTRIBUTING.md
 ```
 
 The page and site tests run JavaScript under `node` and skip themselves when it is missing; install Node.js if you touch `internal/web/ui` or `site`. CI runs the tests on Linux, macOS and Windows.
@@ -43,7 +44,7 @@ To look at the page without touching a real session: `go run ./cmd/ccbabysitter 
 - **Do not weaken `internal/web/guard.go`.** Every request goes through it. A new route needs no exception, and a change to the guard needs a test that shows another web page still cannot reach the API.
 - **Before ending or starting anything, match the process exactly** (pid and creation time, through `internal/procs`), never by name alone.
 - **Cross-platform.** Code that differs per OS lives in `_darwin.go`, `_linux.go`, `_windows.go` files or behind `runtime.GOOS`. Build shell and PowerShell command lines with the quoting helpers in `internal/hosts/targets.go`; never quote by hand.
-- **Plain ASCII** in every shipped file: no curly quotes or long dashes. A test checks this.
+- **Plain ASCII** in every shipped file: no curly quotes or long dashes. A test checks this. The Vale styles copied verbatim into `.vale/styles` are the one exception.
 - **No new dependencies** without an issue that agrees on it first.
 - **The page and the command line stay in step.** Both drive the engine through the local API. A new action on the page needs its command, its `help` page and its README line; a change to a command's `--json` output only adds fields within a `schema` number.
 - **Comments and docs say what the code does now**, for a reader who knows nothing of its history.

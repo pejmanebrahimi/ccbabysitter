@@ -1,0 +1,9 @@
+extends: existence
+message: "Drop the idiom '%s': say what happens."
+level: error
+ignorecase: true
+tokens:
+  - quick wins?
+  - win-win
+  - carries (?:real )?weight
+  - stays out of (?:the|your) way
