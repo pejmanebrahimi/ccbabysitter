@@ -51,7 +51,9 @@ func pageHash(t *testing.T) string {
 	}
 	files := []string{"internal/web/demo.go"}
 	for _, e := range entries {
-		files = append(files, "internal/web/ui/"+e.Name())
+		if e.Type().IsRegular() {
+			files = append(files, "internal/web/ui/"+e.Name())
+		}
 	}
 	sort.Strings(files)
 	h := sha256.New()

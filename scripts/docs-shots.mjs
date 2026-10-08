@@ -16,7 +16,7 @@
 // CHROME names the browser when it is not in one of its usual places.
 import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,6 +36,7 @@ const SHOTS = [
   {
     name: "babysit-dialog",
     margin: 16,
+    ready: `[...document.querySelectorAll("#sessions .row [data-f=name]")].some((n) => n.textContent === "web-app")`,
     // The Babysit dialog for the demo's terminal session web-app, which has
     // Remote Control on, as in the tutorial.
     find: `(() => {
@@ -50,6 +51,8 @@ const SHOTS = [
   {
     name: "in-background-card",
     margin: 12,
+    // The demo starts report-gen in the background a few seconds in.
+    ready: `[...document.querySelectorAll("#watches [data-key]")].some((c) => c.querySelector("[data-f=name]").textContent === "report-gen" && c.textContent.includes("Kept alive while you were away"))`,
     // The In background card of report-gen, whose terminal closed.
     find: `(() => {
       const cards = [...document.querySelectorAll("#watches [data-key]")];
@@ -66,7 +69,7 @@ const SHOTS = [
 // order. It covers the page's own files and the demo; text the page shows
 // that other Go packages write is not in it.
 export function pageHash(repo) {
-  const files = readdirSync(join(repo, "internal", "web", "ui")).map((f) => "internal/web/ui/" + f);
+  const files = readdirSync(join(repo, "internal", "web", "ui"), { withFileTypes: true }).filter((e) => e.isFile()).map((e) => "internal/web/ui/" + e.name);
   files.push("internal/web/demo.go");
   files.sort();
   const h = createHash("sha256");
@@ -92,6 +95,7 @@ function chromePath() {
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
     "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
     "/usr/bin/microsoft-edge",
@@ -171,13 +175,23 @@ async function settled(cdp, selector) {
   throw new Error(selector + " kept moving for 8 seconds");
 }
 
+// until waits for an expression to be true in the page, for what the demo
+// shows a few seconds after it starts.
+async function until(cdp, expression, name) {
+  for (let tries = 0; tries < 40; tries++) {
+    if (await cdp.evaluate("!!(" + expression + ")")) return;
+    await sleep(500);
+  }
+  throw new Error(name + ": the demo page never showed what the shot needs: " + expression);
+}
+
 async function take(cdp, shot, theme) {
   await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }, { name: "prefers-reduced-motion", value: "reduce" }] });
   const box = await settled(cdp, shot.selector);
   const m = shot.margin;
   const clip = { x: Math.max(0, Math.floor(box.x - m)), y: Math.max(0, Math.floor(box.y - m)), width: Math.ceil(box.w + 2 * m), height: Math.ceil(box.h + 2 * m), scale: 1 };
   const pic = await cdp.send("Page.captureScreenshot", { format: "webp", quality: 90, clip, captureBeyondViewport: true });
-  writeFileSync(join(out, shot.name + "-" + theme + ".webp"), Buffer.from(pic.data, "base64"));
+  writeFileSync(join(shot.dir, shot.name + "-" + theme + ".webp"), Buffer.from(pic.data, "base64"));
   console.log("took", shot.name, theme, clip.width + "x" + clip.height);
   return { width: clip.width, height: clip.height };
 }
@@ -219,8 +233,10 @@ async function main() {
     // tab's own setting.
     await cdp.send("Page.setBypassCSP", { enabled: true });
 
-    mkdirSync(out, { recursive: true });
-    for (const f of readdirSync(out)) if (f.endsWith(".webp")) rmSync(join(out, f));
+    // The new pictures are written aside, and replace the old ones only
+    // once every shot is taken, so a failed run leaves the old ones.
+    const fresh = join(work, "shots");
+    mkdirSync(fresh);
     const manifest = { page: pageHash(root), shots: {} };
     for (const shot of SHOTS) {
       // One load per shot, so its light and dark pictures show the same
@@ -230,10 +246,12 @@ async function main() {
       await cdp.send("Page.enable");
       await cdp.send("Page.navigate", { url: page });
       await sleep(3000);
-      // The page's own theme setting follows the system, so the emulated
-      // light or dark decides.
+      // The demo's theme setting starts as Dark. Auto makes the page follow
+      // the emulated light or dark.
       await cdp.evaluate(`(() => { document.querySelector('button[data-theme-mode="auto"]').click(); return true; })()`);
+      await until(cdp, shot.ready, shot.name);
       shot.selector = await cdp.evaluate(shot.find);
+      shot.dir = fresh;
       const light = await take(cdp, shot, "light");
       const dark = await take(cdp, shot, "dark");
       if (light.width !== dark.width || light.height !== dark.height) {
@@ -241,6 +259,9 @@ async function main() {
       }
       manifest.shots[shot.name] = light;
     }
+    mkdirSync(out, { recursive: true });
+    for (const f of readdirSync(out)) if (f.endsWith(".webp")) rmSync(join(out, f));
+    for (const f of readdirSync(fresh)) copyFileSync(join(fresh, f), join(out, f));
     writeFileSync(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
     sizePages(join(root, "site", "docs"), manifest.shots);
   } finally {
