@@ -196,7 +196,7 @@ func TestDarwinUninstallRemovesBothPlists(t *testing.T) {
 	}
 	f.calls = nil
 	out.Reset()
-	if rc := runUninstall(&out); rc != 0 {
+	if rc := removeStartAtLogin(&out); rc != 0 {
 		t.Fatalf("rc %d: %s", rc, out.String())
 	}
 	for _, path := range []string{agentPath(), offPath()} {
@@ -292,7 +292,7 @@ func TestDarwinUninstallSaysWhenBootoutFailed(t *testing.T) {
 	f := useFakeLaunchctl(t)
 	f.answers["bootout "+job()] = fakeAnswer{"Boot-out failed: 3: No such process", errors.New("exit status 3")}
 	var out strings.Builder
-	runUninstall(&out)
+	removeStartAtLogin(&out)
 	if strings.Contains(out.String(), "Stopped the CC Babysitter LaunchAgent.") || !strings.Contains(out.String(), "was not running") {
 		t.Fatalf("output %q", out.String())
 	}
@@ -307,7 +307,7 @@ func TestDarwinUninstallForgetsTheLoginStartChoice(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out strings.Builder
-	runUninstall(&out)
+	removeStartAtLogin(&out)
 	if state.LoginStartOffered(state.DefaultDir()) {
 		t.Fatalf("the choice is still remembered after uninstall:\n%s", out.String())
 	}

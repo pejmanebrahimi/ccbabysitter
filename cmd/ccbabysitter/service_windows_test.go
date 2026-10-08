@@ -136,7 +136,7 @@ func TestWindowsUninstallSendsNoKeyToAStaleAddress(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out strings.Builder
-	runUninstall(&out)
+	removeStartAtLogin(&out)
 	if len(seen) != 0 {
 		t.Fatalf("the stale address was sent %q", seen)
 	}
@@ -242,7 +242,7 @@ func TestWindowsUninstallForgetsTheLoginStartChoice(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out strings.Builder
-	runUninstall(&out)
+	removeStartAtLogin(&out)
 	if state.LoginStartOffered(state.DefaultDir()) {
 		t.Fatalf("the choice is still remembered after uninstall:\n%s", out.String())
 	}

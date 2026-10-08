@@ -81,17 +81,17 @@ func inFolder(cwd, command string) string {
 		return command
 	}
 	if targetOS == "windows" {
-		return "cd -LiteralPath " + powerShellQuote(cwd) + "; " + command
+		return "cd -LiteralPath " + PowerShellQuote(cwd) + "; " + command
 	}
 	return "cd " + ShellQuote(cwd) + " && " + command
 }
 
-// powerShellQuote returns s single-quoted for PowerShell. PowerShell ends
+// PowerShellQuote returns s single-quoted for PowerShell. PowerShell ends
 // a single-quoted string on the typographic single quotes as well as on
 // the plain one, so each of them inside the string is escaped by doubling
 // it; nothing else needs escaping there. Windows paths are always quoted,
 // since they routinely contain spaces.
-func powerShellQuote(s string) string {
+func PowerShellQuote(s string) string {
 	var b strings.Builder
 	b.WriteByte('\'')
 	for _, r := range s {

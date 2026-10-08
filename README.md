@@ -164,7 +164,7 @@ ccbabysitter --no-open       start it without opening the page
 ccbabysitter --demo          scripted sessions, touches nothing real
 ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
 ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
-ccbabysitter uninstall       stop the background copy and remove its service or login entry
+ccbabysitter uninstall       remove CC Babysitter from this computer, after asking
 ccbabysitter reset           delete the state folder after confirmation
 ccbabysitter version         print the name and version
 
@@ -196,31 +196,14 @@ Every login entry points at the program where it is at that moment, so keep the 
 
 ## Uninstall
 
-`ccbabysitter uninstall` on its own leaves the state folder, but a later plain `ccbabysitter` turns start at login on again, as on a machine that never had CC Babysitter. `ccbabysitter reset` deletes the state folder after asking, and refuses while CC Babysitter is still running, so quit it first. Run the steps for your system in this order.
+Run `ccbabysitter uninstall`. It says what it removes and asks first, then removes everything CC Babysitter put on this computer:
 
-macOS:
+- Start at login: the LaunchAgent on macOS, the systemd user service on Linux, and the Run value on Windows. On Linux it turns lingering off only when CC Babysitter turned it on, which it notes in the file `lingering-turned-on` in the state folder; lingering that was already on stays on, since other services of yours may need it.
+- A copy still running, which it asks to quit.
+- The state folder, with the settings, the babysat sessions and the activity log: `~/.local/share/ccbabysitter` (or `$XDG_DATA_HOME/ccbabysitter`) on macOS and Linux, `%LOCALAPPDATA%\CCBabysitter` on Windows.
+- The program. On macOS and Linux that is the one file, in `~/.local/bin` or wherever it is, and the folder stays. On Windows it is the folder `%LOCALAPPDATA%\Programs\CCBabysitter`, which also comes out of your user Path; Windows cannot delete a running program, so the folder goes a moment after the command ends. A program anywhere else, such as a folder you chose with `CCBABYSITTER_INSTALL_DIR`, loses only CC Babysitter's own files, and the folder stays, also on your Path. A `ccbabysitter` that is a link loses the link, and what it points at stays.
 
-1. Run `ccbabysitter uninstall`. It stops the LaunchAgent and removes its plist, `~/Library/LaunchAgents/com.ccbabysitter.plist` or the one in the state folder.
-2. Quit any copy still running in a terminal with `ccbabysitter quit` or Ctrl+C.
-3. Run `ccbabysitter reset` to delete the state folder, `~/.local/share/ccbabysitter` (or `$XDG_DATA_HOME/ccbabysitter`).
-4. Delete the binary: `rm ~/.local/bin/ccbabysitter`, or wherever `command -v ccbabysitter` says it is.
-
-Linux:
-
-1. Run `ccbabysitter uninstall`. It stops and disables the systemd user service and removes `~/.config/systemd/user/ccbabysitter.service`, however the unit was written: by a plain `ccbabysitter`, by `ccbabysitter install`, or by "Start CC Babysitter when I log in". It turns lingering off for your user only when CC Babysitter turned it on, which it notes in the file `lingering-turned-on` in the state folder; lingering that was already on is left on, since other services of yours may need it. Skip this step if none of those happened.
-2. Quit any copy still running in a terminal with `ccbabysitter quit` or Ctrl+C.
-3. Run `ccbabysitter reset` to delete the state folder, `~/.local/share/ccbabysitter` (or `$XDG_DATA_HOME/ccbabysitter`).
-4. Delete the binary: `rm ~/.local/bin/ccbabysitter`, or wherever `command -v ccbabysitter` says it is.
-
-Windows:
-
-1. Run `ccbabysitter uninstall`. It quits CC Babysitter and removes its Run value, and an earlier version's `CCBabysitter.cmd` from your Startup folder.
-2. Quit any copy still running in a window with `ccbabysitter quit` or Ctrl+C.
-3. Run `ccbabysitter reset` to delete the state folder, `%LOCALAPPDATA%\CCBabysitter`.
-4. Delete the folder holding the binary, `%LOCALAPPDATA%\Programs\CCBabysitter`, or the folder you installed into.
-5. Remove that folder from your user Path: open "Edit environment variables for your account" from the Start menu, select Path, choose Edit, and delete the entry.
-
-A copy installed with `go install` is deleted from `$(go env GOPATH)/bin` instead.
+Babysat sessions keep running where they are. `ccbabysitter uninstall --yes` asks nothing, for a script with no terminal to ask in. `ccbabysitter uninstall --keep-files` only stops the background copy and removes start at login, and a later plain `ccbabysitter` turns it on again, as on a machine that never had CC Babysitter. Another `ccbabysitter` still on your PATH, such as one `go install` put in Go's `bin` folder, is named at the end, for you to delete if you want. A copy run with `go run` has no program to delete. If you added the Claude Code plugin, remove it in Claude Code with `/plugin`.
 
 ## Requirements
 

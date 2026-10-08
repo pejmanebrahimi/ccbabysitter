@@ -284,38 +284,49 @@ func runInstall(out io.Writer) int {
 	return runLauncher(out, newServiceControl(), state.DefaultDir(), o, realLaunchDeps())
 }
 
-// runUninstall reverses install: it stops and disables the service,
-// removes its unit file, and turns lingering back off when CC Babysitter
-// turned it on.
-func runUninstall(out io.Writer) int {
+// uninstallSystem is what uninstall does on Linux: the program is one file
+// in a folder it may share with others, and nothing changes PATH.
+func uninstallSystem() uninstallSteps {
+	return uninstallSteps{removeStart: removeStartAtLogin, removeFiles: removeFilesNow}
+}
+
+// removeService stops and disables the service and removes its unit file.
+func removeService(out io.Writer) int {
 	// A unit written before it said KillMode=process would take Claude's
 	// background sessions down with the service, so it is brought up to
 	// date, and read again by systemd, before the service is stopped. This
 	// is best effort: whatever fails here, uninstall goes on.
-	if serviceInstalled() {
-		_, _ = systemdControl{}.RefreshUnit(io.Discard, !hosts.Headless())
-	}
+	_, _ = systemdControl{}.RefreshUnit(io.Discard, !hosts.Headless())
 	if err := runSystemctl("disable", "--now", "ccbabysitter"); err != nil {
 		fmt.Fprintln(out, "systemctl --user disable --now ccbabysitter failed:", err)
 	} else {
 		fmt.Fprintln(out, "Stopped and disabled the ccbabysitter service.")
 	}
-
 	path, err := removeUnit()
 	if err != nil {
 		fmt.Fprintln(out, "could not remove the service file:", err)
 		return 1
 	}
 	fmt.Fprintln(out, "Removed", path)
-
 	if err := runSystemctl("daemon-reload"); err != nil {
 		fmt.Fprintln(out, "systemctl --user daemon-reload failed:", err)
+	}
+	return 0
+}
+
+// removeStartAtLogin reverses install: it stops and disables the service,
+// removes its unit file, and turns lingering back off when CC Babysitter
+// turned it on.
+func removeStartAtLogin(out io.Writer) int {
+	if !serviceInstalled() {
+		fmt.Fprintln(out, "There is no ccbabysitter service to remove.")
+	} else if rc := removeService(out); rc != 0 {
+		return rc
 	}
 
 	releaseLingering(out, systemdControl{}, state.DefaultDir(), currentUser())
 	// A later plain run turns start at login on again, as on a machine
 	// that never had CC Babysitter.
 	_ = state.ForgetLoginStartOffered(state.DefaultDir())
-	fmt.Fprintln(out, foregroundHint)
 	return 0
 }

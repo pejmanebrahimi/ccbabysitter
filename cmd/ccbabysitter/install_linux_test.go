@@ -190,8 +190,31 @@ func TestLinuxUninstallForgetsTheLoginStartChoice(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out strings.Builder
-	runUninstall(&out)
+	removeStartAtLogin(&out)
 	if state.LoginStartOffered(state.DefaultDir()) {
 		t.Fatalf("the choice is still remembered after uninstall:\n%s", out.String())
+	}
+}
+
+// With no service set up there is nothing to stop or remove, and
+// uninstall says so rather than reporting a failed systemctl or a file it
+// never removed.
+func TestLinuxUninstallWithNoServiceSaysSo(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_DATA_HOME", "")
+	t.Setenv("XDG_CONFIG_HOME", "")
+	calls := fakeSystemctl(t)
+	var out strings.Builder
+	if rc := removeStartAtLogin(&out); rc != 0 {
+		t.Fatalf("rc %d:\n%s", rc, out.String())
+	}
+	if !strings.Contains(out.String(), "There is no ccbabysitter service to remove.") || strings.Contains(out.String(), "Removed") {
+		t.Fatalf("output:\n%s", out.String())
+	}
+	for _, c := range *calls {
+		if strings.HasPrefix(c, "disable") {
+			t.Fatalf("systemctl %s with no service", c)
+		}
 	}
 }

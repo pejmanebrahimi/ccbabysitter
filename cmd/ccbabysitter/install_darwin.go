@@ -16,10 +16,15 @@ func runInstall(out io.Writer) int {
 	return 2
 }
 
-// runUninstall stops the LaunchAgent and removes its plist, wherever it is.
-// The state folder stays, but a later plain run turns start at login on
-// again.
-func runUninstall(out io.Writer) int {
+// uninstallSystem is what uninstall does on macOS: the program is one file
+// in a folder it may share with others, and nothing changes PATH.
+func uninstallSystem() uninstallSteps {
+	return uninstallSteps{removeStart: removeStartAtLogin, removeFiles: removeFilesNow}
+}
+
+// removeStartAtLogin stops the LaunchAgent and removes its plist, wherever
+// it is. A later plain run turns start at login on again.
+func removeStartAtLogin(out io.Writer) int {
 	if _, err := runLaunchctl("bootout", launchdJob()); err != nil {
 		fmt.Fprintln(out, "The CC Babysitter LaunchAgent was not running.")
 	} else {
@@ -40,6 +45,5 @@ func runUninstall(out io.Writer) int {
 	// A later plain run turns start at login on again, as on a machine
 	// that never had CC Babysitter.
 	_ = state.ForgetLoginStartOffered(state.DefaultDir())
-	fmt.Fprintln(out, foregroundHint)
 	return rc
 }
