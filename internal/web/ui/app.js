@@ -400,6 +400,9 @@
 
   function markBusy(node, id) {
     $$("button[data-act]", node).forEach(function (button) {
+      /* The arrow of the ways menu starts nothing, and stays able to take
+         focus back from a choice made in its menu. */
+      if (button.dataset.act === "ways") { return; }
       var mine = !!state.pending[busyKey(id, button.dataset.act)];
       button.classList.toggle("busy", mine);
       button.disabled = mine || anyPending(id);
@@ -518,6 +521,8 @@
 
     sync($("#watches"), watches, function (w) { return w.sessionId; },
       function () { return clone("#tpl-watch"); }, fillWatch);
+    /* A card that left the list took its open menu with it. */
+    if (state.openWays && !document.contains(state.openWays)) { state.openWays = null; }
     sync($("#sessions"), sessions, function (s) { return s.id; },
       function () { return clone("#tpl-session"); }, fillSession);
     sync($("#scheduled"), scheduled, function (s) { return s.id; },
@@ -786,7 +791,7 @@
        a session its background copy holds and calls it crashed. */
     var crash = w.originHost === "desktop";
     show(f(node, "crashnote"), crash);
-    setText(f(node, "crashnote"), crash ? 'Desktop shows "Claude Code crashed" for it until you press Back to Desktop.' : "");
+    setText(f(node, "crashnote"), crash ? 'Desktop shows it as "Claude Code crashed" until you press Back to Desktop, then Try again there.' : "");
     chip(el(node, "from"), w.originHost, "from");
     chip(el(node, "to"), "background", "to");
     var since = stayFor(w.backgroundSince, now);
@@ -820,7 +825,11 @@
     setText(f(node, "attachcmd"), w.attachCmd || "");
 
     var more = !!url || terminal || copy;
-    show(node.querySelector('[data-act="ways"]'), more);
+    var arrow = node.querySelector('[data-act="ways"]');
+    var menu = el(node, "ways");
+    menu.id = "ways-" + w.sessionId;
+    arrow.setAttribute("aria-controls", menu.id);
+    show(arrow, more);
     node.querySelector(".wayon .split").classList.toggle("alone", !more);
     if (state.openWays && node.contains(state.openWays) && (!rescued || !more)) { closeWays(false); }
   }
@@ -841,6 +850,9 @@
     }
     return index;
   }
+
+  /* MENU_MOVES are the keys that move focus in an open menu. */
+  var MENU_MOVES = { ArrowDown: true, ArrowUp: true, Home: true, End: true };
 
   /* menuItems are the items a menu shows. */
   function menuItems(menu) {
@@ -876,6 +888,17 @@
     if (state.openWays === button) { closeWays(true); } else { openWays(button, false); }
   }
 
+  /* onWaysFocusOut closes the open menu once focus has left it and its
+     arrow, by Tab or any other way. */
+  function onWaysFocusOut(event) {
+    var button = state.openWays;
+    if (!button) { return; }
+    var wayon = button.closest(".wayon");
+    if (!wayon || !el(wayon, "ways").contains(event.target)) { return; }
+    if (event.relatedTarget && wayon.contains(event.relatedTarget)) { return; }
+    closeWays(false);
+  }
+
   /* closeWaysOnClick closes the open menu on a click anywhere but its own
      arrow button, which toggles it. A choice in it closes it too, and
      gives focus back to the arrow button. */
@@ -899,19 +922,23 @@
     if (!menu || !state.openWays) { return; }
     var items = menuItems(menu);
     var at = items.indexOf(event.target.closest('[role="menuitem"]'));
+    /* Tab moves focus on as it always does, and the menu closes once focus
+       has left it. */
+    if (event.key === "Tab") { return; }
     var next = menuStep(event.key, at, items.length);
     if (next === -1) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      closeWays(event.key === "Escape");
+      /* Escape: the page's own Escape, which closes a dialog or the
+         drawer, is not for this key. */
+      event.preventDefault();
+      event.stopPropagation();
+      closeWays(true);
       return;
     }
-    if (next !== at) {
-      event.preventDefault();
-      items[next].focus();
-    }
+    /* A key that moves focus never scrolls the page, even where focus has
+       nowhere to go. */
+    if (!MENU_MOVES[event.key]) { return; }
+    event.preventDefault();
+    if (next !== at) { items[next].focus(); }
   }
 
   function fillSession(node, s) {
@@ -1530,6 +1557,9 @@
       var w = watchById(id);
       if (!w) { return; }
       if (act === "ways") { toggleWays(button); return; }
+      /* A choice in the menu closes it first, before what it starts puts
+         the card's buttons to sleep, so focus goes back to the arrow. */
+      if (state.openWays && button.closest(".ways")) { closeWays(true); }
       if (act === "unbabysit" || act === "forget") {
         run(id, act, function () { return send("POST", "/api/sessions/" + id + "/unbabysit", {}); });
       }
@@ -1545,6 +1575,7 @@
       if (act === "copy-ssh") { copyText(w.sshAttachCmd || ""); }
     });
     $("#watches").addEventListener("keydown", onWaysKey);
+    $("#watches").addEventListener("focusout", onWaysFocusOut);
     document.addEventListener("click", closeWaysOnClick);
     /* A scheduled task run's row has the same buttons as a Running row,
        Babysit aside, so both lists answer them the same way. */
@@ -1602,6 +1633,9 @@
        have done with the key on its own. */
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") { return; }
+      /* A menu whose focus went elsewhere, when its card moved or was
+         drawn again, still closes with Escape. */
+      if (state.openWays) { event.preventDefault(); closeWays(true); return; }
       var dialog = document.querySelector("dialog[open]");
       if (dialog) {
         event.preventDefault();

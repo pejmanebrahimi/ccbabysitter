@@ -304,7 +304,10 @@ a.b { display: inline-block; text-decoration: none; }
 .wayon { position: relative; }
 .caret { display: inline-block; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); vertical-align: 3px; }
 .ways {
-  position: absolute; z-index: 20; top: calc(100% + 4px); right: 0; min-width: 100%; width: max-content; max-width: 300px;
+  position: absolute; top: calc(100% + 4px); right: 0; min-width: 100%; width: max-content; max-width: 300px;
+  /* Above the header and the Activity strip along the bottom of a narrow
+     screen, below the scrim, the drawer and dialogs. */
+  z-index: 36;
   display: flex; flex-direction: column; padding: 4px;
   border: 1px solid var(--border-lit); border-radius: 10px; background: var(--card); box-shadow: var(--shadow-soft);
 }
@@ -315,7 +318,6 @@ a.b { display: inline-block; text-decoration: none; }
 .ways .way:hover, .ways .way:focus-visible { background: var(--card-2); }
 .ways .way .ext { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; vertical-align: 1px; }
 .ways .way small { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 400; color: var(--faint); overflow-wrap: anywhere; }
-.rescue .crash { color: var(--faint); }
 .b .ext { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; vertical-align: 1px; }
 
 /* ---------- light rows ---------- */
@@ -493,6 +495,8 @@ code.mono { background: var(--card-2); border-radius: 5px; padding: 1px 5px; fon
   .row .acts, .row [data-act="copy-cmd"] { grid-column: 2; grid-row: 1; }
   .row.past .elsewhere { justify-content: flex-start; }
   .drawer { width: 100%; border-left: none; }
+  .split .b { min-height: 44px; }
+  .split .b.icon { min-width: 44px; }
   .toasts { left: 16px; right: 16px; max-width: none; }
 }
 
