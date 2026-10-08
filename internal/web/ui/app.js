@@ -1315,10 +1315,12 @@
     if (state.drawer === name) { return; }
     if (state.drawer) {
       $("#drawer-" + state.drawer).hidden = true;
+      setExpanded(state.drawer, false);
     } else {
       state.returnFocus = document.activeElement;
     }
     state.drawer = name;
+    setExpanded(name, true);
     $("#scrim").hidden = false;
     var node = $("#drawer-" + name);
     node.hidden = false;
@@ -1326,9 +1328,17 @@
     if (first) { first.focus(); }
   }
 
+  /* setExpanded tells the header button that opens a drawer whether that
+     drawer is open. */
+  function setExpanded(name, open) {
+    var button = $("#open-" + name);
+    if (button) { button.setAttribute("aria-expanded", open ? "true" : "false"); }
+  }
+
   function closeDrawer() {
     if (!state.drawer) { return; }
     $("#drawer-" + state.drawer).hidden = true;
+    setExpanded(state.drawer, false);
     state.drawer = null;
     $("#scrim").hidden = true;
     if (state.returnFocus && state.returnFocus.focus) { state.returnFocus.focus(); }
@@ -1702,7 +1712,7 @@
         closeDialog(dialog);
         return;
       }
-      if (state.drawer) { closeDrawer(); }
+      if (state.drawer) { event.preventDefault(); closeDrawer(); }
     });
   }
 

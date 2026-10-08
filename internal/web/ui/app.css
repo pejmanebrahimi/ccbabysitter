@@ -429,6 +429,7 @@ a.b { display: inline-block; text-decoration: none; }
 .about-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--dim); }
 .about-list li { margin: 5px 0; }
 .about-list a, .fieldset .quiet a { color: var(--text); }
+.dr-body .attach code { overflow-wrap: anywhere; }
 .dr-body a .ext { display: inline-block; width: 7px; height: 7px; margin-left: 5px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; vertical-align: 1px; }
 .seg { display: flex; gap: 2px; padding: 3px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
 .seg-b {

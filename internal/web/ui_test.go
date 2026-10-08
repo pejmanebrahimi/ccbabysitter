@@ -993,7 +993,6 @@ func TestTheLidIsMentionedOnlyWhereItSleeps(t *testing.T) {
 func TestTheAboutPanel(t *testing.T) {
 	index := readUI(t, "ui/index.html")
 	for _, want := range []string{
-		`<button class="b" id="open-about">About</button>`,
 		`<aside class="drawer" id="drawer-about" hidden aria-labelledby="about-h">`,
 		`<pre class="mono report" data-f="about-version"></pre>`,
 		`<button class="b small" id="about-copy-version">Copy for a bug report</button>`,
@@ -1006,7 +1005,8 @@ func TestTheAboutPanel(t *testing.T) {
 		`href="https://ccbabysitter.dev"`,
 		`href="https://github.com/pejmanebrahimi/ccbabysitter#readme"`,
 		`href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE"`,
-		"It is not made by, affiliated with or endorsed by Anthropic.",
+		"It is not made by, affiliated with or endorsed by Anthropic. Claude and Claude Code are trademarks of Anthropic.",
+		`<button class="b" id="open-about" aria-controls="drawer-about" aria-expanded="false">About</button>`,
 	} {
 		if !strings.Contains(index, want) {
 			t.Errorf("index.html does not contain %s", want)
@@ -1025,6 +1025,8 @@ func TestTheAboutPanel(t *testing.T) {
 		`copyText(versionReport(state.view || {}));`,
 		`copyText(updateCommand(((state.view || {}).env || {}).platform, updateCommands()));`,
 		`$("#drawer-" + state.drawer).hidden = true;`,
+		`setExpanded(name, true);`,
+		`if (state.drawer) { event.preventDefault(); closeDrawer(); }`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)
@@ -1055,7 +1057,7 @@ func TestTheDrawersSwap(t *testing.T) {
 	}
 	app := readUI(t, "ui/app.js")
 	var fns strings.Builder
-	for _, name := range []string{"openDrawer(name)", "closeDrawer()"} {
+	for _, name := range []string{"openDrawer(name)", "setExpanded(name, open)", "closeDrawer()"} {
 		head := "function " + name + " {"
 		fns.WriteString(head + between(t, app, head, "\n  }") + "\n}\n")
 	}
@@ -1105,6 +1107,7 @@ func TestTheAboutVersionReport(t *testing.T) {
 console.log(JSON.stringify(versionReport({version: "0.6.1", env: {platform: "darwin", arch: "arm64", cliVersion: "2.1.280", desktopInstalled: true, desktopVersion: "2.7032.0", vscodeExtVersion: "2.1.280"}})));
 console.log(JSON.stringify(versionReport({version: "0.6.1", env: {platform: "linux", arch: "amd64", headless: true, cliFound: false}})));
 console.log(JSON.stringify(versionReport({})));
+console.log(JSON.stringify(versionReport({version: "0.6.1", url: "http://127.0.0.1:47391/?token=secret", env: {platform: "darwin"}})).indexOf("secret"));
 var commands = {unix: "curl -fsSL https://ccbabysitter.dev/install.sh | sh", windows: "irm https://ccbabysitter.dev/install.ps1 | iex"};
 console.log(updateCommand("windows", commands));
 console.log(updateCommand("darwin", commands));
@@ -1115,6 +1118,7 @@ console.log(updateCommand(undefined, commands));
 		`"CC Babysitter 0.6.1\nSystem: macOS, arm64\nClaude Code CLI: 2.1.280\nClaude Desktop: 2.7032.0\nVS Code extension: 2.1.280"`,
 		`"CC Babysitter 0.6.1\nSystem: Linux, amd64, no display\nClaude Code CLI: not found"`,
 		`"CC Babysitter unknown\nSystem: unknown\nClaude Code CLI: not found"`,
+		"-1",
 		"irm https://ccbabysitter.dev/install.ps1 | iex",
 		"curl -fsSL https://ccbabysitter.dev/install.sh | sh",
 		"curl -fsSL https://ccbabysitter.dev/install.sh | sh",

@@ -227,7 +227,8 @@ func TestVersionHelpSaysHowToReportAProblem(t *testing.T) {
 	var b bytes.Buffer
 	printCommandHelp(&b, "version")
 	flat := strings.Join(strings.Fields(b.String()), " ")
-	for _, want := range []string{"hello@ccbabysitter.dev", "https://github.com/pejmanebrahimi/ccbabysitter/issues", "SECURITY.md"} {
+	for _, want := range []string{"hello@ccbabysitter.dev", "https://github.com/pejmanebrahimi/ccbabysitter/issues/new/choose",
+		"https://github.com/pejmanebrahimi/ccbabysitter/security/advisories/new", "SECURITY.md"} {
 		if !strings.Contains(flat, want) {
 			t.Errorf("the version page has no %q:\n%s", want, b.String())
 		}

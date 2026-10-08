@@ -357,9 +357,10 @@ headless is true on a machine with no display. It works whether or not CC Babysi
 is running. Any other word after version is a usage error, exit code 2.
 
 To report a problem, email hello@ccbabysitter.dev or open an issue at
-https://github.com/pejmanebrahimi/ccbabysitter/issues, with this output. Report a
-security problem privately, as SECURITY.md says. The page's About panel has the
-same, with the version details to copy.
+https://github.com/pejmanebrahimi/ccbabysitter/issues/new/choose, with this output.
+Report a security problem privately instead, as SECURITY.md says, at
+https://github.com/pejmanebrahimi/ccbabysitter/security/advisories/new. The page's
+About panel has the same, with the version details to copy.
 
 Example:
   ccbabysitter version
