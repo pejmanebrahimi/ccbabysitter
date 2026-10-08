@@ -1,6 +1,6 @@
 extends: substitution
 message: "Write '%s', not '%s'."
-level: error
+level: warning
 ignorecase: false
 swap:
   CCBabysitter: CC Babysitter

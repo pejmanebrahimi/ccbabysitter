@@ -3,4 +3,6 @@ message: "Split this sentence: it has more than 25 words."
 level: error
 scope: sentence
 max: 25
-token: \b(\w+)\b
+# A word starts with a letter or digit and runs on through apostrophes,
+# dots and hyphens, so "it's" and "v0.4.0" are one word each.
+token: "[[:alnum:]][\\w'.-]*"

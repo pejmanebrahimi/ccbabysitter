@@ -1,0 +1,11 @@
+CC Babysitter
+Claude
+Claude Code
+Claude Desktop
+Remote Control
+VS Code
+LaunchAgent
+systemd
+macOS
+Windows
+Linux
