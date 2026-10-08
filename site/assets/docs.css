@@ -69,7 +69,7 @@ ol.steps > li::before { content: counter(step); position: absolute; left: 0; top
 
 /* a picture of the page */
 .shot { margin: 6px 0 22px; }
-.shot img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; }
+.shot img { display: block; width: auto; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; }
 .shot figcaption { margin-top: 8px; font-size: 13px; color: var(--grey); }
 /* each shot comes in light and dark, and the one for the page's theme shows */
 .shot .dark-only { display: none; }
