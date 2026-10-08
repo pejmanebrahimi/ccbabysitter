@@ -116,6 +116,27 @@ console.log(state());`)
 	}
 }
 
+// TestNoteLinksOpenSeeMore runs the note script on a small fake page: a
+// click on a note mark opens the "See more" disclosure that holds the note,
+// so the jump lands on text a visitor can read.
+func TestNoteLinksOpenSeeMore(t *testing.T) {
+	out := runNode(t, `
+var details = { open: false };
+var note = { closest: function (q) { return q === "details" ? details : null; } };
+var link = { on: {}, getAttribute: function (n) { return n === "href" ? "#note-1" : null; },
+  addEventListener: function (type, f) { this.on[type] = f; } };
+var document = { documentElement: { getAttribute: function () { return null; } }, querySelector: function () { return null; },
+  querySelectorAll: function (q) { return q === "a.fn" ? [link] : []; },
+  getElementById: function (id) { return id === "note-1" ? note : null; } };
+`+"eval(require('fs').readFileSync('assets/site.js', 'utf8'));"+`
+console.log(details.open);
+link.on.click();
+console.log(details.open);`)
+	if out != "false\ntrue" {
+		t.Fatalf("got %q", out)
+	}
+}
+
 func TestCopyFallsBack(t *testing.T) {
 	out := runNode(t, `
 var selected = false;

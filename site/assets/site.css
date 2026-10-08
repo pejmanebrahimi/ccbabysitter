@@ -80,6 +80,11 @@ html:has(.top), body:has(.top) { background: var(--ground); }
 .why-body p { margin: 0 0 10px; }
 .why-body a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
 .why-body a:hover { text-decoration-color: var(--ink); }
+.tagline sup { font-size: .7em; line-height: 0; }
+.tagline a.fn { color: var(--ink); text-decoration: none; padding: 0 1px; }
+.tagline a.fn:hover { text-decoration: underline; }
+.why-body ol.notes { margin: 12px 0 0; padding-left: 18px; font-size: 13px; }
+.why-body ol.notes li { margin: 0 0 6px; }
 .why-body code { font-family: "Geist Mono", ui-monospace, Menlo, monospace; font-size: .92em; color: var(--ink); }
 @supports selector(::details-content) {
   :root { interpolate-size: allow-keywords; }
