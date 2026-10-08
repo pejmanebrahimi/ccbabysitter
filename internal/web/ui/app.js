@@ -647,7 +647,7 @@
     $("#awake").classList.toggle("on", on);
     setText($("#awake-text"), on ? "Computer awake: " + (keep.activeWatches || 0) + " babysat" : "Computer not kept awake");
     setTitle($("#awake"), keep.supported === false ? "This system cannot hold the keep-awake request" :
-      on ? "The computer does not sleep while it is idle. A closed laptop lid still sleeps it." : "");
+      on && !(view.env || {}).headless ? "The computer does not sleep while it is idle. A closed laptop lid still sleeps it." : "");
   }
 
   /* versionsLine lists what is installed: the Claude Code CLI always, with

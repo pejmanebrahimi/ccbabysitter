@@ -969,10 +969,11 @@ console.log(out.join("\n"));
 	}
 }
 
-// The header's keep-awake pill says, while it holds, that a closed laptop
-// lid still sleeps the computer.
+// The header's keep-awake pill says, while it holds on a computer with a
+// display, that a closed laptop lid still sleeps the computer, as status
+// does.
 func TestTheAwakePillSaysALidStillSleepsIt(t *testing.T) {
-	if want := `on ? "The computer does not sleep while it is idle. A closed laptop lid still sleeps it." : ""`; !strings.Contains(readUI(t, "ui/app.js"), want) {
+	if want := `on && !(view.env || {}).headless ? "The computer does not sleep while it is idle. A closed laptop lid still sleeps it." : ""`; !strings.Contains(readUI(t, "ui/app.js"), want) {
 		t.Errorf("app.js does not contain %s", want)
 	}
 }

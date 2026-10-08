@@ -1,7 +1,9 @@
 package supervise
 
 import (
+	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,13 +13,23 @@ import (
 
 // sleepFixture is a machine whose clock and passes the test drives, with
 // the given sessions babysat and running in Claude Desktop, keep-awake held
-// for them, and a power log that gives cause for any sleep.
+// for them, and a power log that names cause for any sleep, without a time
+// of its own.
 func sleepFixture(t *testing.T, cause string, ids ...string) (*fixture, *Supervisor, *time.Time) {
+	t.Helper()
+	return sleepFixtureWith(t, func(context.Context, time.Time, time.Time) (string, time.Time, bool) {
+		return cause, time.Time{}, cause != ""
+	}, nil, ids...)
+}
+
+// sleepFixtureWith is sleepFixture with its own power log and lid.
+func sleepFixtureWith(t *testing.T, sleepCause func(context.Context, time.Time, time.Time) (string, time.Time, bool), lid func() bool, ids ...string) (*fixture, *Supervisor, *time.Time) {
 	t.Helper()
 	f := newFixture(t, nil)
 	f.r.SetRespond(resumeWithRC(f))
 	f.d.Power = &fakePower{supported: true}
-	f.d.SleepCause = func(time.Time, time.Time) string { return cause }
+	f.d.SleepCause = sleepCause
+	f.d.LidClosed = lid
 	clock := time.Date(2026, 10, 8, 3, 0, 0, 0, time.UTC)
 	f.d.Now = func() time.Time { return clock }
 	s := New(*f.d)
@@ -126,5 +138,105 @@ func TestSleptWords(t *testing.T) {
 		if got := sleptWords(c.cause, c.from, c.to); got != c.want {
 			t.Errorf("sleptWords(%q) = %q, want %q", c.cause, got, c.want)
 		}
+	}
+}
+
+// A pass or an action that takes a minute, such as a resume waiting on a
+// slow CLI, is no sleep: the loop was busy, not the computer asleep.
+func TestABusyLoopIsNotASleep(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-000000000022"
+	f, s, clock := sleepFixture(t, "lid", a)
+	rescue := resumeWithRC(f)
+	f.r.SetRespond(func(args []string) (string, error) {
+		if strings.HasPrefix(strings.Join(args, " "), "--bg --resume") {
+			*clock = clock.Add(70 * time.Second)
+		}
+		return rescue(args)
+	})
+	awake(s, clock, 1, a)
+	awake(s, clock, 3)
+	awake(s, clock, 15, a)
+	time.Sleep(100 * time.Millisecond)
+	if lines := sleepLines(t, f, 0); len(lines) != 0 {
+		t.Fatalf("a busy minute was named a sleep: %v", lines)
+	}
+}
+
+// fakeLid is a lid the test opens and closes.
+type fakeLid struct {
+	mu     sync.Mutex
+	closed bool
+}
+
+func (l *fakeLid) get() bool { l.mu.Lock(); defer l.mu.Unlock(); return l.closed }
+
+func (l *fakeLid) set(closed bool) { l.mu.Lock(); defer l.mu.Unlock(); l.closed = closed }
+
+// A Mac with its lid shut can wake for an hour in the dark. While the lid
+// stays shut, all of it is the one sleep, named once the lid is open, with
+// the lid as its cause even when the power log names none.
+func TestALongWakeWithTheLidShutIsTheSameSleep(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-000000000023"
+	lid := &fakeLid{}
+	f, s, clock := sleepFixtureWith(t, func(context.Context, time.Time, time.Time) (string, time.Time, bool) {
+		return "", time.Time{}, false
+	}, lid.get, a)
+	awake(s, clock, 1, a)
+	lid.set(true)
+	*clock = clock.Add(20 * time.Minute)
+	awake(s, clock, 60, a)
+	*clock = clock.Add(30 * time.Minute)
+	awake(s, clock, 1, a)
+	lid.set(false)
+	awake(s, clock, 15, a)
+	want := "The computer slept because its lid was closed. Babysat sessions could not be reached from 03:00 to 04:00."
+	if lines := sleepLines(t, f, 1); len(lines) != 1 || lines[0] != want {
+		t.Fatalf("got %v, want %q", lines, want)
+	}
+}
+
+// The power log knows when the computer went to sleep, which is earlier
+// than the last pass before it when a short wake came in between.
+func TestThePowerLogGivesTheStart(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-000000000024"
+	f, s, clock := sleepFixtureWith(t, func(context.Context, time.Time, time.Time) (string, time.Time, bool) {
+		return "lid", time.Date(2026, 10, 8, 2, 58, 30, 0, time.UTC), true
+	}, nil, a)
+	awake(s, clock, 1, a)
+	*clock = clock.Add(12 * time.Minute)
+	awake(s, clock, 15, a)
+	want := "The computer slept because its lid was closed. Babysat sessions could not be reached from 02:58 to 03:12."
+	if lines := sleepLines(t, f, 1); len(lines) != 1 || lines[0] != want {
+		t.Fatalf("got %v, want %q", lines, want)
+	}
+}
+
+// A gap the power log shows no sleep in, such as the clock set forward, is
+// no sleep.
+func TestAGapThePowerLogDoesNotShowIsNoSleep(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-000000000025"
+	f, s, clock := sleepFixtureWith(t, func(context.Context, time.Time, time.Time) (string, time.Time, bool) {
+		return "", time.Time{}, true
+	}, nil, a)
+	awake(s, clock, 1, a)
+	*clock = clock.Add(12 * time.Minute)
+	awake(s, clock, 15, a)
+	time.Sleep(100 * time.Millisecond)
+	if lines := sleepLines(t, f, 0); len(lines) != 0 {
+		t.Fatalf("got %v", lines)
+	}
+}
+
+// Where nothing tells why the computer slept, the line names the sleep
+// alone.
+func TestASleepWithNoLogIsNamedAlone(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-000000000026"
+	f, s, clock := sleepFixtureWith(t, nil, nil, a)
+	awake(s, clock, 1, a)
+	*clock = clock.Add(12 * time.Minute)
+	awake(s, clock, 15, a)
+	want := "The computer slept. Babysat sessions could not be reached from 03:00 to 03:12."
+	if lines := sleepLines(t, f, 1); len(lines) != 1 || lines[0] != want {
+		t.Fatalf("got %v, want %q", lines, want)
 	}
 }

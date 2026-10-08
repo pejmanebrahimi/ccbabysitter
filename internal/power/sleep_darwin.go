@@ -7,15 +7,26 @@ import (
 	"time"
 )
 
-// SleepCause reads why the computer went to sleep between from and to
-// from the power log pmset keeps, as sleepCause says. Reading the whole log
-// takes a second or two, so it is asked only once after a sleep.
-func SleepCause(from, to time.Time) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+// SleepCause reads, from the power log pmset keeps, why the computer went to
+// sleep between from and to and when, as sleepCause says. known is false
+// when the log could not be read. Reading the whole log takes a second or
+// two, so it is asked once after a sleep.
+func SleepCause(ctx context.Context, from, to time.Time) (cause string, at time.Time, known bool) {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, "pmset", "-g", "log").Output()
 	if err != nil {
-		return ""
+		return "", time.Time{}, false
 	}
-	return sleepCause(bytes.NewReader(out), from, to)
+	cause, at = sleepCause(bytes.NewReader(out), from, to)
+	return cause, at, true
+}
+
+// LidClosed reports whether the lid is closed with closing it putting the
+// computer to sleep, as ioreg says.
+func LidClosed() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "ioreg", "-r", "-k", "AppleClamshellState", "-d", "1").Output()
+	return err == nil && lidClosed(string(out))
 }

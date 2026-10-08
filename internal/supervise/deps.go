@@ -1,6 +1,7 @@
 package supervise
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -50,11 +51,16 @@ type Deps struct {
 	// whether the computer restarted in between. It may be nil.
 	BootID func() string
 
-	// SleepCause says why the computer slept between two times, as
-	// power.SleepCause does: "lid", "asked", "battery" or "". It is asked
-	// once after a sleep, aside from the loop, so it may be slow. It may be
-	// nil.
-	SleepCause func(from, to time.Time) string
+	// SleepCause says why and when the computer went to sleep between two
+	// times, as power.SleepCause does: "lid", "asked", "battery" or "", and
+	// known false when nothing could be read. It is asked once after a
+	// sleep, aside from the loop, so it may be slow. It may be nil.
+	SleepCause func(ctx context.Context, from, to time.Time) (cause string, at time.Time, known bool)
+
+	// LidClosed reports whether a laptop's lid is closed, putting the
+	// computer to sleep. It is asked on each pass while a sleep waits to
+	// be named, so it must be quick. It may be nil.
+	LidClosed func() bool
 
 	// DaemonLog is the CLI daemon's log, read to tell when the daemon itself
 	// stopped an idle background session. Empty skips that, so only the real
