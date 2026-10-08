@@ -1,0 +1,136 @@
+/* The docs pages, on top of site.css: a header in the sky's colour, the
+   sidebar, the page and "On this page". Three columns on a wide screen,
+   two on a narrow one with "On this page" folded above the page, and one
+   on a phone, where the sidebar folds into a Menu button. */
+
+/* The header runs from edge to edge, so the scrollbar keeps room on one side only. */
+html:has(.dtop) { scrollbar-gutter: stable; }
+
+.skip { position: absolute; left: 12px; top: -40px; z-index: 30; padding: 6px 10px; background: var(--paper); border: 1px solid var(--line); text-decoration: none; }
+.skip:focus { top: 10px; }
+
+.dtop { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px; height: 56px; padding: 0 20px; background: var(--sky); border-bottom: 1px solid var(--line); }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand img { width: 24px; height: 24px; display: block; image-rendering: pixelated; }
+.crumb { color: var(--grey); text-decoration: none; font-size: 14px; }
+.crumb:hover { color: var(--ink); }
+.dtop .theme { position: static; margin-left: auto; }
+
+.docs { display: grid; grid-template-columns: 210px minmax(0, 1fr) 190px; grid-template-areas: "side main toc"; column-gap: 48px; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+/* the sidebar, always open here; its Menu button shows only on a phone */
+.sidebox { grid-area: side; position: sticky; top: 56px; align-self: start; max-height: calc(100vh - 56px); overflow-y: auto; padding: 30px 0 40px; }
+.sidebox > summary { display: none; }
+.side ul { list-style: none; margin: 0; padding: 0; }
+.side .group { margin: 22px 0 6px; font: 11.5px "Geist Mono", ui-monospace, Menlo, monospace; letter-spacing: .04em; color: var(--grey); }
+.side a { display: block; padding: 4px 0 4px 12px; border-left: 1px solid var(--line); font-size: 14px; line-height: 1.45; color: var(--grey); text-decoration: none; }
+.side a:hover { color: var(--ink); }
+.side a[aria-current="page"] { color: var(--ink); border-left-color: var(--prompt); }
+
+/* On this page, beside the page; a label here, a fold on narrow screens */
+.toc { grid-area: toc; position: sticky; top: 56px; align-self: start; padding: 34px 0 40px; font-size: 13px; }
+.toc > summary { list-style: none; margin-bottom: 8px; }
+.toc > summary::-webkit-details-marker { display: none; }
+.toc ul { list-style: none; margin: 0; padding: 0; }
+.toc a { display: block; padding: 3px 0; color: var(--grey); text-decoration: none; line-height: 1.45; }
+.toc a:hover, .toc a.here { color: var(--ink); }
+
+/* the page */
+.doc { grid-area: main; min-width: 0; max-width: 680px; padding: 38px 0 20px; }
+.kind { margin: 0 0 8px; font: 12px "Geist Mono", ui-monospace, Menlo, monospace; color: var(--prompt); }
+.doc h1 { margin: 0 0 12px; font-size: 30px; line-height: 1.2; font-weight: 400; letter-spacing: -.01em; }
+.doc .lede { margin: 0 0 30px; font-size: 16.5px; color: var(--grey); }
+.doc h2 { margin: 44px 0 10px; font-size: 20px; line-height: 1.3; font-weight: 400; scroll-margin-top: 76px; }
+.doc h3 { margin: 28px 0 8px; font-size: 16px; font-weight: 400; scroll-margin-top: 76px; }
+.doc p, .doc li { max-width: 66ch; }
+.doc p { margin: 0 0 14px; }
+.doc ul, .doc ol { margin: 0 0 14px; padding-left: 22px; }
+.doc li { margin: 0 0 6px; }
+.doc a { text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.doc a:hover { text-decoration-color: var(--ink); }
+.doc code { font-size: .92em; }
+.doc strong { font-weight: 400; color: var(--ink); background: linear-gradient(transparent 62%, var(--line) 62%); }
+
+/* a command: the home page's copy line, with its cursor while pointed at */
+.doc .cmd { margin: 4px 0 18px; }
+.doc .cmd .cursor { visibility: hidden; }
+.doc .cmd:hover .cursor, .doc .cmd:focus-visible .cursor { visibility: visible; }
+pre.out { margin: 0 0 18px; padding: 2px 0 2px 14px; border-left: 2px solid var(--line); overflow-x: auto; font: 13px/1.6 "Geist Mono", ui-monospace, Menlo, monospace; color: var(--grey); }
+
+/* numbered steps, the numbers in the prompt's colour */
+ol.steps { list-style: none; counter-reset: step; padding-left: 0; }
+ol.steps > li { counter-increment: step; position: relative; padding-left: 30px; }
+ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; font: 13px/1.65 "Geist Mono", ui-monospace, Menlo, monospace; color: var(--prompt); }
+
+/* a note, with the pixel kangaroo */
+.note { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 12px; margin: 0 0 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--sky); font-size: 14px; }
+.note img { width: 18px; height: 18px; margin-top: 3px; image-rendering: pixelated; }
+.note p { margin: 0; }
+
+/* a picture of the page */
+.shot { margin: 6px 0 22px; }
+.shot img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; }
+.shot figcaption { margin-top: 8px; font-size: 13px; color: var(--grey); }
+
+/* Previous and Next, then the edit link */
+.pager { display: flex; justify-content: space-between; gap: 16px; margin: 56px 0 18px; padding-top: 20px; border-top: 1px solid var(--line); }
+.pager a { display: flex; flex-direction: column; gap: 2px; text-decoration: none; }
+.pager a small { font-size: 12px; color: var(--grey); }
+.pager a:hover small { color: var(--ink); }
+.pager .next { margin-left: auto; text-align: right; }
+.edit-line { margin: 0; font-size: 13px; }
+.edit-line a { color: var(--grey); text-decoration: none; }
+.edit-line a:hover { color: var(--ink); text-decoration: underline; }
+
+/* the overview's list of sections */
+.doc .kinds { list-style: none; padding: 0; margin: 0 0 14px; border-top: 1px solid var(--line); }
+.kinds li { margin: 0; padding: 14px 0; border-bottom: 1px solid var(--line); max-width: none; }
+.kinds .kname { display: block; margin-bottom: 2px; font: 12px "Geist Mono", ui-monospace, Menlo, monospace; color: var(--prompt); }
+.kinds p { margin: 0; color: var(--grey); }
+
+.docs ~ .foot { max-width: 1180px; padding-top: 40px; }
+
+/* a fold's button, on narrow screens: Menu, and On this page with a caret */
+.fold { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; list-style: none; font: 14px "Geist", ui-sans-serif, system-ui, sans-serif; letter-spacing: 0; color: var(--ink); }
+.fold::-webkit-details-marker { display: none; }
+.fold svg { width: 11px; height: 11px; flex: none; }
+.fold .caret { transition: transform .2s ease; }
+details[open] > .fold .caret { transform: rotate(180deg); }
+
+@media (max-width: 1100px) {
+  .docs { grid-template-columns: 200px minmax(0, 1fr); grid-template-areas: "side toc" "side main"; column-gap: 40px; }
+  .toc { position: static; padding: 30px 0 0; }
+  .toc > summary { margin: 0; }
+  .toc[open] > summary { margin-bottom: 10px; }
+  .toc .toc-list { padding-left: 12px; border-left: 1px solid var(--line); }
+  .doc { padding-top: 20px; }
+}
+@media (min-width: 1101px) {
+  /* beside the page, On this page is a label, not a button */
+  .toc > summary.fold { pointer-events: none; padding: 0; border: 0; font: 11.5px "Geist Mono", ui-monospace, Menlo, monospace; letter-spacing: .04em; color: var(--grey); }
+  .toc > summary.fold .caret { display: none; }
+}
+
+@media (max-width: 760px) {
+  .dtop { padding: 0 16px; gap: 14px; }
+  /* Menu and On this page side by side, each opening over the page */
+  .docs { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "side toc" "main main"; column-gap: 8px; padding: 0 16px; }
+  .sidebox, .toc { position: relative; top: auto; max-height: none; overflow: visible; padding: 14px 0 0; }
+  .sidebox > summary { display: inline-flex; }
+  .sidebox[open] > .side, .toc[open] > .toc-list {
+    position: absolute; top: calc(100% + 6px); z-index: 15; width: calc(100vw - 32px); max-height: 70vh; overflow-y: auto;
+    padding: 6px 14px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .14);
+  }
+  .sidebox[open] > .side { left: 0; }
+  .toc[open] > .toc-list { right: 0; padding-left: 14px; }
+  .toc[open] > summary, .sidebox[open] > summary { margin-bottom: 0; }
+  .toc a { padding: 6px 0; }
+  .side a { padding: 6px 0 6px 12px; }
+  .doc h1 { font-size: 26px; }
+  .pager { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doc .cmd .cursor { animation: none; }
+  .fold .caret { transition: none; }
+}

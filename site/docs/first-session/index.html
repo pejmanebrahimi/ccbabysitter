@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Babysit your first session - CC Babysitter docs</title>
+<meta name="description" content="Install CC Babysitter, babysit a Claude Code session, close its terminal on purpose and pick the session up from your phone.">
+<link rel="canonical" href="https://ccbabysitter.dev/docs/first-session/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/docs.css">
+<script src="/assets/theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="dtop">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">CC Babysitter</a>
+  <a class="crumb" href="/docs/">Docs</a>
+  <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
+    <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
+  </button>
+</header>
+<div class="docs">
+  <details class="sidebox" open>
+    <summary class="fold"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="9" height="1"/><rect x="0" y="4" width="9" height="1"/><rect x="0" y="7" width="9" height="1"/></svg>Menu</summary>
+    <nav class="side" id="docs-nav" aria-label="Docs">
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+      </ul>
+      <p class="group">Tutorials</p>
+      <ul>
+        <li><a href="/docs/first-session/" aria-current="page">Babysit your first session</a></li>
+      </ul>
+    </nav>
+  </details>
+  <details class="toc" open>
+    <summary class="fold">On this page<svg class="caret" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/></svg></summary>
+    <nav class="toc-list" aria-label="On this page">
+      <ul>
+        <li><a href="#before-you-start">Before you start</a></li>
+        <li><a href="#install">Install CC Babysitter</a></li>
+        <li><a href="#start">Start it</a></li>
+        <li><a href="#session">Start a session</a></li>
+        <li><a href="#babysit">Babysit it</a></li>
+        <li><a href="#close">Close the terminal</a></li>
+        <li><a href="#phone">Reach it from your phone</a></li>
+        <li><a href="#back">Carry on at the computer</a></li>
+        <li><a href="#next">What's next</a></li>
+      </ul>
+    </nav>
+  </details>
+  <main class="doc" id="content">
+    <p class="kind">Tutorial</p>
+    <h1>Babysit your first session</h1>
+    <p class="lede">In this tutorial you install CC Babysitter, babysit a Claude Code session, close its terminal on purpose, and pick the session up from your phone. It takes about ten minutes.</p>
+
+    <h2 id="before-you-start">Before you start</h2>
+    <p>You need:</p>
+    <ul>
+      <li>A Mac, a Windows PC or a Linux desktop. A server you reach over SSH works too, with its own steps in the README.</li>
+      <li>Claude Code, logged in, version 2.1.275 or later. If <code>claude</code> starts and answers in a terminal, you're set.</li>
+      <li>The Claude app on your phone, signed in to the same account.</li>
+    </ul>
+
+    <h2 id="install">Install CC Babysitter</h2>
+    <p>Open a terminal and run the command for your system. On a Mac or Linux:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>curl -fsSL https://ccbabysitter.dev/install.sh | sh</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>On Windows, in PowerShell:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>&gt;</span> <span data-cmd>irm https://ccbabysitter.dev/install.ps1 | iex</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>The script downloads the program for your computer, checks it against the release's checksums and installs it for your account only, without administrator rights. If it says its folder isn't on your PATH, add the line it gives you and open a new terminal.</p>
+
+    <h2 id="start">Start it</h2>
+    <p>Run CC Babysitter:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>CC Babysitter starts in the background and opens its page in your browser, then gives you the terminal back. From now on it also starts by itself when you log in.</p>
+    <p>The page lists every Claude Code session on this computer, whatever app it runs in. Sessions you babysit go at the top, under <strong>Babysat</strong>, which is empty for now.</p>
+    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>The page's address includes a key that only your account can read. If you close the tab, <code>ccbabysitter open</code> opens it again.</p></div>
+
+    <h2 id="session">Start a session</h2>
+    <p>Open a new terminal window, go to one of your project folders and start Claude Code:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>claude</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>Ask it something small, such as what's in the folder. A session needs at least one message before there's anything to bring back.</p>
+    <p>Then switch on Remote Control, so you can reach the session from your phone:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>&gt;</span> <span data-cmd>/rc</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>Back on the page, the session shows up under <strong>Running</strong> within a few seconds.</p>
+
+    <h2 id="babysit">Babysit it</h2>
+    <p>Press <strong>Babysit</strong> on the session's row. The dialog says what babysitting does. CC Babysitter keeps the computer awake, and if the terminal closes, the session carries on in the background with Remote Control.</p>
+    <p>Press <strong>Babysit</strong> in the dialog. The session moves to the Babysat list, and its card says <em>Watching in a terminal window</em>.</p>
+
+    <h2 id="close">Close the terminal</h2>
+    <p>Now the test. Close the terminal window the session runs in, the way an app update or a crash would.</p>
+    <p>Within a few seconds the card changes. Its panel says <em>Kept alive while you were away</em>, with the time the terminal closed and a trail from Terminal to Background. The session is running again in the background, with Remote Control on.</p>
+    <p>Every step CC Babysitter took is in the <strong>Activity</strong> panel, which opens from the button at the top of the page.</p>
+
+    <h2 id="phone">Reach it from your phone</h2>
+    <p>Open the Claude app on your phone and find the session among your Claude Code sessions, under the same name. The conversation is all there. Send it a message, and Claude answers from your computer.</p>
+    <p>On the computer, <strong>Open on claude.ai</strong> in the card's menu opens the same session in your browser.</p>
+
+    <h2 id="back">Carry on at the computer</h2>
+    <p>When you're back at the computer, you can carry on in a terminal from the card:</p>
+    <ul>
+      <li><strong>Open in Terminal</strong>, in the menu beside <strong>Back to a terminal</strong>, opens a terminal window on the session where it runs. It stays in the background with Remote Control on, and closing that window doesn't stop it.</li>
+      <li><strong>Back to a terminal</strong> ends the background copy and gives you a command that resumes the session in any terminal. Remote Control stays off there until you type <code>/rc</code>.</li>
+    </ul>
+    <p>When you no longer need the session kept alive, press <strong>Unbabysit</strong> on its card. The session keeps running where it is, and CC Babysitter stops watching it.</p>
+
+    <h2 id="next">What's next</h2>
+    <ul>
+      <li>Run CC Babysitter on a server, where sessions survive SSH drops and reboots: <a href="https://github.com/pejmanebrahimi/ccbabysitter#server" target="_blank" rel="noopener noreferrer">the server quick start<span class="sr"> (opens in a new tab)</span></a>.</li>
+      <li>Let Claude Code babysit the session it runs in: <a href="https://github.com/pejmanebrahimi/ccbabysitter#use-it-from-claude-code" target="_blank" rel="noopener noreferrer">use it from Claude Code<span class="sr"> (opens in a new tab)</span></a>.</li>
+      <li>See every command with <code>ccbabysitter --help</code>, and everything about one with <code>ccbabysitter help</code> and its name.</li>
+    </ul>
+
+    <nav class="pager" aria-label="Previous and next">
+      <a class="prev" href="/docs/"><small>Previous</small>Overview</a>
+    </nav>
+    <p class="edit-line"><a class="edit" href="https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/docs/first-session/index.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub<span class="sr"> (opens in a new tab)</span></a></p>
+  </main>
+</div>
+<footer class="foot">{{VERSION}} &middot; Preview &middot; <a href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT<span class="sr"> (opens in a new tab)</span></a> &middot; Not affiliated with Anthropic</footer>
+<script src="/assets/site.js"></script>
+<script src="/assets/docs.js"></script>
+</body>
+</html>
