@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Fixed: the Claude Code plugin could ask whether you had installed CC Babysitter without ever showing the install command, and after quitting CC Babysitter it offered a settings change that cannot work once it has quit. It now shows every command in the reply before asking, and offers `ccbabysitter uninstall` to stop CC Babysitter for good (#58).
+
 ## 0.6.0 (2026-10-07)
 
 - New: `ccbabysitter open` opens the page in your browser and prints no key, so an AI agent can run it. On a machine with no display it says how to connect instead.
