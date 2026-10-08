@@ -2,6 +2,8 @@ package observe
 
 import (
 	"context"
+	"errors"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -76,6 +78,9 @@ type Observer struct {
 	// the supervisor loop and from a test at the same time.
 	silenceMu      sync.Mutex
 	lastSilenceLog time.Time
+	// cliMissing is true once the CLI was found not to be installed, until
+	// it next answers. silenceMu guards it too.
+	cliMissing bool
 
 	// watchReady receives once the watch goroutine has completed its
 	// initial setup. Nothing in the observer itself waits on it; it exists
@@ -286,15 +291,48 @@ func (o *Observer) watch(ctx context.Context, dir string) {
 func (o *Observer) Agents(ctx context.Context) ([]claude.AgentEntry, bool) {
 	cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	out, _ := o.runner.Run(cctx, "", hosts.AgentsArgs()...)
+	out, runErr := o.runner.Run(cctx, "", hosts.AgentsArgs()...)
 	list, err := claude.ParseAgents(out)
 	if err != nil {
+		// A CLI that is not installed is said once, not every minute: it
+		// stays missing until someone installs it.
+		if errors.Is(runErr, exec.ErrNotFound) {
+			if o.firstMissing() {
+				o.log.Error("", "The Claude Code CLI is not installed, so babysat sessions cannot be brought back.")
+			}
+			return nil, false
+		}
 		if o.shouldReportSilence() {
-			o.log.Error("", "agents --json did not answer: "+firstLine(out))
+			reason := strings.TrimSpace(firstLine(out))
+			if reason == "" && runErr != nil {
+				reason = runErr.Error()
+			}
+			o.log.Error("", "agents --json did not answer: "+reason)
 		}
 		return nil, false
 	}
+	o.setMissing(false)
 	return list, true
+}
+
+// firstMissing records that the CLI is not installed and reports whether
+// that is news: true the first time, and again only after the CLI has
+// answered in between.
+func (o *Observer) firstMissing() bool {
+	o.silenceMu.Lock()
+	defer o.silenceMu.Unlock()
+	if o.cliMissing {
+		return false
+	}
+	o.cliMissing = true
+	return true
+}
+
+// setMissing records whether the CLI is known to be missing.
+func (o *Observer) setMissing(missing bool) {
+	o.silenceMu.Lock()
+	defer o.silenceMu.Unlock()
+	o.cliMissing = missing
 }
 
 // shouldReportSilence reports whether enough time has passed since the
