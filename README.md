@@ -11,13 +11,13 @@ CC Babysitter is one local page for every Claude Code session on a machine, what
 
 ## Why a babysitter?
 
-I left Claude Code working on my laptop overnight, with Remote Control on and "keep computer awake" ticked. In the morning, my session had stopped, and I could not reach it from my phone. Claude Desktop had updated itself in the night and restarted, but it reopened only the session on my screen. The others stayed stopped. I'm not the only one: [1](https://github.com/anthropics/claude-code/issues/92933), [2](https://github.com/anthropics/claude-code/issues/95364), [3](https://github.com/anthropics/claude-code/issues/95491).
+No matter how hard you hope or try, your computer and the Claude Code app will find a creative way[^1] to kill the remote-controlled session you started before leaving the computer, hoping you could keep issuing destiny-defining orders to your coding agents while you're vacationing where the map gives up. Well, this has happened to me, and believe me, we are not alone[^2]. Of course, you can go ahead and write some watchdog scripts on a laptop, or tmux and whatnot on a server, but some of us prefer a babysitter.
 
-On my server I wanted a few sessions running around the clock. That meant tmux, one window per session, and making sure it all came back after every reboot.
+If a babysat session's app dies, the session comes back in the background with Remote Control on, and the computer stays awake. On a server, babysat sessions survive SSH drops and reboots, no tmux needed. And one page shows every Claude Code session on the machine, in any app, with its tokens and uptime. Your agents can use it too: `ccbabysitter babysit self`.
 
-CC Babysitter does both. If a babysat session's app dies, the session comes back in the background with Remote Control on, and the computer stays awake. On a server, babysat sessions survive SSH drops and reboots, no tmux needed. And one page shows every Claude Code session on the machine, in any app, with its tokens and uptime. Your agents can use it too: `ccbabysitter babysit self`.
+[^1]: The ones I've run into: the Claude app updates itself and, for some reason, fails to start again; or it does come back after the update, but only some of the remote-controlled sessions are restored. Your computer or server can also act up and restart itself, for any reason, good or bad.
 
-Sure, you could raise it yourself with a watchdog script, tmux and systemd. Some of us prefer a babysitter.
+[^2]: Reports on Claude Code's issue tracker: [#95364](https://github.com/anthropics/claude-code/issues/95364), [#94049](https://github.com/anthropics/claude-code/issues/94049), [#99585](https://github.com/anthropics/claude-code/issues/99585), [#100114](https://github.com/anthropics/claude-code/issues/100114), [#89599](https://github.com/anthropics/claude-code/issues/89599).
 
 ## Install
 

@@ -270,38 +270,41 @@ func TestOnlyTheVersionPlaceholder(t *testing.T) {
 	}
 }
 
-// TestHomeTellsWhyABabysitter checks that the main sentence and the story
-// behind the "Why a babysitter?" disclosure are in the static HTML, where
-// search engines and visitors without scripts can read them, and that the
-// old "What it does" section is gone.
-func TestHomeTellsWhyABabysitter(t *testing.T) {
+// TestHomeIntroAndSeeMore checks that the short intro line, which search
+// results and link previews show too, the "See more" disclosure with the
+// longer story and its notes are in the static HTML, where search engines and visitors without
+// scripts can read them, and that the old story and the old "What it does"
+// section are gone.
+func TestHomeIntroAndSeeMore(t *testing.T) {
 	home := readSite(t, "index.html")
-	sentence := "Left Claude Code running with Remote Control, came back to a dead session? CC Babysitter brings it back, still reachable, after a crash or a restart."
+	short := "Turned on Claude Code Remote Control, checked &quot;keep computer awake&quot; and went on vacation? I admire your optimism, but you need a babysitter."
 	for _, want := range []string{
-		`<p class="tagline">` + sentence + `</p>`,
-		`<meta name="description" content="` + sentence + `">`,
-		`<meta property="og:description" content="` + sentence + `">`,
-		`"description": "` + sentence + `"`,
-		`<details class="why">`, "<summary>Why a babysitter? <svg",
-		"I left Claude Code working on my laptop overnight",
-		"but it reopened only the session on my screen. The others stayed stopped.",
-		"I'm not the only one:",
-		"On my server I wanted a few sessions running around the clock",
-		"<p>CC Babysitter does both. If a babysat session's app dies, the session comes back in the background with Remote Control on, and the computer stays awake. On a server, babysat sessions survive SSH drops and reboots, no tmux needed. And one page shows every Claude Code session on the machine, in any app, with its tokens and uptime. Your agents can use it too: <code>ccbabysitter babysit self</code>.</p>",
-		"<p>Sure, you could raise it yourself with a watchdog script, tmux and systemd. Some of us prefer a babysitter.</p>",
-		`href="https://github.com/anthropics/claude-code/issues/92933"`,
-		`href="https://github.com/anthropics/claude-code/issues/95364"`,
-		`href="https://github.com/anthropics/claude-code/issues/95491"`,
-		`aria-label="Report 1: Claude Desktop stealth update fails to relaunch the app (opens in a new tab)"`,
-		`aria-label="Report 2: Desktop auto-update drops every Remote Control session (opens in a new tab)"`,
-		`aria-label="Report 3: Remote Control not restored after a stealth auto-update (opens in a new tab)"`,
+		`<meta name="description" content="` + short + `">`,
+		`<meta property="og:description" content="` + short + `">`,
+		`"description": "Turned on Claude Code Remote Control, checked \"keep computer awake\" and went on vacation? I admire your optimism, but you need a babysitter."`,
+		`<p class="tagline">Turned on Claude Code Remote Control, checked "keep computer awake" and went on vacation? I admire your optimism, but you need a babysitter.</p>`,
+		`<div class="why-body">
+        <p>No matter how hard you hope or try, your computer and the Claude Code app will find a creative way<sup><a class="fn" href="#note-1" id="ref-1" aria-label="Note 1">1</a></sup> to kill the remote-controlled session you started before leaving the computer, hoping you could keep issuing destiny-defining orders to your coding agents while you're vacationing where the map gives up.`,
+		`Well, this has happened to me, and believe me, we are not alone<sup><a class="fn" href="#note-2" id="ref-2" aria-label="Note 2">2</a></sup>. Of course, you can go ahead and write some watchdog scripts on a laptop, or tmux and whatnot on a server, but some of us prefer a babysitter.</p>`,
+		`<details class="why">`, "<summary>See more <svg",
+		"<p>If a babysat session's app dies, the session comes back in the background with Remote Control on, and the computer stays awake. On a server, babysat sessions survive SSH drops and reboots, no tmux needed. And one page shows every Claude Code session on the machine, in any app, with its tokens and uptime. Your agents can use it too: <code>ccbabysitter babysit self</code>.</p>",
+		`<ol class="notes">`,
+		`<li id="note-1">The ones I've run into: the Claude app updates itself and, for some reason, fails to start again; or it does come back after the update, but only some of the remote-controlled sessions are restored. Your computer or server can also act up and restart itself, for any reason, good or bad.</li>`,
+		`<li id="note-2">Reports on Claude Code's issue tracker:`,
 	} {
 		if !strings.Contains(home, want) {
 			t.Errorf("index.html does not contain %q in its static HTML", want)
 		}
 	}
-	if n := strings.Count(home[strings.Index(home, `<details class="why">`):strings.Index(home, "</details>")], "<p>"); n != 4 {
-		t.Errorf("the Why a babysitter? story has %d paragraphs, want 4", n)
+	for _, n := range []string{"95364", "94049", "99585", "100114", "89599"} {
+		if !strings.Contains(home, `href="https://github.com/anthropics/claude-code/issues/`+n+`"`) {
+			t.Errorf("note 2 has no link to issue %s", n)
+		}
+	}
+	for _, gone := range []string{"Why a babysitter?", "I left Claude Code working on my laptop overnight", "CC Babysitter does both.", "Left Claude Code running with Remote Control, came back to a dead session?"} {
+		if strings.Contains(home, gone) {
+			t.Errorf("index.html still contains %q", gone)
+		}
 	}
 	for _, gone := range []string{"What it does", `class="about"`, "Why it exists"} {
 		if strings.Contains(home, gone) {

@@ -1,6 +1,6 @@
 /* The page's small behaviours: the light and dark switch, the tabs of the
-   install command, and copying a command. Each one works
-   without the others. */
+   install command, the note marks that open "See more", and copying a
+   command. Each one works without the others. */
 "use strict";
 (function () {
   var KEY = "ccb.site.theme";
@@ -96,6 +96,16 @@
         ev.preventDefault();
         select((moves[ev.key] + tabs.length) % tabs.length, true);
       });
+    });
+  });
+
+  // A note mark in the intro opens the "See more" disclosure that holds the
+  // note before the browser jumps to it, so the jump lands on readable text.
+  Array.prototype.forEach.call(document.querySelectorAll("a.fn"), function (a) {
+    a.addEventListener("click", function () {
+      var note = document.getElementById((a.getAttribute("href") || "").slice(1));
+      var box = note && note.closest ? note.closest("details") : null;
+      if (box) box.open = true;
     });
   });
 
