@@ -136,6 +136,10 @@ type Supervisor struct {
 	desktopVersionAt time.Time
 	pending          *pendingDesktop
 	rebooted         bool
+	// lastLook is when the last pass ran, by the wall clock, and slept a
+	// sleep of the computer not yet named in Activity.
+	lastLook time.Time
+	slept    *sleepSpan
 	// statsInFlight names the sessions the worker has been asked about and
 	// has not answered for yet, so the same read is never queued twice.
 	statsInFlight map[string]bool

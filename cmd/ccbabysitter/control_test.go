@@ -855,3 +855,17 @@ func TestOpenUsageAndNotRunning(t *testing.T) {
 		t.Fatalf("open, not running = %d %q", code, errOut)
 	}
 }
+
+// While it keeps a computer with a display awake, status says that a
+// closed laptop lid still sleeps it. A server has no lid to close.
+func TestStatusSaysALidStillSleepsIt(t *testing.T) {
+	env, e, _ := testEnv(t)
+	note := "Keeping the computer awake: yes. A closed laptop lid still sleeps it.\n"
+	if code, out, _ := runCmd(t, env, "status"); code != 0 || !strings.Contains(out, note) {
+		t.Fatalf("status = %d\n%s", code, out)
+	}
+	e.view.Env.Headless = true
+	if code, out, _ := runCmd(t, env, "status"); code != 0 || strings.Contains(out, "lid") || !strings.Contains(out, "Keeping the computer awake: yes\n") {
+		t.Fatalf("status on a server = %d\n%s", code, out)
+	}
+}

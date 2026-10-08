@@ -515,6 +515,8 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 	switch {
 	case !v.KeepAwake.Supported:
 		awake = "not supported on this system"
+	case v.KeepAwake.Held && !v.Env.Headless:
+		awake = "yes. A closed laptop lid still sleeps it."
 	case v.KeepAwake.Held:
 		awake = "yes"
 	}

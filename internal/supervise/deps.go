@@ -50,6 +50,12 @@ type Deps struct {
 	// whether the computer restarted in between. It may be nil.
 	BootID func() string
 
+	// SleepCause says why the computer slept between two times, as
+	// power.SleepCause does: "lid", "asked", "battery" or "". It is asked
+	// once after a sleep, aside from the loop, so it may be slow. It may be
+	// nil.
+	SleepCause func(from, to time.Time) string
+
 	// DaemonLog is the CLI daemon's log, read to tell when the daemon itself
 	// stopped an idle background session. Empty skips that, so only the real
 	// program, which sets it, ever reads ~/.claude.

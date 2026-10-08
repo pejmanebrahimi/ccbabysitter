@@ -36,6 +36,7 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 		}
 	}
 
+	s.noteSleep()
 	s.countAbsence(snap)
 	if s.anyInDesktop() {
 		s.noteDesktopVersion()

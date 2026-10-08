@@ -969,6 +969,14 @@ console.log(out.join("\n"));
 	}
 }
 
+// The header's keep-awake pill says, while it holds, that a closed laptop
+// lid still sleeps the computer.
+func TestTheAwakePillSaysALidStillSleepsIt(t *testing.T) {
+	if want := `on ? "The computer does not sleep while it is idle. A closed laptop lid still sleeps it." : ""`; !strings.Contains(readUI(t, "ui/app.js"), want) {
+		t.Errorf("app.js does not contain %s", want)
+	}
+}
+
 // Back to the app a session came from ends the background copy after a
 // dialog that says what happens, in one of three versions.
 func TestTheBackDialog(t *testing.T) {

@@ -454,6 +454,7 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 			Apps:               apps,
 			BootTime:           bootTime,
 			BootID:             procs.BootID,
+			SleepCause:         power.SleepCause,
 			URL:                pageURL,
 			SSHTarget:          target.get,
 			Autostart:          autostartInstaller,

@@ -20,7 +20,7 @@ On a server with no display the same page is the session manager. A plain `ccbab
 
 ## What babysitting does
 
-- Keeps the computer awake while at least one babysat session is running or being started.
+- Keeps the computer awake while at least one babysat session is running or being started. A closed laptop lid still sleeps the computer, unless a Mac runs in closed-display mode on an external display: keep the lid open. When the computer slept while sessions were babysat, Activity says so once it is awake, with the time they could not be reached, and on macOS whether the lid was closed.
 - Tells you how to switch Remote Control on when it is off. Nothing outside a session can switch it on.
 - If the session's app closes, starts the session again as a background session with Remote Control, under the same id, with `claude --bg --resume`. Activity and the In background card say why the session went down, when CC Babysitter can tell: for example, Claude Desktop restarted for an update, or the computer restarted.
 - Lets you unbabysit while the session is still in its own app. Once the background copy carries it, you stop the copy instead with `claude stop`, which keeps the conversation.
