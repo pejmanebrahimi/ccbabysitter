@@ -120,12 +120,13 @@ func TestDemoWalksThroughTheStates(t *testing.T) {
 	}
 	advance(d, tickCh, demoStartTakes)
 	w := demoWatch(t, d, demoVSCodeID)
-	if w.State != supervise.StateInBackground || w.OriginHost != claude.HostVSCode || !w.CanStop {
+	if w.State != supervise.StateInBackground || w.OriginHost != claude.HostVSCode || !w.CanStop ||
+		w.BackgroundCause != "VS Code closed, or the session ended in it" {
 		t.Fatalf("%+v", w)
 	}
 	found := false
 	for _, e := range d.log.Recent(20, "") {
-		if e.Automatic && e.Reason == "host process exited" && e.Session == "shop-api" {
+		if e.Automatic && e.Reason == "VS Code closed, or the session ended in it" && e.Session == "shop-api" {
 			found = true
 		}
 	}
@@ -316,6 +317,15 @@ func TestDemoShowsOneBackgroundCardPerOrigin(t *testing.T) {
 	}
 	if len(whens) != 3 {
 		t.Fatalf("the cards went to the background today, yesterday and before: %v", whens)
+	}
+	for origin, want := range map[claude.Host]string{
+		claude.HostDesktop:  "Claude Desktop restarted for an update from 2.7032.0 to 2.7033.0",
+		claude.HostVSCode:   "VS Code closed, or the session ended in it",
+		claude.HostTerminal: "the computer restarted",
+	} {
+		if got := byOrigin[origin].BackgroundCause; got != want {
+			t.Errorf("the card from %s says %q, want %q", origin, got, want)
+		}
 	}
 	if !strings.HasPrefix(byOrigin[claude.HostDesktop].RemoteURL, "https://claude.ai/code/session_") || byOrigin[claude.HostVSCode].RemoteURL != "" {
 		t.Fatalf("desktop has a Remote Control address and VS Code has none: %+v %+v", byOrigin[claude.HostDesktop], byOrigin[claude.HostVSCode])

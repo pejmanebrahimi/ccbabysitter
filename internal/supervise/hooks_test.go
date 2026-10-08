@@ -83,3 +83,17 @@ func (s *Supervisor) handedBackForTest(id string) (claude.Host, bool) {
 	})
 	return to, ok
 }
+
+// keptForTest reports whether anything is still kept about why id went
+// down.
+func (s *Supervisor) keptForTest(id string) bool {
+	kept := false
+	s.ask(func(context.Context) Result {
+		_, host := s.lastHost[id]
+		_, cause := s.causes[id]
+		_, absent := s.absent[id]
+		kept = host || cause || absent || s.announced[id]
+		return Result{OK: true}
+	})
+	return kept
+}

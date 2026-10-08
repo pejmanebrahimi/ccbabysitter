@@ -22,7 +22,7 @@ On a server with no display the same page is the session manager. A plain `ccbab
 
 - Keeps the computer awake while at least one babysat session is running or being started.
 - Tells you how to switch Remote Control on when it is off. Nothing outside a session can switch it on.
-- If the session's app closes, starts the session again as a background session with Remote Control, under the same id, with `claude --bg --resume`.
+- If the session's app closes, starts the session again as a background session with Remote Control, under the same id, with `claude --bg --resume`. Activity and the In background card say why the session went down, when CC Babysitter can tell: for example, Claude Desktop restarted for an update, or the computer restarted.
 - Lets you unbabysit while the session is still in its own app. Once the background copy carries it, you stop the copy instead with `claude stop`, which keeps the conversation.
 - Says before you babysit when a background copy could not start, with the command that fixes it: the Claude Code CLI must trust the folder, and inside a git repository it takes that trust only from the repository's own folder, though the desktop app also accepts a trusted folder above it, while a worktree takes it from any folder above; it never starts in your home folder.
 - Offers, in the same dialog, to start CC Babysitter at login so the promise survives a restart, when that is off. A plain `ccbabysitter` turns it on the first time it starts CC Babysitter in the background, also when you upgrade, as Start at login below says.

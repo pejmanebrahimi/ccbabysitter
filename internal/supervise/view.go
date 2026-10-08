@@ -116,6 +116,10 @@ type WatchView struct {
 	// 3339 and UTC, and empty unless it is In background. It stands in for
 	// the saved time of the same name, which the page never reads.
 	BackgroundSince string `json:"backgroundSince"`
+	// BackgroundCause is why the watch went to the background, as its
+	// first rescue gave it in Activity, and empty unless it is In
+	// background and the reason is known.
+	BackgroundCause string `json:"backgroundCause"`
 	// RemoteURL opens the background copy through Remote Control, and is
 	// empty when its bridge id is not one an address can be built from.
 	RemoteURL string `json:"remoteUrl"`
@@ -278,6 +282,7 @@ func (s *Supervisor) watchView(w state.Watch) WatchView {
 	}
 	if out.State == StateInBackground && !w.BackgroundSince.IsZero() {
 		out.BackgroundSince = w.BackgroundSince.UTC().Format(time.RFC3339)
+		out.BackgroundCause = w.BackgroundCause
 	}
 	out.ResumeCmd = hosts.ResumeCommandIn(w.Cwd, w.SessionID)
 

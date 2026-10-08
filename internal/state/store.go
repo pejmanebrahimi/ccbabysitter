@@ -91,6 +91,10 @@ type Watch struct {
 	// kept while the copy is started again and cleared once the watch
 	// leaves the background.
 	BackgroundSince time.Time `json:"backgroundSince,omitzero"`
+	// BackgroundCause is why the watch went to the background: the reason
+	// its first rescue gave in Activity. It is kept and cleared with
+	// BackgroundSince, and empty when not known.
+	BackgroundCause string `json:"backgroundCause,omitempty"`
 }
 
 // State is the entire contents of state.json. A file written by another
@@ -100,6 +104,14 @@ type State struct {
 	Version  string   `json:"version"`
 	Settings Settings `json:"settings"`
 	Watches  []Watch  `json:"watches"`
+	// BootTime is when the computer had booted, in seconds since the Unix
+	// epoch, as CC Babysitter last started. Another one at the next start
+	// means the computer restarted in between. Zero when not known.
+	BootTime uint64 `json:"bootTime,omitempty"`
+	// BootID is the id the system gave the boot CC Babysitter last started
+	// in, which tells a restart more surely than the boot time, which moves
+	// with the clock. Empty where the system gives none.
+	BootID string `json:"bootId,omitempty"`
 }
 
 // Find returns the watch with the given session id, or nil.

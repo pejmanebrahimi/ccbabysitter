@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -754,6 +755,53 @@ func TestTheBackgroundCard(t *testing.T) {
 		if !strings.Contains(css, want) {
 			t.Errorf("app.css does not style %s", want)
 		}
+	}
+}
+
+// An In background card says why the session went to the background with
+// the reason its rescue gave in Activity, after the time it happened and
+// without the versions, and has nothing to say without one. The function
+// is run as the page runs it, when node is there to run it.
+func TestTheBackgroundCardSaysWhyItWentDown(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	if want := `wentDown(w.backgroundCause, when) ||`; !strings.Contains(app, want) {
+		t.Errorf("app.js does not contain %s", want)
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	fn := "function wentDown(cause, when) {" + between(t, app, "function wentDown(cause, when) {", "\n  }") + "\n}"
+	cases := []struct {
+		cause, when, want string
+	}{
+		{"Claude Desktop restarted for an update from 2.7032.0 to 2.7033.0", "at 22:11", "At 22:11, Claude Desktop restarted for an update"},
+		{"Claude Desktop closed and updated from 2.1.0 to 2.2.0", "Oct 3 at 09:15", "Oct 3 at 09:15, Claude Desktop closed and updated"},
+		{"the computer restarted", "yesterday at 07:02", "Yesterday at 07:02, the computer restarted"},
+		{"its terminal or SSH connection closed, or the session was quit", "", "Its terminal or SSH connection closed, or the session was quit"},
+		{"", "at 22:11", ""},
+	}
+	var script strings.Builder
+	script.WriteString(fn + "\n")
+	for _, c := range cases {
+		fmt.Fprintf(&script, "console.log(JSON.stringify(wentDown(%q, %q)));\n", c.cause, c.when)
+	}
+	script.WriteString("console.log(JSON.stringify(wentDown(undefined, \"\")));\n")
+	out, err := exec.Command(node, "-e", script.String()).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	got := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(got) != len(cases)+1 {
+		t.Fatalf("want %d lines from node, got %q", len(cases)+1, out)
+	}
+	for i, c := range cases {
+		if want := strconv.Quote(c.want); got[i] != want {
+			t.Errorf("wentDown(%q, %q) = %s, want %s", c.cause, c.when, got[i], want)
+		}
+	}
+	if got[len(cases)] != `""` {
+		t.Errorf("wentDown(undefined) = %s", got[len(cases)])
 	}
 }
 

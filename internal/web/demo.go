@@ -70,8 +70,10 @@ type demoItem struct {
 	hasSaved     bool
 	promiseState string
 	watchedSince time.Time
-	// backgroundSince is when the watch went to the background.
+	// backgroundSince is when the watch went to the background, and
+	// backgroundCause why.
 	backgroundSince time.Time
+	backgroundCause string
 	paused          bool
 	pauseReason     string
 	// startsAt is the tick at which a watch that is Starting has its
@@ -108,7 +110,7 @@ func (it *demoItem) watch() state.Watch {
 		SessionID: it.id, ShortID: it.shortID, Name: it.name, Cwd: it.cwd,
 		OriginHost: it.originHost, OriginRemoteControl: it.originRC, HasSavedOptions: it.hasSaved,
 		WatchedSince: it.watchedSince, Paused: it.paused, PauseReason: it.pauseReason,
-		Failures: []time.Time{}, PromiseState: it.promiseState, BackgroundSince: it.backgroundSince,
+		Failures: []time.Time{}, PromiseState: it.promiseState, BackgroundSince: it.backgroundSince, BackgroundCause: it.backgroundCause,
 	}
 }
 
@@ -226,6 +228,7 @@ func (d *DemoEngine) seed(now time.Time) {
 			host: claude.HostBackground, entrypoint: "cli", remoteControl: true, bridgeID: "session_01DEMOGATEWAY", status: "idle", running: true,
 			watched: true, originHost: claude.HostDesktop, originRC: true, hasSaved: true, promiseState: "fallback", watchedSince: now.Add(-3 * time.Hour),
 			backgroundSince: today,
+			backgroundCause: demoExitReason(claude.HostDesktop),
 			stats:           claude.Stats{Model: "claude-opus-5", Turns: 41, InputTokens: 96_000, OutputTokens: 12_400},
 		},
 		{
@@ -233,6 +236,7 @@ func (d *DemoEngine) seed(now time.Time) {
 			host: claude.HostBackground, entrypoint: "cli", status: "idle", running: true,
 			watched: true, originHost: claude.HostVSCode, hasSaved: true, promiseState: "fallback", watchedSince: now.AddDate(0, 0, -2),
 			backgroundSince: yesterday,
+			backgroundCause: demoExitReason(claude.HostVSCode),
 			stats:           claude.Stats{Model: "claude-sonnet-5", Turns: 17, InputTokens: 31_000, OutputTokens: 4_900},
 		},
 		{
@@ -240,6 +244,7 @@ func (d *DemoEngine) seed(now time.Time) {
 			host: claude.HostBackground, entrypoint: "cli", remoteControl: true, bridgeID: "cse_01DEMOLOGDIGEST", status: "busy", running: true,
 			watched: true, originHost: claude.HostTerminal, originRC: true, hasSaved: true, promiseState: "fallback", watchedSince: now.AddDate(0, 0, -5),
 			backgroundSince: now.AddDate(0, 0, -4),
+			backgroundCause: "the computer restarted",
 			stats:           claude.Stats{Model: "claude-opus-5", Turns: 112, InputTokens: 410_000, OutputTokens: 58_000, CacheReadTokens: 2_100_000},
 		},
 		{
@@ -341,7 +346,7 @@ func (d *DemoEngine) tick() {
 			it.stats.Turns++
 		}
 	}
-	type said struct{ label, short string }
+	type said struct{ label, short, reason string }
 	var started []said
 	if d.elapsed == demoAppClosesAfter {
 		if it, ok := d.items[demoVSCodeID]; ok && it.watched && it.running && it.host == claude.HostVSCode {
@@ -365,15 +370,16 @@ func (d *DemoEngine) tick() {
 			it.promiseState = "fallback"
 			if it.backgroundSince.IsZero() {
 				it.backgroundSince = time.Now()
+				it.backgroundCause = demoExitReason(it.originHost)
 			}
 		}
-		started = append(started, said{demoLabel(it), it.shortID})
+		started = append(started, said{demoLabel(it), it.shortID, demoExitReason(it.originHost)})
 	}
 	notify := d.notify
 	d.mu.Unlock()
 
 	for _, s := range started {
-		d.log.Auto(s.label, "host process exited", "resumed as background "+s.short+". Remote Control is on.")
+		d.log.Auto(s.label, s.reason, "resumed as background "+s.short+". Remote Control is on.")
 	}
 	if notify != nil {
 		notify()
@@ -477,6 +483,7 @@ func (d *DemoEngine) watchView(it *demoItem) supervise.WatchView {
 		wv.FallbackWarning = it.warning
 	} else if !it.backgroundSince.IsZero() {
 		wv.BackgroundSince = it.backgroundSince.UTC().Format(time.RFC3339)
+		wv.BackgroundCause = it.backgroundCause
 	}
 	wv.ResumeCmd = hosts.ResumeCommandIn(it.cwd, it.id)
 	wv.CanStop = wv.State == supervise.StateInBackground
@@ -757,4 +764,18 @@ func demoShortID(id string) string {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(id))
 	return fmt.Sprintf("%08x", h.Sum32())
+}
+
+// demoExitReason is the reason the demo gives for a scripted rescue, in the
+// words the real engine uses for a session that went down in that app.
+func demoExitReason(host claude.Host) string {
+	switch host {
+	case claude.HostDesktop:
+		return "Claude Desktop restarted for an update from 2.7032.0 to 2.7033.0"
+	case claude.HostVSCode:
+		return "VS Code closed, or the session ended in it"
+	case claude.HostTerminal:
+		return "its terminal or SSH connection closed, or the session was quit"
+	}
+	return "the process running it exited"
 }
