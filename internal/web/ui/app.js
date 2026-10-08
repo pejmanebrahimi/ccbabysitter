@@ -646,7 +646,9 @@
     $("#awake-held").classList.toggle("on", on);
     $("#awake").classList.toggle("on", on);
     setText($("#awake-text"), on ? "Computer awake: " + (keep.activeWatches || 0) + " babysat" : "Computer not kept awake");
-    setTitle($("#awake"), keep.supported === false ? "This system cannot hold the keep-awake request" : "");
+    var env = view.env || {};
+    setTitle($("#awake"), keep.supported === false ? "This system cannot hold the keep-awake request" :
+      on && env.lidSleeps ? "The computer does not sleep while it is idle. Closing its lid still puts it to sleep." : "");
   }
 
   /* versionsLine lists what is installed: the Claude Code CLI always, with
@@ -1049,7 +1051,7 @@
      by babysitting, and what closes there is the terminal or the SSH
      connection it runs over. A background session has no app to close and
      gets a promise of its own. */
-  function babysitPromise(s, headless) {
+  function babysitPromise(s, headless, lidSleeps) {
     var promise;
     if (s.host === "background") {
       promise = "If this session stops, it is started again in the background with Remote Control.";
@@ -1058,7 +1060,7 @@
     } else {
       promise = "If " + (HOST_APP[s.host] || "its app") + " closes, this session continues in the background with Remote Control.";
     }
-    return headless ? promise : "Keeps the computer awake. " + promise;
+    return headless ? promise : (lidSleeps ? "Keeps the computer awake while its lid is open. " : "Keeps the computer awake. ") + promise;
   }
 
   /* rcMissing says what Remote Control being off means right now, and what
@@ -1080,7 +1082,7 @@
     }
     var env = (state.view && state.view.env) || {};
     setText(f(dialog, "name"), s.name || s.shortId);
-    setText(f(dialog, "promise"), babysitPromise(s, !!env.headless));
+    setText(f(dialog, "promise"), babysitPromise(s, !!env.headless, !!env.lidSleeps));
     var rcLine = rcMissing(s);
     show(f(dialog, "rc"), !!rcLine);
     setText(f(dialog, "rc"), rcLine);

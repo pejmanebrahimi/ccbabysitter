@@ -136,6 +136,12 @@ type Supervisor struct {
 	desktopVersionAt time.Time
 	pending          *pendingDesktop
 	rebooted         bool
+	// idleSince is when the loop last finished its work, by the wall clock,
+	// slept a sleep of the computer not yet named in Activity, and sleepers
+	// the lines about sleeps still being written.
+	idleSince time.Time
+	slept     *sleepSpan
+	sleepers  sync.WaitGroup
 	// statsInFlight names the sessions the worker has been asked about and
 	// has not answered for yet, so the same read is never queued twice.
 	statsInFlight map[string]bool
@@ -264,6 +270,9 @@ func (s *Supervisor) Run(ctx context.Context) {
 		s.publish()
 		close(s.done)
 	}()
+	// A line about a sleep still being written finishes, or gives up with
+	// ctx, before the loop is said to be done.
+	defer s.sleepers.Wait()
 
 	if ctx.Err() != nil {
 		return
@@ -427,6 +436,7 @@ func (s *Supervisor) ask(fn func(ctx context.Context) Result) Result {
 func (s *Supervisor) after() {
 	s.applyKeepAwake()
 	s.publish()
+	s.markIdle()
 }
 
 // store builds an immutable view and publishes it without telling anyone.

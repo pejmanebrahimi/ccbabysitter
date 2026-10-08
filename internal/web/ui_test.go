@@ -969,6 +969,23 @@ console.log(out.join("\n"));
 	}
 }
 
+// The header's keep-awake pill and the Babysit dialog say that a closed lid
+// still sleeps the computer only where closing it would, as status does: a
+// computer with no lid, a Mac on an external display, or a laptop set to do
+// nothing when its lid closes, is simply kept awake.
+func TestTheLidIsMentionedOnlyWhereItSleeps(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`on && env.lidSleeps ? "The computer does not sleep while it is idle. Closing its lid still puts it to sleep." : ""`,
+		`(lidSleeps ? "Keeps the computer awake while its lid is open. " : "Keeps the computer awake. ") + promise`,
+		`babysitPromise(s, !!env.headless, !!env.lidSleeps)`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+}
+
 // Back to the app a session came from ends the background copy after a
 // dialog that says what happens, in one of three versions.
 func TestTheBackDialog(t *testing.T) {
