@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -26,9 +27,14 @@ type uninstallSteps struct {
 	// names of the other files of the program that live beside it.
 	program    string
 	companions []string
-	// ownFolder is the name of the folder the installer makes for the
+	// link is a link the program was started through. It goes in place
+	// of the program, which is someone's own arrangement and stays.
+	link string
+	// ownFolder is the full path of the folder the installer makes for the
 	// program alone, "" on a system where it shares a folder with others.
 	ownFolder string
+	// otherCopy is another ccbabysitter found on PATH, named at the end.
+	otherCopy string
 	// terminal says a question can be asked on stdin.
 	terminal bool
 
@@ -41,7 +47,9 @@ type uninstallSteps struct {
 	stillHeld   func(dir string) bool
 	removeState func(dir string) error
 	listFolder  func(dir string) ([]string, error)
-	removeFiles func(out io.Writer, plan removalPlan) error
+	// removeFiles deletes the program's files, now or, when later is
+	// true, once this command has ended.
+	removeFiles func(out io.Writer, plan removalPlan) (later bool, err error)
 	// removePath takes the program's own folder out of PATH. It is nil on
 	// a system where the installer changes no PATH.
 	removePath func(out io.Writer, folder string) error
@@ -81,15 +89,22 @@ func uninstallFlow(s uninstallSteps, a uninstallArgs, in io.Reader, out io.Write
 		return rc
 	}
 
-	entries, err := s.listFolder(filepath.Dir(s.program))
-	if err != nil {
-		entries = []string{filepath.Base(s.program)}
+	var plan removalPlan
+	if s.link != "" {
+		plan = removalPlan{folder: filepath.Dir(s.link), files: []string{s.link}}
+	} else if entries, err := s.listFolder(filepath.Dir(s.program)); err == nil {
+		plan = planRemoval(s.program, s.companions, s.ownFolder, entries)
+	} else {
+		// A folder that cannot be listed may hold anything, so it is never
+		// deleted whole.
+		plan = planRemoval(s.program, s.companions, "", []string{filepath.Base(s.program)})
 	}
-	plan := planRemoval(s.program, s.companions, s.ownFolder, entries)
 	fmt.Fprintln(out, "This removes CC Babysitter from this computer:")
 	fmt.Fprintln(out, "  start at login")
 	fmt.Fprintf(out, "  the state folder %s, with the settings, the babysat sessions and the activity log\n", s.stateDir)
 	switch {
+	case s.link != "":
+		fmt.Fprintf(out, "  the link %s, to %s, which stays\n", s.link, s.program)
 	case plan.whole && s.removePath != nil:
 		fmt.Fprintf(out, "  the folder %s, and its place in your user Path\n", plan.folder)
 	case plan.whole:
@@ -102,7 +117,7 @@ func uninstallFlow(s uninstallSteps, a uninstallArgs, in io.Reader, out io.Write
 	fmt.Fprintln(out, "Babysat sessions keep running where they are.")
 	if !a.yes {
 		if !s.terminal {
-			fmt.Fprintln(out, "Nothing changed. To remove it, run: ccbabysitter uninstall --yes")
+			fmt.Fprintln(out, "Nothing changed: there is no terminal here to ask in. To remove it, run: ccbabysitter uninstall --yes")
 			return 2
 		}
 		fmt.Fprint(out, "Continue? [y/N] ")
@@ -113,7 +128,14 @@ func uninstallFlow(s uninstallSteps, a uninstallArgs, in io.Reader, out io.Write
 		}
 	}
 
-	rc := s.removeStart(out)
+	// Start at login left behind would start a program that is gone, and
+	// on Linux the note that lingering was turned on is in the state
+	// folder, so nothing more goes until it is removed.
+	if rc := s.removeStart(out); rc != 0 {
+		fmt.Fprintln(out, "Start at login could not be removed, so the state folder and program stay. Fix what it says, then run ccbabysitter uninstall again.")
+		return rc
+	}
+	rc := 0
 	s.quit(out)
 	if s.stillHeld(s.stateDir) {
 		fmt.Fprintln(out, "CC Babysitter is still running, so its state folder and program stay. Quit it, then run ccbabysitter uninstall again.")
@@ -131,16 +153,21 @@ func uninstallFlow(s uninstallSteps, a uninstallArgs, in io.Reader, out io.Write
 			rc = 1
 		}
 	}
+	later := false
 	switch {
-	case goRun(s.program):
+	case s.link == "" && goRun(s.program):
 		fmt.Fprintln(out, "This copy runs from go run, so there is no program to delete.")
 	case len(plan.files) > 0:
-		if err := s.removeFiles(out, plan); err != nil {
+		var err error
+		if later, err = s.removeFiles(out, plan); err != nil {
 			fmt.Fprintln(out, "could not delete the program:", err)
 			rc = 1
 		}
 	}
-	if rc == 0 {
+	if s.otherCopy != "" {
+		fmt.Fprintf(out, "Another ccbabysitter is still on your PATH, at %s. Delete it too if you no longer want it.\n", s.otherCopy)
+	}
+	if rc == 0 && !later {
 		fmt.Fprintln(out, "CC Babysitter is removed.")
 	}
 	return rc
@@ -157,8 +184,9 @@ type removalPlan struct {
 // planRemoval works out, from the names in the program's folder, which
 // are the program's own: the program, its companions, and what an install
 // that was cut short leaves beside them. The folder goes whole only when it
-// is the installer's own folder, by name, and holds nothing else. A copy
-// run with go run lives in Go's build cache and has nothing to delete.
+// is the installer's own folder, by its full path, and holds nothing else.
+// A copy run with go run lives in Go's build cache and has nothing to
+// delete.
 func planRemoval(program string, companions []string, ownFolder string, entries []string) removalPlan {
 	plan := removalPlan{folder: filepath.Dir(program)}
 	if goRun(program) {
@@ -171,14 +199,21 @@ func planRemoval(program string, companions []string, ownFolder string, entries 
 	others := 0
 	for _, name := range entries {
 		lower := strings.ToLower(name)
-		if own[lower] || own[strings.TrimSuffix(lower, ".bak")] || strings.HasPrefix(lower, ".ccbabysitter") {
+		if own[lower] || own[strings.TrimSuffix(lower, ".bak")] || leftover(lower) {
 			plan.files = append(plan.files, filepath.Join(plan.folder, name))
 		} else {
 			others++
 		}
 	}
-	plan.whole = ownFolder != "" && others == 0 && strings.EqualFold(filepath.Base(plan.folder), ownFolder)
+	plan.whole = ownFolder != "" && others == 0 && strings.EqualFold(plan.folder, ownFolder)
 	return plan
+}
+
+// leftover reports whether name, in lower case, is what an install script
+// cut short leaves beside the program: install.sh's .ccbabysitter.XXXXXX and
+// install.ps1's .ccbabysitter-GUID.part.
+func leftover(name string) bool {
+	return strings.HasPrefix(name, ".ccbabysitter.") || strings.HasPrefix(name, ".ccbabysitter-") && strings.HasSuffix(name, ".part")
 }
 
 // goRun reports whether program was built by go run, in Go's build cache.
@@ -197,20 +232,67 @@ func runUninstall(args []string) int {
 	// The page's key goes only to a copy whose lock names a live process,
 	// never to a stale address another account may listen on by now.
 	state.SetPIDChecker(procs.NewReal().Exists)
-	program, err := executablePath()
-	if err != nil {
-		fmt.Fprintln(os.Stdout, "could not tell where this program is:", err)
-		return 1
-	}
 	s := uninstallSystem()
+	if !a.keepFiles {
+		// Where this program is matters only when it is deleted. A copy in
+		// a temporary folder is deleted like any other, and one run with go
+		// run has nothing to delete.
+		exe, err := os.Executable()
+		if err == nil {
+			s.program, err = filepath.EvalSymlinks(exe)
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stdout, "could not tell where this program is:", err)
+			return 1
+		}
+		s.link = findLink(invokedPath(), s.program)
+		if found, err := exec.LookPath("ccbabysitter"); err == nil {
+			if found, err = filepath.EvalSymlinks(found); err == nil && found != s.program && !strings.EqualFold(found, s.program) {
+				s.otherCopy = found
+			}
+		}
+	}
 	s.stateDir = stateDir
-	s.program = program
 	s.terminal = stdinIsTerminal()
 	s.quit = func(out io.Writer) { quitRunningCopy(out, stateDir) }
 	s.stillHeld = func(dir string) bool { return !releasedWithin(dir, 10*time.Second) }
 	s.removeState = removeStateFolder
 	s.listFolder = folderNames
 	return uninstallFlow(s, a, os.Stdin, os.Stdout)
+}
+
+// invokedPath is the path this program was started by, as found on PATH
+// when it was started by its name alone, or "" when that cannot be told.
+func invokedPath() string {
+	arg0 := os.Args[0]
+	if filepath.Base(arg0) == arg0 {
+		p, err := exec.LookPath(arg0)
+		if err != nil {
+			return ""
+		}
+		arg0 = p
+	}
+	p, err := filepath.Abs(arg0)
+	if err != nil {
+		return ""
+	}
+	return p
+}
+
+// findLink returns invoked when it is a link that leads to program, and
+// "" otherwise.
+func findLink(invoked, program string) string {
+	if invoked == "" {
+		return ""
+	}
+	fi, err := os.Lstat(invoked)
+	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		return ""
+	}
+	if target, err := filepath.EvalSymlinks(invoked); err != nil || target != program {
+		return ""
+	}
+	return invoked
 }
 
 // quitRunningCopy asks a copy that is still running to quit, which a copy
@@ -246,8 +328,14 @@ func releasedWithin(stateDir string, timeout time.Duration) bool {
 	return true
 }
 
-// removeStateFolder deletes the state folder, which may not be there.
+// removeStateFolder deletes the state folder, which may not be there. It
+// deletes nothing but an absolute path whose last part is the state
+// folder's name: with no home folder known, the path would be relative to
+// wherever the command runs.
 func removeStateFolder(dir string) error {
+	if !filepath.IsAbs(dir) || !strings.EqualFold(filepath.Base(dir), "ccbabysitter") {
+		return fmt.Errorf("%s is not where CC Babysitter keeps its state, so it stays", dir)
+	}
 	if _, err := os.Stat(dir); errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
@@ -273,7 +361,7 @@ func stdinIsTerminal() bool { return isTerminal(os.Stdin) }
 
 // removeFilesNow deletes the program's files at once, which a system that
 // lets a running program delete itself allows.
-func removeFilesNow(out io.Writer, plan removalPlan) error {
+func removeFilesNow(out io.Writer, plan removalPlan) (bool, error) {
 	var failed error
 	for _, f := range plan.files {
 		if err := os.Remove(f); err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -282,5 +370,5 @@ func removeFilesNow(out io.Writer, plan removalPlan) error {
 		}
 		fmt.Fprintln(out, "Deleted", f)
 	}
-	return failed
+	return false, failed
 }

@@ -572,17 +572,19 @@ login is the systemd user service on Linux, where lingering is turned off only w
 CC Babysitter turned it on, the LaunchAgent on macOS and the Run value on Windows.
 On macOS and Linux the program is one file, and its folder stays. On Windows the
 install script's folder, %LOCALAPPDATA%\Programs\CCBabysitter, comes out of the
-user Path and is deleted a moment after the command ends. A program in a folder
-that holds other files is deleted on its own. Babysat sessions keep running where
-they are. It stops, with exit code 1, when a copy is still running after it was
-asked to quit.
+user Path and is deleted a moment after the command ends. A program anywhere else
+loses only its own files, and the folder stays, also on PATH. A ccbabysitter that
+is a link loses the link, and one run with go run leaves Go's cache alone. Another
+ccbabysitter still on PATH is named at the end. Babysat sessions keep running
+where they are. It stops, with exit code 1, when start at login cannot be removed
+or a copy is still running after it was asked to quit.
 
 Flags:
   --yes          ask nothing. Without it, and without a terminal to ask in,
                  nothing changes and the exit code is 2
-  --keep-files   only remove start at login, asking nothing. A later plain
-                 ccbabysitter turns it on again, as on a machine that never had
-                 CC Babysitter
+  --keep-files   only stop the background copy and remove start at login,
+                 asking nothing. A later plain ccbabysitter turns it on again,
+                 as on a machine that never had CC Babysitter
 
 Examples:
   ccbabysitter uninstall

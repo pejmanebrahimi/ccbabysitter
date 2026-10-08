@@ -22,7 +22,8 @@ func runInstall(out io.Writer) int {
 
 // removeStartAtLogin quits the running copy, turns start at login off and
 // removes an earlier version's Startup script. A later plain run turns
-// start at login on again.
+// start at login on again. Only start at login that stays is a failure: a
+// copy that did not quit is said, and uninstall checks for it itself.
 func removeStartAtLogin(out io.Writer) int {
 	stateDir := state.DefaultDir()
 	// The page's key goes only to a copy whose lock names a live process,
@@ -36,10 +37,8 @@ func removeStartAtLogin(out io.Writer) int {
 		switch {
 		case err != nil:
 			fmt.Fprintln(out, "could not ask CC Babysitter to quit:", err)
-			rc = 1
 		case !res.OK:
 			fmt.Fprintln(out, res.Message)
-			rc = 1
 		default:
 			fmt.Fprintln(out, "Quit CC Babysitter.")
 			waitForRelease(stateDir, 10*time.Second)

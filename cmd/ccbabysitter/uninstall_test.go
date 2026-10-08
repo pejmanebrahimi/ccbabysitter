@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -13,7 +14,9 @@ type fakeUninstall struct {
 	steps    []string
 	held     bool
 	entries  []string
+	listErr  error
 	stateErr error
+	startRC  int
 }
 
 func (f *fakeUninstall) deps(program string, terminal bool) uninstallSteps {
@@ -25,15 +28,15 @@ func (f *fakeUninstall) deps(program string, terminal bool) uninstallSteps {
 		removeStart: func(out io.Writer) int {
 			f.steps = append(f.steps, "start")
 			io.WriteString(out, "Removed start at login.\n")
-			return 0
+			return f.startRC
 		},
 		quit:        func(io.Writer) { f.steps = append(f.steps, "quit") },
 		stillHeld:   func(string) bool { return f.held },
 		removeState: func(dir string) error { f.steps = append(f.steps, "state "+dir); return f.stateErr },
-		listFolder:  func(string) ([]string, error) { return f.entries, nil },
-		removeFiles: func(_ io.Writer, plan removalPlan) error {
+		listFolder:  func(string) ([]string, error) { return f.entries, f.listErr },
+		removeFiles: func(_ io.Writer, plan removalPlan) (bool, error) {
 			f.steps = append(f.steps, "files "+strings.Join(plan.files, ",")+map[bool]string{true: " whole", false: ""}[plan.whole])
-			return nil
+			return false, nil
 		},
 		removePath: func(_ io.Writer, folder string) error { f.steps = append(f.steps, "path "+folder); return nil },
 	}
@@ -83,7 +86,7 @@ func TestUninstallAsksFirst(t *testing.T) {
 func TestUninstallWithoutATerminalNeedsYes(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter"}}
 	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", false), nil, "y\n")
-	if rc != 2 || len(f.steps) != 0 || !strings.Contains(out, "ccbabysitter uninstall --yes") {
+	if rc != 2 || len(f.steps) != 0 || !strings.Contains(out, "there is no terminal here to ask in") || !strings.Contains(out, "ccbabysitter uninstall --yes") {
 		t.Fatalf("rc %d, steps %v, output %q", rc, f.steps, out)
 	}
 }
@@ -114,7 +117,7 @@ func TestUninstallRemovesItsOwnFolderAndPath(t *testing.T) {
 	folder := filepath.Join("C:", "Users", "dev", "AppData", "Local", "Programs", "CCBabysitter")
 	f := &fakeUninstall{entries: []string{"ccbabysitter.exe", "ccbabysitter-background.exe"}}
 	d := f.deps(filepath.Join(folder, "ccbabysitter.exe"), false)
-	d.ownFolder = "CCBabysitter"
+	d.ownFolder = folder
 	rc, _ := runFlow(t, f, d, []string{"--yes"}, "")
 	got := strings.Join(f.steps, "|")
 	if rc != 0 || !strings.HasSuffix(got, "|path "+folder+"|files "+filepath.Join(folder, "ccbabysitter.exe")+","+filepath.Join(folder, "ccbabysitter-background.exe")+" whole") {
@@ -170,10 +173,12 @@ func TestParseUninstallArgs(t *testing.T) {
 	}
 }
 
-// What is removed of the program: its own files, and the folder whole
-// only when it is the installer's own folder and holds nothing else.
+// What is removed of the program: its own files, with what an install cut
+// short leaves beside them, and the folder whole only when it is the
+// installer's own folder, by its full path, and holds nothing else.
 func TestPlanRemoval(t *testing.T) {
-	win := filepath.Join("C:", "Programs", "CCBabysitter")
+	win := filepath.Join("C:", "Users", "jo", "AppData", "Local", "Programs", "CCBabysitter")
+	other := filepath.Join("C:", "Users", "jo", "Desktop", "CCBabysitter")
 	for _, c := range []struct {
 		name      string
 		program   string
@@ -184,13 +189,16 @@ func TestPlanRemoval(t *testing.T) {
 	}{
 		{"shared folder", "/home/dev/.local/bin/ccbabysitter", "", []string{"ccbabysitter", "uv"}, []string{"/home/dev/.local/bin/ccbabysitter"}, false},
 		{"alone, no own folder here", "/home/dev/.local/bin/ccbabysitter", "", []string{"ccbabysitter"}, []string{"/home/dev/.local/bin/ccbabysitter"}, false},
-		{"own folder", filepath.Join(win, "ccbabysitter.exe"), "CCBabysitter",
+		{"leftovers of an install cut short", "/home/dev/.local/bin/ccbabysitter", "",
+			[]string{"ccbabysitter", ".ccbabysitter.Ab12Cd", ".ccbabysitter-notes", ".ccbabysitterrc"},
+			[]string{"/home/dev/.local/bin/ccbabysitter", "/home/dev/.local/bin/.ccbabysitter.Ab12Cd"}, false},
+		{"own folder", filepath.Join(win, "ccbabysitter.exe"), win,
 			[]string{"ccbabysitter.exe", "ccbabysitter-background.exe", "ccbabysitter.exe.bak", ".ccbabysitter-1f2e.part"},
 			[]string{filepath.Join(win, "ccbabysitter.exe"), filepath.Join(win, "ccbabysitter-background.exe"), filepath.Join(win, "ccbabysitter.exe.bak"), filepath.Join(win, ".ccbabysitter-1f2e.part")}, true},
-		{"own folder with someone else's file", filepath.Join(win, "ccbabysitter.exe"), "CCBabysitter",
+		{"own folder with someone else's file", filepath.Join(win, "ccbabysitter.exe"), win,
 			[]string{"ccbabysitter.exe", "notes.txt"}, []string{filepath.Join(win, "ccbabysitter.exe")}, false},
-		{"another folder", filepath.Join("C:", "tools", "ccbabysitter.exe"), "CCBabysitter",
-			[]string{"ccbabysitter.exe", "ccbabysitter-background.exe"}, []string{filepath.Join("C:", "tools", "ccbabysitter.exe"), filepath.Join("C:", "tools", "ccbabysitter-background.exe")}, false},
+		{"another folder of the same name", filepath.Join(other, "ccbabysitter.exe"), win,
+			[]string{"ccbabysitter.exe", "ccbabysitter-background.exe"}, []string{filepath.Join(other, "ccbabysitter.exe"), filepath.Join(other, "ccbabysitter-background.exe")}, false},
 		{"go run", "/tmp/go-build99/b001/exe/ccbabysitter", "", []string{"ccbabysitter"}, nil, false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -199,5 +207,118 @@ func TestPlanRemoval(t *testing.T) {
 				t.Fatalf("got %+v, want files %v whole %v", p, c.files, c.whole)
 			}
 		})
+	}
+}
+
+// Start at login that could not be removed would be left pointing at a
+// deleted program, and on Linux the note that lingering was turned on
+// lives in the state folder: nothing more is deleted, so uninstall can be
+// run again.
+func TestUninstallStopsWhenStartAtLoginStays(t *testing.T) {
+	f := &fakeUninstall{entries: []string{"ccbabysitter"}, startRC: 1}
+	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", false), []string{"--yes"}, "")
+	if rc != 1 || strings.Join(f.steps, "|") != "start" || !strings.Contains(out, "run ccbabysitter uninstall again") {
+		t.Fatalf("rc %d, steps %v, output %q", rc, f.steps, out)
+	}
+}
+
+// A folder that cannot be listed is never deleted whole: only the program
+// goes, and the folder keeps its place in PATH.
+func TestUninstallNeverDeletesAFolderItCannotList(t *testing.T) {
+	folder := filepath.Join("C:", "Programs", "CCBabysitter")
+	f := &fakeUninstall{listErr: errors.New("denied")}
+	d := f.deps(filepath.Join(folder, "ccbabysitter.exe"), false)
+	d.ownFolder = folder
+	rc, _ := runFlow(t, f, d, []string{"--yes"}, "")
+	got := strings.Join(f.steps, "|")
+	if rc != 0 || strings.Contains(got, "whole") || strings.Contains(got, "path ") || !strings.HasSuffix(got, "files "+filepath.Join(folder, "ccbabysitter.exe")) {
+		t.Fatalf("rc %d, steps %s", rc, got)
+	}
+}
+
+// A program started through a link is someone's own arrangement: the link
+// goes, and what it points at stays.
+func TestUninstallDeletesTheLinkNotItsTarget(t *testing.T) {
+	f := &fakeUninstall{entries: []string{"ccbabysitter", "go.mod"}}
+	d := f.deps("/home/dev/src/ccbabysitter/bin/ccbabysitter", false)
+	d.link = "/home/dev/.local/bin/ccbabysitter"
+	rc, out := runFlow(t, f, d, []string{"--yes"}, "")
+	if rc != 0 || !strings.HasSuffix(strings.Join(f.steps, "|"), "files /home/dev/.local/bin/ccbabysitter") || !strings.Contains(out, "which stays") {
+		t.Fatalf("rc %d, steps %v, output %q", rc, f.steps, out)
+	}
+}
+
+// findLink names the link a program was started through, when the name it
+// was started by is a link to it.
+func TestFindLink(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "ccbabysitter-real")
+	if err := os.WriteFile(target, []byte("x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "ccbabysitter")
+	if err := os.Symlink(target, link); err != nil {
+		t.Skip("no symlinks here:", err)
+	}
+	real, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := findLink(link, real); got != link {
+		t.Errorf("findLink(link) = %q, want %q", got, link)
+	}
+	if got := findLink(target, real); got != "" {
+		t.Errorf("findLink(target) = %q", got)
+	}
+	if got := findLink(link, filepath.Join(dir, "other")); got != "" {
+		t.Errorf("a link to something else: %q", got)
+	}
+	if got := findLink("", real); got != "" {
+		t.Errorf("no name: %q", got)
+	}
+}
+
+// Another ccbabysitter on PATH, such as one go install put in Go's bin
+// folder, is named at the end, for the person to delete if they want.
+func TestUninstallNamesAnotherCopyOnPath(t *testing.T) {
+	f := &fakeUninstall{entries: []string{"ccbabysitter"}}
+	d := f.deps("/home/dev/.local/bin/ccbabysitter", false)
+	d.otherCopy = "/home/dev/go/bin/ccbabysitter"
+	rc, out := runFlow(t, f, d, []string{"--yes"}, "")
+	if rc != 0 || !strings.Contains(out, "Another ccbabysitter is still on your PATH, at /home/dev/go/bin/ccbabysitter.") {
+		t.Fatalf("rc %d, output %q", rc, out)
+	}
+}
+
+// Only CC Babysitter's own state folder is ever deleted: an absolute path
+// whose last part is its name. A relative path, which a missing HOME would
+// give, or any other folder is refused.
+func TestRemoveStateFolderDeletesOnlyItsOwn(t *testing.T) {
+	root := t.TempDir()
+	own := filepath.Join(root, "ccbabysitter")
+	if err := os.MkdirAll(filepath.Join(own, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeStateFolder(own); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(own); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("own folder still there: %v", err)
+	}
+	if err := removeStateFolder(filepath.Join(root, "missing", "ccbabysitter")); err != nil {
+		t.Fatalf("a folder that is not there: %v", err)
+	}
+	notOurs := filepath.Join(root, "documents")
+	if err := os.Mkdir(notOurs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeStateFolder(notOurs); err == nil {
+		t.Fatal("another folder was accepted")
+	}
+	if _, err := os.Stat(notOurs); err != nil {
+		t.Fatalf("another folder was touched: %v", err)
+	}
+	if err := removeStateFolder(filepath.Join(".local", "share", "ccbabysitter")); err == nil {
+		t.Fatal("a relative path was accepted")
 	}
 }
