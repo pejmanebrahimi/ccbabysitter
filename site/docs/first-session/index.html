@@ -61,7 +61,7 @@
     <p>You need:</p>
     <ul>
       <li>A Mac, a Windows PC or a Linux desktop. A server you reach over SSH works too, with its own steps in the README.</li>
-      <li>Claude Code, logged in, version 2.1.275 or later. If <code>claude</code> starts and answers in a terminal, you're set.</li>
+      <li>Claude Code 2.1.275 or later, logged in. <code>claude --version</code> tells you which version you have.</li>
       <li>The Claude app on your phone, signed in to the same account.</li>
     </ul>
 
@@ -105,23 +105,23 @@
     <h2 id="babysit">Babysit it</h2>
     <p>Press <strong>Babysit</strong> on the session's row. The dialog says what babysitting does. CC Babysitter keeps the computer awake, and if the terminal closes, the session carries on in the background with Remote Control.</p>
     <p>Press <strong>Babysit</strong> in the dialog. The session moves to the Babysat list, and its card says <em>Watching in a terminal window</em>.</p>
+    <p>On a laptop, keep the lid open: keeping the computer awake doesn't stop a closed lid from putting it to sleep.</p>
 
     <h2 id="close">Close the terminal</h2>
     <p>Now the test. Close the terminal window the session runs in, the way an app update or a crash would.</p>
-    <p>Within a few seconds the card changes. Its panel says <em>Kept alive while you were away</em>, with the time the terminal closed and a trail from Terminal to Background. The session is running again in the background, with Remote Control on.</p>
-    <p>Every step CC Babysitter took is in the <strong>Activity</strong> panel, which opens from the button at the top of the page.</p>
+    <p>Within a few seconds the card changes. If CC Babysitter started less than 90 seconds ago, it first waits out those 90 seconds, so apps that restore their own sessions go first.</p>
+    <p>The card's panel now says <em>Kept alive while you were away</em>, with the time the terminal closed and a trail from Terminal to Background. The session is running again in the background, with Remote Control on.</p>
+    <p>The <strong>Activity</strong> panel, from the button at the top of the page, says what CC Babysitter did and why.</p>
 
     <h2 id="phone">Reach it from your phone</h2>
-    <p>Open the Claude app on your phone and find the session among your Claude Code sessions, under the same name. The conversation is all there. Send it a message, and Claude answers from your computer.</p>
+    <p>Open the Claude app on your phone and find the session among your Claude Code sessions. The conversation is all there. Send it a message, and Claude answers from your computer.</p>
     <p>On the computer, <strong>Open on claude.ai</strong> in the card's menu opens the same session in your browser.</p>
 
     <h2 id="back">Carry on at the computer</h2>
-    <p>When you're back at the computer, you can carry on in a terminal from the card:</p>
-    <ul>
-      <li><strong>Open in Terminal</strong>, in the menu beside <strong>Back to a terminal</strong>, opens a terminal window on the session where it runs. It stays in the background with Remote Control on, and closing that window doesn't stop it.</li>
-      <li><strong>Back to a terminal</strong> ends the background copy and gives you a command that resumes the session in any terminal. Remote Control stays off there until you type <code>/rc</code>.</li>
-    </ul>
-    <p>When you no longer need the session kept alive, press <strong>Unbabysit</strong> on its card. The session keeps running where it is, and CC Babysitter stops watching it.</p>
+    <p>When you're back at the computer, the card offers two ways to carry on in a terminal.</p>
+    <p><strong>Open in Terminal</strong>, in the menu beside <strong>Back to a terminal</strong>, opens a terminal window on the session where it runs. On Windows and Linux it says Open in Windows Terminal or Open in a terminal. The session stays in the background, still babysat and with Remote Control on, and closing that window doesn't stop it.</p>
+    <p><strong>Back to a terminal</strong> ends the background copy, and with it the babysitting. Confirm with <strong>End background copy</strong>, and you get a command that resumes the session in any terminal. The session moves to <strong>Not running</strong> on the page. Once you resume it, it shows under Running again, with Remote Control off until you type <code>/rc</code>. Press <strong>Babysit</strong> if you want it kept alive again.</p>
+    <p>A babysat session that still runs in its own terminal has an <strong>Unbabysit</strong> button instead. It stops the babysitting and leaves the session running where it is.</p>
 
     <h2 id="next">What's next</h2>
     <ul>

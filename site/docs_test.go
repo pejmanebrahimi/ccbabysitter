@@ -47,8 +47,8 @@ var (
 	pagerLink   = regexp.MustCompile(`<a class="(prev|next)" href="([^"]*)">`)
 	editLink    = regexp.MustCompile(`<a class="edit" href="([^"]*)"`)
 	tocBlock    = regexp.MustCompile(`(?s)<nav class="toc-list" aria-label="On this page">(.*?)</nav>`)
-	tocLink     = regexp.MustCompile(`<a href="#([^"]+)">`)
-	h2Tag       = regexp.MustCompile(`<h2\b([^>]*)>`)
+	tocLink     = regexp.MustCompile(`<a href="#([^"]+)">([^<]*)</a>`)
+	h2Tag       = regexp.MustCompile(`<h2\b([^>]*)>([^<]*)</h2>`)
 	idAttr      = regexp.MustCompile(`\bid="([^"]+)"`)
 	kindLine    = regexp.MustCompile(`<p class="kind">([^<]*)</p>\s*<h1`)
 	canonicalAt = regexp.MustCompile(`<link rel="canonical" href="([^"]*)">`)
@@ -86,7 +86,11 @@ func TestDocsSidebarListsEveryPageOnce(t *testing.T) {
 		nav := sidebar.FindString(readSite(t, f))
 		seen := map[string]bool{}
 		var current []string
-		for _, m := range sideLink.FindAllStringSubmatch(nav, -1) {
+		links := sideLink.FindAllStringSubmatch(nav, -1)
+		if n := strings.Count(nav, "<a "); n != len(links) {
+			t.Errorf("%s: the sidebar has %d links, %d of them in the expected form", f, n, len(links))
+		}
+		for _, m := range links {
 			if seen[m[1]] {
 				t.Errorf("%s: the sidebar links to %s twice", f, m[1])
 			}
@@ -135,7 +139,14 @@ func TestDocsPagerFollowsTheSidebar(t *testing.T) {
 			continue
 		}
 		got := map[string]string{}
-		for _, l := range pagerLink.FindAllStringSubmatch(m[1], -1) {
+		links := pagerLink.FindAllStringSubmatch(m[1], -1)
+		if n := strings.Count(m[1], "<a "); n != len(links) {
+			t.Errorf("%s: previous and next have %d links, %d of them in the expected form", f, n, len(links))
+		}
+		for _, l := range links {
+			if _, twice := got[l[1]]; twice {
+				t.Errorf("%s: two %s links", f, l[1])
+			}
 			got[l[1]] = l[2]
 		}
 		i := index[docsURL(f)]
@@ -175,8 +186,11 @@ func TestDocsEditLinksPointAtThePage(t *testing.T) {
 func TestDocsOnThisPageListsTheSections(t *testing.T) {
 	for _, f := range docsPages(t) {
 		s := readSite(t, f)
-		var ids []string
+		var ids, titles []string
 		seen := map[string]bool{}
+		if n, m := strings.Count(s, "<h2"), len(h2Tag.FindAllString(s, -1)); n != m {
+			t.Errorf("%s: %d section headings, %d of them plain text in one line", f, n, m)
+		}
 		for _, m := range h2Tag.FindAllStringSubmatch(s, -1) {
 			id := idAttr.FindStringSubmatch(m[1])
 			if id == nil {
@@ -188,17 +202,22 @@ func TestDocsOnThisPageListsTheSections(t *testing.T) {
 			}
 			seen[id[1]] = true
 			ids = append(ids, id[1])
+			titles = append(titles, m[2])
 		}
-		var links []string
+		var links, texts []string
 		if m := tocBlock.FindStringSubmatch(s); m != nil {
 			for _, l := range tocLink.FindAllStringSubmatch(m[1], -1) {
 				links = append(links, l[1])
+				texts = append(texts, l[2])
 			}
 		} else if len(ids) > 0 {
 			t.Errorf(`%s has sections but no <nav class="toc-list" aria-label="On this page">`, f)
 		}
 		if strings.Join(links, " ") != strings.Join(ids, " ") {
 			t.Errorf("%s: On this page lists %v, the sections are %v", f, links, ids)
+		}
+		if strings.Join(texts, "|") != strings.Join(titles, "|") {
+			t.Errorf("%s: On this page says %q, the headings say %q", f, texts, titles)
 		}
 	}
 }
@@ -272,6 +291,9 @@ func TestDocsCommandsCanBeCopied(t *testing.T) {
 	cmd := regexp.MustCompile(`(?s)<button class="cmd" type="button" data-copy>(.*?)</button>`)
 	for _, f := range docsPages(t) {
 		s := readSite(t, f)
+		if n, m := strings.Count(s, `class="cmd"`), len(cmd.FindAllString(s, -1)); n != m {
+			t.Errorf("%s: %d commands, %d of them copy buttons in the expected form", f, n, m)
+		}
 		for _, m := range cmd.FindAllStringSubmatch(s, -1) {
 			for _, want := range []string{`<span class="p" data-prompt>`, `<span data-cmd>`, `<span class="copy" data-copy-label aria-live="polite">Copy</span>`} {
 				if !strings.Contains(m[1], want) {
@@ -306,5 +328,85 @@ console.log([at([], 90), at([120, 600], 90), at([90, 600], 90), at([-400, 40, 30
 	}
 	if got := strings.TrimSpace(string(out)); got != "-1 -1 0 1 2" {
 		t.Fatalf("sectionAt gave %q, want %q", got, "-1 -1 0 1 2")
+	}
+}
+
+// TestDocsFoldsCloseOnlyOverThePage runs docs.js on a small fake page at
+// three widths. The folds start open where they sit beside the page and
+// folded where they do not. On a phone, where they open over the page, a
+// choice of link, a click or focus elsewhere and Escape close them; at a
+// tablet's width "On this page" sits in the page and stays open; and beside
+// the page its summary is a label that does not fold it.
+func TestDocsFoldsCloseOnlyOverThePage(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	script := `
+function run(width) {
+  var docs = {};
+  function node(parent) { return { parent: parent, closest: function (q) { return q === "a" && this.link ? this : null; } }; }
+  function box(name) {
+    var b = { name: name, open: true, attrs: {} };
+    b.summary = node(b);
+    b.summary.on = {};
+    b.summary.addEventListener = function (type, f) { this.on[type] = f; };
+    b.summary.setAttribute = function (n, v) { b.attrs[n] = v; };
+    b.summary.removeAttribute = function (n) { delete b.attrs[n]; };
+    b.summary.focus = function () { b.focused = true; };
+    b.link = node(b); b.link.link = true;
+    b.contains = function (n) { return !!n && n.parent === b; };
+    b.querySelector = function (q) { return q === "summary" ? b.summary : null; };
+    return b;
+  }
+  var side = box("side"), toc = box("toc"), page = node(null);
+  var on = {};
+  var window = { matchMedia: function (q) {
+    var n = +q.match(/(\d+)px/)[1];
+    return { matches: q.indexOf("min-width") >= 0 ? width >= n : width <= n, addEventListener: function () {} };
+  } };
+  var document = {
+    documentElement: { classList: { add: function (c) { docs.cls = c; } } },
+    activeElement: null,
+    querySelector: function (q) { return q === ".sidebox" ? side : q === ".toc" ? toc : null; },
+    querySelectorAll: function () { return []; },
+    addEventListener: function (type, f) { on[type] = f; }
+  };
+  eval(require("fs").readFileSync("assets/docs.js", "utf8"));
+  var out = [width, "start", side.open, toc.open];
+  side.open = toc.open = true;
+  on.click({ target: page });
+  out.push("click", side.open, toc.open);
+  side.open = toc.open = true;
+  on.click({ target: side.link });
+  out.push("link", side.open, toc.open);
+  toc.open = true; document.activeElement = toc.link;
+  on.keydown({ key: "Escape" });
+  out.push("esc", toc.open, !!toc.focused);
+  toc.open = true;
+  on.focusout({ target: toc.link, relatedTarget: page });
+  out.push("tab", toc.open);
+  var prevented = false;
+  toc.summary.on.click({ preventDefault: function () { prevented = true; } });
+  out.push("label", prevented, toc.attrs.tabindex === "-1", docs.cls);
+  return out.join(" ");
+}
+console.log(run(375)); console.log(run(900)); console.log(run(1280));`
+	src, err := os.ReadFile(filepath.Join("assets", "docs.js"))
+	if err != nil || len(src) == 0 {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(node, "-e", script)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("node failed: %v\n%s", err, out)
+	}
+	want := strings.Join([]string{
+		"375 start false false click false false link false false esc false true tab false label false false folds",
+		"900 start true false click true true link true true esc true false tab true label false false folds",
+		"1280 start true true click true true link true true esc true false tab true label true true folds",
+	}, "\n")
+	if got := strings.TrimSpace(string(out)); got != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}
 }

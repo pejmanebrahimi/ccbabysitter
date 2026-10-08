@@ -36,7 +36,7 @@ html:has(.dtop) { scrollbar-gutter: stable; }
 .toc a:hover, .toc a.here { color: var(--ink); }
 
 /* the page */
-.doc { grid-area: main; min-width: 0; max-width: 680px; padding: 38px 0 20px; }
+.doc { grid-area: main; min-width: 0; max-width: 680px; padding: 38px 0 20px; scroll-margin-top: 64px; }
 .kind { margin: 0 0 8px; font: 12px "Geist Mono", ui-monospace, Menlo, monospace; color: var(--prompt); }
 .doc h1 { margin: 0 0 12px; font-size: 30px; line-height: 1.2; font-weight: 400; letter-spacing: -.01em; }
 .doc .lede { margin: 0 0 30px; font-size: 16.5px; color: var(--grey); }
@@ -48,7 +48,7 @@ html:has(.dtop) { scrollbar-gutter: stable; }
 .doc li { margin: 0 0 6px; }
 .doc a { text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
 .doc a:hover { text-decoration-color: var(--ink); }
-.doc code { font-size: .92em; }
+.doc code { font-size: .92em; white-space: nowrap; }
 .doc strong { font-weight: 400; color: var(--ink); background: linear-gradient(transparent 62%, var(--line) 62%); }
 
 /* a command: the home page's copy line, with its cursor while pointed at */
@@ -113,21 +113,25 @@ details[open] > .fold .caret { transform: rotate(180deg); }
 
 @media (max-width: 760px) {
   .dtop { padding: 0 16px; gap: 14px; }
-  /* Menu and On this page side by side, each opening over the page */
-  .docs { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "side toc" "main main"; column-gap: 8px; padding: 0 16px; }
+  /* Without the script both folds stay open, one above the other, in the
+     page's flow. */
+  .docs { grid-template-columns: minmax(0, 1fr); grid-template-areas: "side" "toc" "main"; padding: 0 16px; }
   .sidebox, .toc { position: relative; top: auto; max-height: none; overflow: visible; padding: 14px 0 0; }
   .sidebox > summary { display: inline-flex; }
-  .sidebox[open] > .side, .toc[open] > .toc-list {
-    position: absolute; top: calc(100% + 6px); z-index: 15; width: calc(100vw - 32px); max-height: 70vh; overflow-y: auto;
-    padding: 6px 14px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .14);
-  }
-  .sidebox[open] > .side { left: 0; }
-  .toc[open] > .toc-list { right: 0; padding-left: 14px; }
-  .toc[open] > summary, .sidebox[open] > summary { margin-bottom: 0; }
+  .sidebox[open] > summary, .toc[open] > summary { margin-bottom: 8px; }
   .toc a { padding: 6px 0; }
   .side a { padding: 6px 0 6px 12px; }
   .doc h1 { font-size: 26px; }
   .pager { flex-direction: column; }
+  /* With it, Menu and On this page sit side by side and open over the page. */
+  .folds .docs { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "side toc" "main main"; column-gap: 8px; }
+  .folds .sidebox[open] > summary, .folds .toc[open] > summary { margin-bottom: 0; }
+  .folds .sidebox[open] > .side, .folds .toc[open] > .toc-list {
+    position: absolute; top: calc(100% + 6px); z-index: 15; width: calc(100vw - 32px); max-height: 70vh; overflow-y: auto;
+    padding: 6px 14px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .14);
+  }
+  .folds .sidebox[open] > .side { left: 0; }
+  .folds .toc[open] > .toc-list { right: 0; padding-left: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
