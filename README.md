@@ -11,6 +11,8 @@ CC Babysitter is one local page for every Claude Code session on a machine, what
 
 ## Why a babysitter?
 
+<!-- vale off -->
+
 No matter how hard you hope or try, your computer and the Claude Code app will find a creative way[^1] to kill the remote-controlled session you started before leaving the computer, hoping you could keep issuing destiny-defining orders to your coding agents while you're vacationing where the map gives up. Well, this has happened to me, and believe me, we are not alone[^2]. Of course, you can go ahead and write some watchdog scripts on a laptop, or tmux and whatnot on a server, but some of us prefer a babysitter.
 
 If a babysat session's app dies, the session comes back in the background with Remote Control on, and the computer stays awake. On a server, babysat sessions survive SSH drops and reboots, no tmux needed. And one page shows every Claude Code session on the machine, in any app, with its tokens and uptime. Your agents can use it too: `ccbabysitter babysit self`.
@@ -18,6 +20,8 @@ If a babysat session's app dies, the session comes back in the background with R
 [^1]: The ones I've run into: the Claude app updates itself and, for some reason, fails to start again; or it does come back after the update, but only some of the remote-controlled sessions are restored. Your computer or server can also act up and restart itself, for any reason, good or bad.
 
 [^2]: Reports on Claude Code's issue tracker: [#95364](https://github.com/anthropics/claude-code/issues/95364), [#94049](https://github.com/anthropics/claude-code/issues/94049), [#99585](https://github.com/anthropics/claude-code/issues/99585), [#100114](https://github.com/anthropics/claude-code/issues/100114), [#89599](https://github.com/anthropics/claude-code/issues/89599).
+
+<!-- vale on -->
 
 ## Install
 
@@ -40,7 +44,7 @@ Either command downloads the binary of the latest release for your system and pr
 
 On a Linux machine with no display, such as a server you reach over ssh, the script then runs CC Babysitter once when your systemd user manager is available: it sets itself up as a service and prints how to connect from your laptop. On a Linux desktop, a Mac or a Windows machine where CC Babysitter already runs in the background, the script runs it once too, which restarts it on the new version; on Windows it first asks the running copy to quit, since Windows does not let a running program be replaced. Everywhere else the script prints how to start it. Run the same command again to update. A copy from before version 0.5 running in a window has no quit command: quit it there with Ctrl+C first, and the script says so.
 
-Three environment variables change what the scripts do: `CCBABYSITTER_VERSION` installs a given release, such as `v0.4.0`, instead of the latest, `CCBABYSITTER_INSTALL_DIR` installs into another folder, and `CCBABYSITTER_DOWNLOAD_URL` is a base address to download from instead of GitHub releases, for mirrors (it skips the HTTPS pin, so use an `https://` address). On macOS and Linux:
+Three environment variables change what the scripts do: `CCBABYSITTER_VERSION` installs that version, such as `v0.4.0`, instead of the latest, `CCBABYSITTER_INSTALL_DIR` installs into another folder, and `CCBABYSITTER_DOWNLOAD_URL` is a base address to download from instead of GitHub releases, for mirrors (it skips the HTTPS pin, so use an `https://` address). On macOS and Linux:
 
 ```
 curl -fsSL https://ccbabysitter.dev/install.sh | CCBABYSITTER_VERSION=v0.4.0 sh

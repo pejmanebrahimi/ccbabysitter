@@ -1,0 +1,16 @@
+extends: substitution
+message: "Write '%s', not '%s'."
+level: error
+ignorecase: false
+swap:
+  CCBabysitter: CC Babysitter
+  CC babysitter: CC Babysitter
+  Claude code: Claude Code
+  Claude desktop: Claude Desktop
+  Remote control: Remote Control
+  remote control: Remote Control
+  VSCode: VS Code
+  VS code: VS Code
+  MacOS: macOS
+  Mac OS: macOS
+  babysitted: babysat

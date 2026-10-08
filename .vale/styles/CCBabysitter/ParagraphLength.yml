@@ -1,0 +1,6 @@
+extends: occurrence
+message: "This paragraph has more than five sentences: split it."
+level: warning
+scope: paragraph
+max: 5
+token: '[.?!](\s|$)'

@@ -11,13 +11,21 @@ import (
 // repoRoot is where this package sits relative to the top of the tree.
 const repoRoot = "../.."
 
+// vendoredStyles are the Vale styles kept exactly as their releases ship
+// them; .vale/README.md says where each comes from.
+var vendoredStyles = map[string]bool{
+	repoRoot + "/.vale/styles/Google":      true,
+	repoRoot + "/.vale/styles/Readability": true,
+	repoRoot + "/.vale/styles/ai-tells":    true,
+}
+
 // shippedRoots are the folders whose every file is published, and
 // shippedFiles are the published files that sit at the top of the tree.
 var (
-	shippedRoots = []string{"cmd", "internal", "scripts", ".github", "site", "plugin", ".claude-plugin"}
+	shippedRoots = []string{"cmd", "internal", "scripts", ".github", "site", "plugin", ".claude-plugin", ".vale"}
 	shippedFiles = []string{
 		"README.md", "CONTRIBUTING.md", "SECURITY.md", "LICENSE", "AGENTS.md", "CLAUDE.md",
-		filepath.Join("docs", "CHANGELOG.md"), "go.mod", ".gitignore", ".gitattributes",
+		filepath.Join("docs", "CHANGELOG.md"), "go.mod", ".gitignore", ".gitattributes", ".vale.ini",
 	}
 )
 
@@ -102,6 +110,12 @@ func shippedPaths(t *testing.T) []string {
 				// Local eval results: gitignored, and they hold replies in
 				// other languages and may hold real session text.
 				if filepath.ToSlash(path) == repoRoot+"/plugin/evals/results" {
+					return filepath.SkipDir
+				}
+				// Vale styles copied verbatim from their releases, which
+				// write typographic dashes and quotes into their rules;
+				// this project's own style beside them is checked.
+				if vendoredStyles[filepath.ToSlash(path)] {
 					return filepath.SkipDir
 				}
 				return nil

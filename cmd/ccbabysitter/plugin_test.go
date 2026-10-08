@@ -115,8 +115,11 @@ func TestPluginHowItWorks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Vale's on and off comments are for the writing check, not for the
+	// skill, so they are left out of its copy.
+	readme := regexp.MustCompile(`(?m)^<!-- vale (on|off) -->\n\n?`).ReplaceAllString(string(data), "")
 	sections := map[string]string{}
-	for _, part := range strings.Split("\n"+string(data), "\n## ")[1:] {
+	for _, part := range strings.Split("\n"+readme, "\n## ")[1:] {
 		title, body, _ := strings.Cut(part, "\n")
 		sections[title] = strings.TrimSpace(body)
 	}
@@ -128,6 +131,9 @@ func TestPluginHowItWorks(t *testing.T) {
 			t.Fatalf("README.md has no section %q", title)
 		}
 		b.WriteString("\n## " + title + "\n\n" + body + "\n")
+	}
+	if strings.Contains(b.String(), "<!--") {
+		t.Fatal("how-it-works.md would carry a comment from the README")
 	}
 	checkGenerated(t, filepath.Join(referencesDir, "how-it-works.md"), b.String(), "TestPluginHowItWorks")
 }
