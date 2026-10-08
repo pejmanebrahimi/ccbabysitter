@@ -47,7 +47,7 @@ func TestPageSentencesThatMustNotDrift(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		`"Keeps the computer awake. "`,
+		`"Keeps the computer awake while its lid is open. "`,
 		`"If "`,
 		`" closes, this session continues in the background with Remote Control."`,
 		`"If this session stops, it is started again in the background with Remote Control."`,
@@ -1395,8 +1395,8 @@ func TestTheBabysitDialogLines(t *testing.T) {
 	want := []string{
 		"If the terminal or your SSH connection closes, this session continues in the background with Remote Control.",
 		"If this session stops, it is started again in the background with Remote Control.",
-		"Keeps the computer awake. If the desktop app closes, this session continues in the background with Remote Control.",
-		"Keeps the computer awake. If this session stops, it is started again in the background with Remote Control.",
+		"Keeps the computer awake while its lid is open. If the desktop app closes, this session continues in the background with Remote Control.",
+		"Keeps the computer awake while its lid is open. If this session stops, it is started again in the background with Remote Control.",
 		"Remote Control is off, so your other devices can't reach it yet: type /rc in that terminal session.",
 		"Remote Control is off, so your other devices can't reach it yet: switch Remote Control on in the VS Code panel for this session.",
 		"Remote Control is off, so your other devices can't reach it yet: attach with `claude attach a1b2c3d4` and type /rc.",

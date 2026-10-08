@@ -17,12 +17,13 @@ const powerLogTime = "2006-01-02 15:04:05 -0700"
 
 // sleepCause reads, from macOS's power log, why the computer went to sleep
 // in a sleep it was last seen awake before, at from, and seen again after,
-// at to, and when it went. The sleep that counts is the first one after the
-// computer was last fully awake before from: it may have gone to sleep a
-// while before it was last seen, when a short wake in the dark came in
-// between. The reason is "lid" for a closed lid, "asked" when something put
-// it to sleep, "battery" for a battery running low, and "" for anything
-// else. Both are zero when the log shows no sleep then.
+// at to, and when it went. It went at the first sleep after the computer
+// was last fully awake before from: that can be a while before it was last
+// seen, when a short wake in the dark came in between. The reason is the
+// first one among the sleeps since then that says something: "lid" for a
+// closed lid, "asked" when something put it to sleep, "battery" for a
+// battery running low, and "" when none does, such as a maintenance sleep.
+// Both are zero when the log shows no sleep then.
 func sleepCause(log io.Reader, from, to time.Time) (string, time.Time) {
 	var cause string
 	var start time.Time
@@ -53,11 +54,13 @@ func sleepCause(log io.Reader, from, to time.Time) (string, time.Time) {
 			}
 		case "Sleep":
 			i := strings.Index(line, sleepEntry)
-			if i < 0 || !start.IsZero() {
+			if i < 0 || cause != "" {
 				continue
 			}
+			if start.IsZero() {
+				start = at
+			}
 			reason, _, _ := strings.Cut(line[i+len(sleepEntry):], "'")
-			start = at
 			switch {
 			case reason == "Clamshell Sleep":
 				cause = "lid"

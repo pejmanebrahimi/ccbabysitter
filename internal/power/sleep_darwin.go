@@ -14,7 +14,10 @@ import (
 func SleepCause(ctx context.Context, from, to time.Time) (cause string, at time.Time, known bool) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, "pmset", "-g", "log").Output()
+	cmd := exec.CommandContext(ctx, "pmset", "-g", "log")
+	// A pmset ended by the timeout is not waited on for long.
+	cmd.WaitDelay = 2 * time.Second
+	out, err := cmd.Output()
 	if err != nil {
 		return "", time.Time{}, false
 	}

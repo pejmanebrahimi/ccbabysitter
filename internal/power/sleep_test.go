@@ -58,6 +58,12 @@ func TestSleepCause(t *testing.T) {
 		{"battery", powerLog, at(14, 59, 0), at(15, 10, 0), "battery", at(15, 0, 0)},
 		{"idle", powerLog, at(16, 59, 0), at(17, 10, 0), "", at(17, 0, 0)},
 		{"a full wake in between leaves the earlier sleep out", powerLog, at(9, 30, 0), at(11, 0, 0), "", time.Time{}},
+		{"the first reason that says something", `2026-10-05 10:00:00 +0300 Wake                	Wake from Deep Idle [CDNVA] : due to HID Activity
+2026-10-05 10:30:00 +0300 Sleep               	Entering Sleep state due to 'Maintenance Sleep':TCPKeepAlive=active 40 secs
+2026-10-05 10:30:40 +0300 DarkWake            	DarkWake from Deep Idle [CDNP] : due to smc.sysState.Wake
+2026-10-05 10:31:30 +0300 Sleep               	Entering Sleep state due to 'Clamshell Sleep':TCPKeepAlive=active 1700 secs
+2026-10-05 11:00:00 +0300 Wake                	Wake from Deep Idle [CDNVA] : due to HID Activity
+`, at(10, 31, 0), at(11, 0, 20), "lid", at(10, 30, 0)},
 		{"in another zone, the same moments", powerLog, at(8, 53, 29).UTC(), at(9, 4, 20).UTC(), "lid", at(8, 52, 13)},
 	} {
 		t.Run(c.name, func(t *testing.T) {

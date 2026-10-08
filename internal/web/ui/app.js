@@ -1059,7 +1059,7 @@
     } else {
       promise = "If " + (HOST_APP[s.host] || "its app") + " closes, this session continues in the background with Remote Control.";
     }
-    return headless ? promise : "Keeps the computer awake. " + promise;
+    return headless ? promise : "Keeps the computer awake while its lid is open. " + promise;
   }
 
   /* rcMissing says what Remote Control being off means right now, and what
