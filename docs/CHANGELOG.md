@@ -2,7 +2,7 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
-## Unreleased
+## 0.7.0 (2026-10-08)
 
 - Changed: Activity says why a babysat session went down, when CC Babysitter can tell, instead of "host process exited": Claude Desktop closed, closed and updated, or restarted for an update, with both versions; the session ended while Claude Desktop kept running; the computer restarted; VS Code, the session's terminal or its SSH connection closed; or the background copy ended. The Claude Desktop reasons need macOS or Windows. When several sessions went down together, one line says so as the first is brought back. Where nothing tells, the reason is "the process running it exited". The In background card gives the same reason, for example "At 22:11, Claude Desktop restarted for an update." (#68).
 - Changed: the In background card's way back is one split button, such as Back to Desktop, with a menu for Open on claude.ai, Open in Terminal and Copy attach command that works with the keyboard and screen readers. The card and the Back to Desktop dialog say that Claude Desktop shows "Claude Code crashed" for the session while its background copy runs, and that Try again in Desktop picks it up after Back to Desktop (#50).
