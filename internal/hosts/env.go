@@ -48,6 +48,11 @@ type Env struct {
 	DesktopVersion   string     `json:"desktopVersion"`
 	VSCodeInstalled  bool       `json:"vscodeInstalled"`
 	VSCodeExtVersion string     `json:"vscodeExtVersion"`
+	// LidSleeps says that closing this computer's lid now puts it to sleep,
+	// keep-awake or not: it has a lid, and the system is set to sleep when
+	// it closes. A Mac on an external display, a laptop set to do nothing,
+	// and a computer with no lid are all false.
+	LidSleeps bool `json:"lidSleeps"`
 }
 
 // LoginState is what the CLI said about being logged in.
@@ -78,6 +83,9 @@ type Probes struct {
 	// found in its install folders when PATH does not have it; a nil func
 	// means only PATH is asked.
 	IsExecutable func(string) bool
+	// LidSleeps reports whether closing this computer's lid now puts it to
+	// sleep. A nil func counts as "no".
+	LidSleeps func() bool
 }
 
 // cliLocator finds the claude CLI through these probes.
@@ -142,6 +150,7 @@ func detect(ctx context.Context, p Probes, runner claude.Runner, snapshotHasDesk
 	}
 
 	env.Headless = isHeadless(p)
+	env.LidSleeps = p.LidSleeps != nil && p.LidSleeps()
 	return env
 }
 
@@ -319,10 +328,11 @@ func RealProbes(desktopProcess func(substr string) bool) Probes {
 	}
 
 	return Probes{
-		Platform: platform,
-		Home:     home,
-		LookPath: exec.LookPath,
-		Getenv:   os.Getenv,
+		LidSleeps: lidSleeps,
+		Platform:  platform,
+		Home:      home,
+		LookPath:  exec.LookPath,
+		Getenv:    os.Getenv,
 		RegistryHandler: func(scheme string) (string, bool) {
 			return realRegistryHandler(platform, scheme)
 		},

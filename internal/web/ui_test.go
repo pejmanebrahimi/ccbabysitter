@@ -47,7 +47,7 @@ func TestPageSentencesThatMustNotDrift(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		`"Keeps the computer awake while its lid is open. "`,
+		`"Keeps the computer awake. "`,
 		`"If "`,
 		`" closes, this session continues in the background with Remote Control."`,
 		`"If this session stops, it is started again in the background with Remote Control."`,
@@ -969,12 +969,20 @@ console.log(out.join("\n"));
 	}
 }
 
-// The header's keep-awake pill says, while it holds on a computer with a
-// display, that a closed laptop lid still sleeps the computer, as status
-// does.
-func TestTheAwakePillSaysALidStillSleepsIt(t *testing.T) {
-	if want := `on && !(view.env || {}).headless ? "The computer does not sleep while it is idle. A closed laptop lid still sleeps it." : ""`; !strings.Contains(readUI(t, "ui/app.js"), want) {
-		t.Errorf("app.js does not contain %s", want)
+// The header's keep-awake pill and the Babysit dialog say that a closed lid
+// still sleeps the computer only where closing it would, as status does: a
+// computer with no lid, a Mac on an external display, or a laptop set to do
+// nothing when its lid closes, is simply kept awake.
+func TestTheLidIsMentionedOnlyWhereItSleeps(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`on && env.lidSleeps ? "The computer does not sleep while it is idle. Closing its lid still puts it to sleep." : ""`,
+		`(lidSleeps ? "Keeps the computer awake while its lid is open. " : "Keeps the computer awake. ") + promise`,
+		`babysitPromise(s, !!env.headless, !!env.lidSleeps)`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
 	}
 }
 
@@ -1395,8 +1403,8 @@ func TestTheBabysitDialogLines(t *testing.T) {
 	want := []string{
 		"If the terminal or your SSH connection closes, this session continues in the background with Remote Control.",
 		"If this session stops, it is started again in the background with Remote Control.",
-		"Keeps the computer awake while its lid is open. If the desktop app closes, this session continues in the background with Remote Control.",
-		"Keeps the computer awake while its lid is open. If this session stops, it is started again in the background with Remote Control.",
+		"Keeps the computer awake. If the desktop app closes, this session continues in the background with Remote Control.",
+		"Keeps the computer awake. If this session stops, it is started again in the background with Remote Control.",
 		"Remote Control is off, so your other devices can't reach it yet: type /rc in that terminal session.",
 		"Remote Control is off, so your other devices can't reach it yet: switch Remote Control on in the VS Code panel for this session.",
 		"Remote Control is off, so your other devices can't reach it yet: attach with `claude attach a1b2c3d4` and type /rc.",
