@@ -1308,11 +1308,16 @@
 
   /* ---------- drawers ---------- */
 
-  /* openDrawer opens the drawer by its name, settings or about, one at a
-     time, with focus on its first control. */
+  /* openDrawer opens the drawer by its name, settings or about, with focus
+     on its first control. One is open at a time: opening the other swaps
+     them, and focus still goes back to what had it before the first. */
   function openDrawer(name) {
-    if (state.drawer) { return; }
-    state.returnFocus = document.activeElement;
+    if (state.drawer === name) { return; }
+    if (state.drawer) {
+      $("#drawer-" + state.drawer).hidden = true;
+    } else {
+      state.returnFocus = document.activeElement;
+    }
     state.drawer = name;
     $("#scrim").hidden = false;
     var node = $("#drawer-" + name);

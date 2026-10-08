@@ -1032,6 +1032,60 @@ func TestTheAboutPanel(t *testing.T) {
 	}
 }
 
+// Every link that opens a new tab keeps the page that opened it out of
+// reach of the new one, and sends no address back.
+func TestNewTabLinksKeepTheirDistance(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	for _, tag := range regexp.MustCompile(`<a [^>]*target="_blank"[^>]*>`).FindAllString(index, -1) {
+		if !strings.Contains(tag, `rel="noopener noreferrer"`) {
+			t.Errorf("a link opens a new tab without rel=\"noopener noreferrer\": %s", tag)
+		}
+	}
+	if css := readUI(t, "ui/app.css"); !strings.Contains(css, ".dr-body a .ext {") {
+		t.Error("app.css does not mark the drawers' new-tab links")
+	}
+}
+
+// One drawer at a time: opening the other swaps them, and closing gives
+// focus back to what had it before the first one opened. Run as the page
+// runs it, on stand-ins for the page's nodes, when node is there.
+func TestTheDrawersSwap(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node is not installed")
+	}
+	app := readUI(t, "ui/app.js")
+	var fns strings.Builder
+	for _, name := range []string{"openDrawer(name)", "closeDrawer()"} {
+		head := "function " + name + " {"
+		fns.WriteString(head + between(t, app, head, "\n  }") + "\n}\n")
+	}
+	script := fns.String() + `
+var focused = null;
+function node(name) { return {name: name, hidden: true, focus: function () { focused = this; }, querySelector: function () { return this.close; }}; }
+var nodes = {"#scrim": node("scrim"), "#drawer-settings": node("settings"), "#drawer-about": node("about")};
+nodes["#drawer-settings"].close = node("settings-close");
+nodes["#drawer-about"].close = node("about-close");
+function $(sel) { return nodes[sel]; }
+var opener = node("opener");
+var document = {activeElement: opener};
+var state = {drawer: null, returnFocus: null};
+var out = [];
+openDrawer("settings");
+out.push(state.drawer + " " + nodes["#drawer-settings"].hidden + " " + nodes["#scrim"].hidden + " " + focused.name);
+document.activeElement = nodes["#drawer-settings"].close;
+openDrawer("about");
+out.push(state.drawer + " " + nodes["#drawer-settings"].hidden + " " + nodes["#drawer-about"].hidden + " " + nodes["#scrim"].hidden + " " + focused.name);
+closeDrawer();
+out.push(state.drawer + " " + nodes["#drawer-about"].hidden + " " + nodes["#scrim"].hidden + " " + focused.name);
+console.log(out.join("\n"));
+`
+	got := runNode(t, script)
+	want := []string{"settings false false settings-close", "about true false false about-close", "null true true opener"}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 // The version details to copy name CC Babysitter's version, the system and
 // its processor, whether it has a display, and the versions of Claude Code
 // it found, in plain text; the update command is, of the install commands
