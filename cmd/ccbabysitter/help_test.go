@@ -108,7 +108,7 @@ func TestHelpExitsZero(t *testing.T) {
 // The pages say what their command cannot do or is capped at.
 func TestStopAndActivityPagesSayTheirLimits(t *testing.T) {
 	for name, wants := range map[string][]string{
-		"stop":     {"background copy", "canStop", "show --json"},
+		"stop":     {"background copy", "canStop", "show --json", `Claude Desktop shows "Claude Code crashed"`, "Try again in Desktop"},
 		"activity": {"500"},
 	} {
 		var b bytes.Buffer

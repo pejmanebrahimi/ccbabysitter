@@ -335,6 +335,10 @@ Stops the background copy of S. The conversation is kept, and can be resumed.
 Without --yes it changes nothing: it says what it would stop and exits with 2.
 Only a session with a background copy can be stopped. canStop in show --json says
 whether S has one. Otherwise stop is refused, with exit code 1.
+While the copy runs, Claude Desktop shows "Claude Code crashed" for a session
+that came from it, because only one copy of a session runs at a time. After stop,
+Try again in Desktop picks the session up where it left off. This is the page's
+Back to Desktop.
 
 S is a session id, a short id, a name, or self. A full id always wins. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is

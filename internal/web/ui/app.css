@@ -216,15 +216,17 @@ button, input, select { font-family: inherit; }
 .cards { display: grid; gap: 10px; }
 .card {
   position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 14px;
-  align-items: start; padding: 14px 16px 12px 18px; overflow: hidden;
+  align-items: start; padding: 14px 16px 12px 18px;
   background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  /* The stripe down the left edge is a shadow, which follows the rounded
+     corners without the card clipping what it holds, such as an open menu. */
+  box-shadow: inset 3px 0 0 var(--ok);
 }
-.card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ok); }
-.card.s-background::before, .card.s-starting::before { background: var(--warn); }
-.card.s-stuck::before { background: var(--danger); }
+.card.s-background, .card.s-starting { box-shadow: inset 3px 0 0 var(--warn); }
+.card.s-stuck { box-shadow: inset 3px 0 0 var(--danger); }
 .card-mascot { display: flex; padding-top: 2px; }
 .card-mascot .mascot { width: 40px; height: 40px; }
-.card-main { min-width: 0; }
+.card-main { min-width: 0; overflow-wrap: anywhere; }
 
 .row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .nm { font-size: 14.5px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -293,10 +295,28 @@ a.b { display: inline-block; text-decoration: none; }
 .b.quiet { background: transparent; }
 .split { display: flex; }
 .split .b:first-child { flex: 1; border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.split .b.icon { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: none; padding-left: 9px; padding-right: 9px; }
+.split .b.icon { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: none; padding-left: 11px; padding-right: 11px; }
+.split .b.primary.icon { border-left: 1px solid rgba(0, 0, 0, .18); }
+.split.alone .b:first-child { border-radius: 8px; }
+/* The way on: back to the app the session came from, and a menu with the
+   ways that leave it running as it is, under the button and as wide as the
+   column at least. Each item is a tall target, easy to tap. */
+.wayon { position: relative; }
+.caret { display: inline-block; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); vertical-align: 3px; }
+.ways {
+  position: absolute; z-index: 20; top: calc(100% + 4px); right: 0; min-width: 100%; width: max-content; max-width: 300px;
+  display: flex; flex-direction: column; padding: 4px;
+  border: 1px solid var(--border-lit); border-radius: 10px; background: var(--card); box-shadow: var(--shadow-soft);
+}
+.ways .way {
+  display: block; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent;
+  font: inherit; font-size: 13px; font-weight: 520; color: var(--text); text-align: left; text-decoration: none; cursor: pointer;
+}
+.ways .way:hover, .ways .way:focus-visible { background: var(--card-2); }
+.ways .way .ext { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; vertical-align: 1px; }
+.ways .way small { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 400; color: var(--faint); overflow-wrap: anywhere; }
+.rescue .crash { color: var(--faint); }
 .b .ext { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; vertical-align: 1px; }
-.copyglyph { display: inline-block; width: 10px; height: 11px; border: 1.5px solid currentColor; border-radius: 2px; box-shadow: 2px -2px 0 -0.5px var(--card), 3px -3px 0 0 currentColor; vertical-align: -1px; }
-.acts-hint { font-size: 11.5px; color: var(--faint); text-align: right; margin: 2px 2px 0; }
 
 /* ---------- light rows ---------- */
 

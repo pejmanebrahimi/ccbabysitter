@@ -160,7 +160,7 @@
     <h2 id="dlg-back-h" data-f="title"></h2>
     <div data-el="back-desktop" hidden>
       <p class="line">The background copy ends and <span data-f="name"></span> goes back to Desktop.</p>
-      <p class="line">Open it from Desktop's sidebar to carry on where you left off.</p>
+      <p class="line">Open it from Desktop's sidebar. If Desktop shows "Claude Code crashed", press Try again there: it picks up where it left off.</p>
       <p class="line">Desktop turns Remote Control back on if it was on there before. If not, switch it on in Desktop.</p>
     </div>
     <div data-el="back-vscode" hidden>
@@ -212,6 +212,7 @@
       <div class="rescue" data-el="rescue" hidden>
         <p class="head">Kept alive while you were away</p>
         <p class="sub" data-f="rescue"></p>
+        <p class="sub crash" data-f="crashnote" hidden></p>
         <div class="journey">
           <span class="hop from" data-el="from"></span>
           <span class="arrow"></span>
@@ -243,13 +244,17 @@
       </dl>
     </div>
     <div class="acts" data-el="acts">
-      <button class="b primary" data-act="back" hidden></button>
-      <a class="b quiet" data-el="remote" target="_blank" rel="noopener noreferrer" hidden>Open on claude.ai<span class="ext"></span></a>
-      <div class="split" data-el="terminal" hidden>
-        <button class="b quiet" data-act="open-terminal">Open in Terminal</button>
-        <button class="b quiet icon" data-act="copy-attach" aria-label="Copy the attach command"><span class="copyglyph"></span></button>
+      <div class="wayon" data-el="way" hidden>
+        <div class="split">
+          <button class="b primary" data-act="back"></button>
+          <button class="b primary icon" data-act="ways" aria-haspopup="menu" aria-expanded="false" aria-label="More ways on"><span class="caret"></span></button>
+        </div>
+        <div class="ways" role="menu" aria-label="More ways on" data-el="ways" hidden>
+          <a class="way" role="menuitem" tabindex="-1" data-el="remote" target="_blank" rel="noopener noreferrer" hidden>Open on claude.ai<span class="ext"></span><small>Keeps it running in the background</small></a>
+          <button class="way" role="menuitem" tabindex="-1" data-act="open-terminal" data-el="terminal" hidden><span data-f="terminal">Open in Terminal</span><small>Keeps it running in the background</small></button>
+          <button class="way" role="menuitem" tabindex="-1" data-act="copy-attach" data-el="copyattach" hidden>Copy attach command<small class="mono" data-f="attachcmd"></small></button>
+        </div>
       </div>
-      <p class="acts-hint" data-f="actshint" hidden></p>
       <button class="b" data-act="unbabysit" hidden>Unbabysit</button>
       <button class="b danger" data-act="stop" hidden>Stop background copy</button>
       <button class="b primary" data-act="resume" hidden>Try again</button>
