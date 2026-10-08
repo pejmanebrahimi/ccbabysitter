@@ -708,21 +708,26 @@ func TestTokenCountsAreWrittenShort(t *testing.T) {
 	}
 }
 
-// An In background card says what happened while the person was away and
-// offers the three ways on from there. Its
-// old state lines and Attach row are not shown on it.
+// An In background card says what happened while the person was away, and
+// that Claude Desktop shows its session as crashed meanwhile. Its way on is
+// one split button: back to the app it came from, and a menu with the ways
+// that leave it running as it is. Its old state lines and Attach row are
+// not shown on it.
 func TestTheBackgroundCard(t *testing.T) {
 	index := readUI(t, "ui/index.html")
 	for _, want := range []string{
 		`<div class="rescue" data-el="rescue" hidden>`,
 		`<p class="head">Kept alive while you were away</p>`,
+		`<p class="sub crash" data-f="crashnote" hidden></p>`,
 		`<div class="journey">`,
 		`<span class="arrow"></span>`,
-		`data-act="back"`,
-		`<a class="b quiet" data-el="remote" target="_blank" rel="noopener noreferrer" hidden>Open on claude.ai<span class="ext"></span></a>`,
-		`data-act="open-terminal"`,
-		`aria-label="Copy the attach command"><span class="copyglyph"></span></button>`,
-		`<p class="acts-hint" data-f="actshint" hidden></p>`,
+		`<div class="wayon" data-el="way" hidden>`,
+		`<button class="b primary" data-act="back"></button>`,
+		`<button class="b primary icon" data-act="ways" aria-haspopup="menu" aria-expanded="false" aria-label="More ways on"><span class="caret"></span></button>`,
+		`<div class="ways" role="menu" aria-label="More ways on" data-el="ways" hidden>`,
+		`<a class="way" role="menuitem" tabindex="-1" data-el="remote" target="_blank" rel="noopener noreferrer" hidden>Open on claude.ai<span class="ext"></span><small>Keeps it running in the background</small></a>`,
+		`<button class="way" role="menuitem" tabindex="-1" data-act="open-terminal" data-el="terminal" hidden><span data-f="terminal">Open in Terminal</span><small>Keeps it running in the background</small></button>`,
+		`<button class="way" role="menuitem" tabindex="-1" data-act="copy-attach" data-el="copyattach" hidden>Copy attach command<small class="mono" data-f="attachcmd"></small></button>`,
 	} {
 		if !strings.Contains(index, want) {
 			t.Errorf("index.html does not contain %s", want)
@@ -733,10 +738,9 @@ func TestTheBackgroundCard(t *testing.T) {
 		`" kept running and stayed reachable from your other devices."`,
 		`" kept running in the background."`,
 		`desktop: "The desktop app", vscode: "VS Code", terminal: "The terminal"`,
-		`"The last two keep it running as it is."`,
-		`"It keeps running as it is."`,
-		`setText(node.querySelector('[data-act="open-terminal"]'), view.terminalLabel || "");`,
-		`"Copy the command: "`,
+		`'Desktop shows "Claude Code crashed" for it until you press Back to Desktop.'`,
+		`setText(f(node, "terminal"), view.terminalLabel || "");`,
+		`setText(f(node, "attachcmd"), w.attachCmd || "");`,
 		`"/open-terminal"`,
 		`node.classList.toggle("rescued", rescued)`,
 		`show(el(node, "attachbox"), !!w.attachCmd && !rescued)`,
@@ -745,15 +749,73 @@ func TestTheBackgroundCard(t *testing.T) {
 			t.Errorf("app.js does not contain %s", want)
 		}
 	}
-	for _, gone := range []string{"Continuing in the background. Reach it with Remote Control.", "To use it in an app again, stop the background copy first."} {
-		if strings.Contains(app, gone) {
-			t.Errorf("app.js still says %q", gone)
+	for _, gone := range []string{"Continuing in the background. Reach it with Remote Control.", "To use it in an app again, stop the background copy first.",
+		"The last two keep it running as it is.", "It keeps running as it is.", "actshint"} {
+		if strings.Contains(app, gone) || strings.Contains(index, gone) {
+			t.Errorf("the page still has %q", gone)
 		}
 	}
 	css := readUI(t, "ui/app.css")
-	for _, want := range []string{".rescue {", ".journey .arrow {", ".acts.stack {", ".split .b.icon {", ".b .ext {", ".copyglyph {", ".acts-hint {"} {
+	for _, want := range []string{".rescue {", ".journey .arrow {", ".acts.stack {", ".wayon {", ".ways {", ".ways .way {", ".caret {", ".split.alone .b:first-child {", ".b .ext {"} {
 		if !strings.Contains(css, want) {
 			t.Errorf("app.css does not style %s", want)
+		}
+	}
+}
+
+// The menu of other ways on is a real menu: the arrow button opens it with
+// a click, Enter, Space or the down arrow, which focus its first item, or
+// the up arrow, which focuses its last; inside it the arrows, Home and End
+// move between the items shown, round the ends, Escape closes it and gives
+// focus back to its button, and Tab, a choice or a click elsewhere closes
+// it. The step from one item to the next is run as the page runs it, when
+// node is there to run it.
+func TestTheWaysMenu(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`if (act === "ways") { toggleWays(button); return; }`,
+		`button.setAttribute("aria-expanded", "true");`,
+		`button.setAttribute("aria-expanded", "false");`,
+		`if (button && (event.key === "ArrowDown" || event.key === "ArrowUp")) {`,
+		`openWays(button, event.key === "ArrowUp");`,
+		`closeWays(event.key === "Escape");`,
+		`return $$('[role="menuitem"]', menu).filter(function (item) { return !item.hidden; });`,
+		`document.addEventListener("click", closeWaysOnClick);`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	fn := "function menuStep(key, index, count) {" + between(t, app, "function menuStep(key, index, count) {", "\n  }") + "\n}"
+	cases := []struct {
+		key          string
+		index, count int
+		want         int
+	}{
+		{"ArrowDown", 0, 3, 1}, {"ArrowDown", 2, 3, 0}, {"ArrowUp", 0, 3, 2}, {"ArrowUp", 2, 3, 1},
+		{"Home", 2, 3, 0}, {"End", 0, 3, 2}, {"Escape", 1, 3, -1}, {"Tab", 1, 3, -1},
+		{"a", 1, 3, 1}, {"ArrowDown", 0, 1, 0},
+	}
+	var script strings.Builder
+	script.WriteString(fn + "\n")
+	for _, c := range cases {
+		fmt.Fprintf(&script, "console.log(menuStep(%q, %d, %d));\n", c.key, c.index, c.count)
+	}
+	out, err := exec.Command(node, "-e", script.String()).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	got := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(got) != len(cases) {
+		t.Fatalf("want %d lines from node, got %q", len(cases), out)
+	}
+	for i, c := range cases {
+		if got[i] != strconv.Itoa(c.want) {
+			t.Errorf("menuStep(%q, %d, %d) = %s, want %d", c.key, c.index, c.count, got[i], c.want)
 		}
 	}
 }
@@ -813,7 +875,7 @@ func TestTheBackDialog(t *testing.T) {
 		`<dialog class="dlg" id="dlg-back" aria-labelledby="dlg-back-h">`,
 		`data-el="back-desktop"`,
 		`<p class="line">The background copy ends and <span data-f="name"></span> goes back to Desktop.</p>`,
-		`<p class="line">Open it from Desktop's sidebar to carry on where you left off.</p>`,
+		`<p class="line">Open it from Desktop's sidebar. If Desktop shows "Claude Code crashed", press Try again there: it picks up where it left off.</p>`,
 		`<p class="line">Desktop turns Remote Control back on if it was on there before. If not, switch it on in Desktop.</p>`,
 		`data-el="back-vscode"`,
 		`<p class="line">The background copy ends and <span data-f="name"></span> goes back to VS Code.</p>`,
@@ -833,7 +895,7 @@ func TestTheBackDialog(t *testing.T) {
 	app := readUI(t, "ui/app.js")
 	for _, want := range []string{
 		`"Back to Desktop"`, `"Back to VS Code"`, `"Back to a terminal"`, `"End background copy"`,
-		`" is back with Desktop. Open it from the sidebar."`,
+		`" is back with Desktop. Open it from the sidebar, and press Try again if it shows as crashed."`,
 		`" is back with VS Code. Open it from past conversations."`,
 		`"Background copy ended. Paste the command in any terminal to carry on."`,
 		`onDialog($("#dlg-back"), doBack);`,

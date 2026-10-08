@@ -182,7 +182,7 @@
   var BACK = {
     desktop: {
       label: "Back to Desktop", go: "Back to Desktop",
-      done: function (name) { return name + " is back with Desktop. Open it from the sidebar."; }
+      done: function (name) { return name + " is back with Desktop. Open it from the sidebar, and press Try again if it shows as crashed."; }
     },
     vscode: {
       label: "Back to VS Code", go: "Back to VS Code",
@@ -289,7 +289,9 @@
        made. */
     saving: 0,
     saveChain: Promise.resolve(),
-    dialog: { id: null }
+    dialog: { id: null },
+    /* openWays is the arrow button of the ways menu that is open, if any. */
+    openWays: null
   };
 
   function watchById(id) {
@@ -780,6 +782,11 @@
       (ORIGIN_PHRASE[w.originHost] || "Its app") + " closed" + (when ? " " + when : "");
     setText(f(node, "rescue"), down + ". " +
       (w.name || w.shortId) + (w.remoteControl ? " kept running and stayed reachable from your other devices." : " kept running in the background."));
+    /* The CLI runs one copy of a session at a time, so Desktop cannot open
+       a session its background copy holds and calls it crashed. */
+    var crash = w.originHost === "desktop";
+    show(f(node, "crashnote"), crash);
+    setText(f(node, "crashnote"), crash ? 'Desktop shows "Claude Code crashed" for it until you press Back to Desktop.' : "");
     chip(el(node, "from"), w.originHost, "from");
     chip(el(node, "to"), "background", "to");
     var since = stayFor(w.backgroundSince, now);
@@ -787,16 +794,15 @@
     setText(f(node, "since"), since);
   }
 
-  /* fillWaysOn fills the stacked actions of an In background card: back to
-     the app it came from, and the two that leave it running as it is,
-     each shown only where it can work. */
+  /* fillWaysOn fills the way on of an In background card: back to the app
+     it came from, as one split button whose menu holds the ways that leave
+     the session running as it is, each shown only where it can work. */
   function fillWaysOn(node, w, rescued) {
     var view = state.view || {};
     var env = view.env || {};
     el(node, "acts").classList.toggle("stack", rescued);
-    var back = node.querySelector('[data-act="back"]');
-    show(back, rescued && !!w.canStop);
-    setText(back, BACK[backOf(w.originHost)].label);
+    show(el(node, "way"), rescued && !!w.canStop);
+    setText(node.querySelector('[data-act="back"]'), BACK[backOf(w.originHost)].label);
 
     var remote = el(node, "remote");
     var url = rescued && REMOTE_URL.test(w.remoteUrl || "") ? w.remoteUrl : "";
@@ -808,12 +814,104 @@
        nothing can be opened. */
     var terminal = !!w.attachCmd && rescued && !env.headless && !!view.terminalLabel;
     show(el(node, "terminal"), terminal);
-    setText(node.querySelector('[data-act="open-terminal"]'), view.terminalLabel || "");
-    setTitle(node.querySelector('.split [data-act="copy-attach"]'), w.attachCmd ? "Copy the command: " + w.attachCmd : "");
+    setText(f(node, "terminal"), view.terminalLabel || "");
+    var copy = rescued && !!w.attachCmd;
+    show(el(node, "copyattach"), copy);
+    setText(f(node, "attachcmd"), w.attachCmd || "");
 
-    var hint = f(node, "actshint");
-    show(hint, !!url || terminal);
-    setText(hint, url && terminal ? "The last two keep it running as it is." : "It keeps running as it is.");
+    var more = !!url || terminal || copy;
+    show(node.querySelector('[data-act="ways"]'), more);
+    node.querySelector(".wayon .split").classList.toggle("alone", !more);
+    if (state.openWays && node.contains(state.openWays) && (!rescued || !more)) { closeWays(false); }
+  }
+
+  /* ---------- the ways menu ---------- */
+
+  /* menuStep is where focus goes in an open menu of count items from the
+     item at index, for key: the next or the previous item, round the ends,
+     the first or the last, or -1 to close the menu. Any other key leaves
+     it where it is. */
+  function menuStep(key, index, count) {
+    switch (key) {
+      case "ArrowDown": return (index + 1) % count;
+      case "ArrowUp": return (index - 1 + count) % count;
+      case "Home": return 0;
+      case "End": return count - 1;
+      case "Escape": case "Tab": return -1;
+    }
+    return index;
+  }
+
+  /* menuItems are the items a menu shows. */
+  function menuItems(menu) {
+    return $$('[role="menuitem"]', menu).filter(function (item) { return !item.hidden; });
+  }
+
+  /* openWays opens the ways menu of the arrow button, with focus on its
+     first item, or its last when last is set. */
+  function openWays(button, last) {
+    closeWays(false);
+    var menu = el(button.closest(".wayon"), "ways");
+    var items = menuItems(menu);
+    if (!items.length) { return; }
+    show(menu, true);
+    button.setAttribute("aria-expanded", "true");
+    state.openWays = button;
+    items[last ? items.length - 1 : 0].focus();
+  }
+
+  /* closeWays closes the open ways menu, if any, and gives focus back to
+     its button when refocus is set. */
+  function closeWays(refocus) {
+    var button = state.openWays;
+    if (!button) { return; }
+    state.openWays = null;
+    button.setAttribute("aria-expanded", "false");
+    var wayon = button.closest(".wayon");
+    if (wayon) { show(el(wayon, "ways"), false); }
+    if (refocus && document.contains(button)) { button.focus(); }
+  }
+
+  function toggleWays(button) {
+    if (state.openWays === button) { closeWays(true); } else { openWays(button, false); }
+  }
+
+  /* closeWaysOnClick closes the open menu on a click anywhere but its own
+     arrow button, which toggles it. A choice in it closes it too, and
+     gives focus back to the arrow button. */
+  function closeWaysOnClick(event) {
+    var button = state.openWays;
+    if (!button || button.contains(event.target)) { return; }
+    var wayon = button.closest(".wayon");
+    closeWays(!!wayon && el(wayon, "ways").contains(event.target));
+  }
+
+  /* onWaysKey opens a ways menu from its arrow button with the up and down
+     arrows, and moves through an open one, as menuStep says. */
+  function onWaysKey(event) {
+    var button = event.target.closest('[data-act="ways"]');
+    if (button && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      event.preventDefault();
+      openWays(button, event.key === "ArrowUp");
+      return;
+    }
+    var menu = event.target.closest('[role="menu"]');
+    if (!menu || !state.openWays) { return; }
+    var items = menuItems(menu);
+    var at = items.indexOf(event.target.closest('[role="menuitem"]'));
+    var next = menuStep(event.key, at, items.length);
+    if (next === -1) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      closeWays(event.key === "Escape");
+      return;
+    }
+    if (next !== at) {
+      event.preventDefault();
+      items[next].focus();
+    }
   }
 
   function fillSession(node, s) {
@@ -1414,7 +1512,7 @@
       var button = event.target.closest("button[data-act]");
       if (!button || !container.contains(button)) { return; }
       var item = button.closest("[data-key]");
-      if (item) { handle(button.dataset.act, item.dataset.key); }
+      if (item) { handle(button.dataset.act, item.dataset.key, button); }
     });
   }
 
@@ -1428,9 +1526,10 @@
   }
 
   function wire() {
-    onAction($("#watches"), function (act, id) {
+    onAction($("#watches"), function (act, id, button) {
       var w = watchById(id);
       if (!w) { return; }
+      if (act === "ways") { toggleWays(button); return; }
       if (act === "unbabysit" || act === "forget") {
         run(id, act, function () { return send("POST", "/api/sessions/" + id + "/unbabysit", {}); });
       }
@@ -1445,6 +1544,8 @@
       if (act === "copy-attach") { copyText(w.attachCmd || ""); }
       if (act === "copy-ssh") { copyText(w.sshAttachCmd || ""); }
     });
+    $("#watches").addEventListener("keydown", onWaysKey);
+    document.addEventListener("click", closeWaysOnClick);
     /* A scheduled task run's row has the same buttons as a Running row,
        Babysit aside, so both lists answer them the same way. */
     function onSessionAction(act, id) {

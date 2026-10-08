@@ -225,7 +225,11 @@ does. Use it when list or show says its state is stuck.`,
 		`Stops the background copy of S. The conversation is kept, and can be resumed.
 Without --yes it changes nothing: it says what it would stop and exits with 2.
 Only a session with a background copy can be stopped. canStop in show --json says
-whether S has one. Otherwise stop is refused, with exit code 1.`,
+whether S has one. Otherwise stop is refused, with exit code 1.
+While the copy runs, Claude Desktop shows "Claude Code crashed" for a session
+that came from it, because only one copy of a session runs at a time. After stop,
+Try again in Desktop picks the session up where it left off. This is the page's
+Back to Desktop.`,
 		`  --yes              confirm. Without it nothing is stopped
 `,
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
