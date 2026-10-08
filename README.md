@@ -127,7 +127,7 @@ Preview. CC Babysitter is early: it has been tested by hand, and there are no au
 - A babysat session whose app you quit on purpose is currently started again in the background, just as if the app had crashed. Unbabysit it first if you mean to end it.
 - On a Linux desktop whose session has no `graphical-session.target`, such as some window managers started by hand, CC Babysitter does not start by itself at login. A plain `ccbabysitter` still starts it in the background.
 
-Behaviour and settings may change before 1.0. Please report problems as [issues](https://github.com/pejmanebrahimi/ccbabysitter/issues). What changed in each version is in `docs/CHANGELOG.md`.
+Behaviour and settings may change before 1.0. Please report problems by email to hello@ccbabysitter.dev or as [issues](https://github.com/pejmanebrahimi/ccbabysitter/issues/new/choose). Report a security problem privately instead, as [SECURITY.md](SECURITY.md) says. The page's About panel has your version details to copy, and how to update. What changed in each version is in `docs/CHANGELOG.md`.
 
 ## How it works
 

@@ -986,6 +986,148 @@ func TestTheLidIsMentionedOnlyWhereItSleeps(t *testing.T) {
 	}
 }
 
+// The About panel opens from the header beside Settings, in the same kind
+// of drawer, and says which version runs, how to update it and how to
+// report a problem: by email, as a GitHub issue, or privately for a
+// security problem. Nothing in it carries the page's address or key.
+func TestTheAboutPanel(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	for _, want := range []string{
+		`<aside class="drawer" id="drawer-about" hidden aria-labelledby="about-h">`,
+		`<pre class="mono report" data-f="about-version"></pre>`,
+		`<button class="b small" id="about-copy-version">Copy for a bug report</button>`,
+		`<code class="mono" data-f="about-update" data-unix="curl -fsSL https://ccbabysitter.dev/install.sh | sh" data-windows="irm https://ccbabysitter.dev/install.ps1 | iex"></code>`,
+		`<button class="b small" id="about-copy-update">Copy</button>`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter/releases/latest"`,
+		`href="mailto:hello@ccbabysitter.dev"`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter/issues/new/choose"`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter/security/advisories/new"`,
+		`href="https://ccbabysitter.dev"`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter#readme"`,
+		`href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE"`,
+		"It is not made by, affiliated with or endorsed by Anthropic. Claude and Claude Code are trademarks of Anthropic.",
+		`<button class="b" id="open-about" aria-controls="drawer-about" aria-expanded="false">About</button>`,
+	} {
+		if !strings.Contains(index, want) {
+			t.Errorf("index.html does not contain %s", want)
+		}
+	}
+	about := between(t, index, `<aside class="drawer" id="drawer-about"`, `</aside>`)
+	for _, gone := range []string{"token", "127.0.0.1", "data-f=\"url\""} {
+		if strings.Contains(about, gone) {
+			t.Errorf("the About panel has %q", gone)
+		}
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`$("#open-about").addEventListener("click", openAbout);`,
+		`openDrawer("about");`,
+		`copyText(versionReport(state.view || {}));`,
+		`copyText(updateCommand(((state.view || {}).env || {}).platform, updateCommands()));`,
+		`$("#drawer-" + state.drawer).hidden = true;`,
+		`setExpanded(name, true);`,
+		`if (state.drawer) { event.preventDefault(); closeDrawer(); }`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+}
+
+// Every link that opens a new tab keeps the page that opened it out of
+// reach of the new one, and sends no address back.
+func TestNewTabLinksKeepTheirDistance(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	for _, tag := range regexp.MustCompile(`<a [^>]*target="_blank"[^>]*>`).FindAllString(index, -1) {
+		if !strings.Contains(tag, `rel="noopener noreferrer"`) {
+			t.Errorf("a link opens a new tab without rel=\"noopener noreferrer\": %s", tag)
+		}
+	}
+	if css := readUI(t, "ui/app.css"); !strings.Contains(css, ".dr-body a .ext {") {
+		t.Error("app.css does not mark the drawers' new-tab links")
+	}
+}
+
+// One drawer at a time: opening the other swaps them, and closing gives
+// focus back to what had it before the first one opened. Run as the page
+// runs it, on stand-ins for the page's nodes, when node is there.
+func TestTheDrawersSwap(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node is not installed")
+	}
+	app := readUI(t, "ui/app.js")
+	var fns strings.Builder
+	for _, name := range []string{"openDrawer(name)", "setExpanded(name, open)", "closeDrawer()"} {
+		head := "function " + name + " {"
+		fns.WriteString(head + between(t, app, head, "\n  }") + "\n}\n")
+	}
+	script := fns.String() + `
+var focused = null;
+function node(name) { return {name: name, hidden: true, focus: function () { focused = this; }, querySelector: function () { return this.close; }}; }
+var nodes = {"#scrim": node("scrim"), "#drawer-settings": node("settings"), "#drawer-about": node("about")};
+nodes["#drawer-settings"].close = node("settings-close");
+nodes["#drawer-about"].close = node("about-close");
+function $(sel) { return nodes[sel]; }
+var opener = node("opener");
+var document = {activeElement: opener};
+var state = {drawer: null, returnFocus: null};
+var out = [];
+openDrawer("settings");
+out.push(state.drawer + " " + nodes["#drawer-settings"].hidden + " " + nodes["#scrim"].hidden + " " + focused.name);
+document.activeElement = nodes["#drawer-settings"].close;
+openDrawer("about");
+out.push(state.drawer + " " + nodes["#drawer-settings"].hidden + " " + nodes["#drawer-about"].hidden + " " + nodes["#scrim"].hidden + " " + focused.name);
+closeDrawer();
+out.push(state.drawer + " " + nodes["#drawer-about"].hidden + " " + nodes["#scrim"].hidden + " " + focused.name);
+console.log(out.join("\n"));
+`
+	got := runNode(t, script)
+	want := []string{"settings false false settings-close", "about true false false about-close", "null true true opener"}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// The version details to copy name CC Babysitter's version, the system and
+// its processor, whether it has a display, and the versions of Claude Code
+// it found, in plain text; the update command is, of the install commands
+// the page carries, the one for the system. Both are run as the page runs
+// them, when node is there.
+func TestTheAboutVersionReport(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node is not installed")
+	}
+	app := readUI(t, "ui/app.js")
+	fns := "var SYSTEM_NAMES = " + between(t, app, "var SYSTEM_NAMES = ", ";\n") + ";\n"
+	for _, name := range []string{"versionReport(view)", "updateCommand(platform, commands)"} {
+		head := "function " + name + " {"
+		fns += head + between(t, app, head, "\n  }") + "\n}\n"
+	}
+	script := fns + `
+console.log(JSON.stringify(versionReport({version: "0.6.1", env: {platform: "darwin", arch: "arm64", cliVersion: "2.1.280", desktopInstalled: true, desktopVersion: "2.7032.0", vscodeExtVersion: "2.1.280"}})));
+console.log(JSON.stringify(versionReport({version: "0.6.1", env: {platform: "linux", arch: "amd64", headless: true, cliFound: false}})));
+console.log(JSON.stringify(versionReport({})));
+console.log(JSON.stringify(versionReport({version: "0.6.1", url: "http://127.0.0.1:47391/?token=secret", env: {platform: "darwin"}})).indexOf("secret"));
+var commands = {unix: "curl -fsSL https://ccbabysitter.dev/install.sh | sh", windows: "irm https://ccbabysitter.dev/install.ps1 | iex"};
+console.log(updateCommand("windows", commands));
+console.log(updateCommand("darwin", commands));
+console.log(updateCommand(undefined, commands));
+`
+	got := runNode(t, script)
+	want := []string{
+		`"CC Babysitter 0.6.1\nSystem: macOS, arm64\nClaude Code CLI: 2.1.280\nClaude Desktop: 2.7032.0\nVS Code extension: 2.1.280"`,
+		`"CC Babysitter 0.6.1\nSystem: Linux, amd64, no display\nClaude Code CLI: not found"`,
+		`"CC Babysitter unknown\nSystem: unknown\nClaude Code CLI: not found"`,
+		"-1",
+		"irm https://ccbabysitter.dev/install.ps1 | iex",
+		"curl -fsSL https://ccbabysitter.dev/install.sh | sh",
+		"curl -fsSL https://ccbabysitter.dev/install.sh | sh",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 // Back to the app a session came from ends the background copy after a
 // dialog that says what happens, in one of three versions.
 func TestTheBackDialog(t *testing.T) {
