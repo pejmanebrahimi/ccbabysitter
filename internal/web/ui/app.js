@@ -400,6 +400,9 @@
 
   function markBusy(node, id) {
     $$("button[data-act]", node).forEach(function (button) {
+      /* The arrow of the ways menu starts nothing, and stays able to take
+         focus back from a choice made in its menu. */
+      if (button.dataset.act === "ways") { return; }
       var mine = !!state.pending[busyKey(id, button.dataset.act)];
       button.classList.toggle("busy", mine);
       button.disabled = mine || anyPending(id);
@@ -786,7 +789,7 @@
        a session its background copy holds and calls it crashed. */
     var crash = w.originHost === "desktop";
     show(f(node, "crashnote"), crash);
-    setText(f(node, "crashnote"), crash ? 'Desktop shows "Claude Code crashed" for it until you press Back to Desktop.' : "");
+    setText(f(node, "crashnote"), crash ? 'Desktop shows it as "Claude Code crashed" until you press Back to Desktop, then Try again there.' : "");
     chip(el(node, "from"), w.originHost, "from");
     chip(el(node, "to"), "background", "to");
     var since = stayFor(w.backgroundSince, now);
@@ -841,6 +844,9 @@
     }
     return index;
   }
+
+  /* MENU_MOVES are the keys that move focus in an open menu. */
+  var MENU_MOVES = { ArrowDown: true, ArrowUp: true, Home: true, End: true };
 
   /* menuItems are the items a menu shows. */
   function menuItems(menu) {
@@ -908,10 +914,11 @@
       closeWays(event.key === "Escape");
       return;
     }
-    if (next !== at) {
-      event.preventDefault();
-      items[next].focus();
-    }
+    /* A key that moves focus never scrolls the page, even where focus has
+       nowhere to go. */
+    if (!MENU_MOVES[event.key]) { return; }
+    event.preventDefault();
+    if (next !== at) { items[next].focus(); }
   }
 
   function fillSession(node, s) {
@@ -1530,6 +1537,9 @@
       var w = watchById(id);
       if (!w) { return; }
       if (act === "ways") { toggleWays(button); return; }
+      /* A choice in the menu closes it first, before what it starts puts
+         the card's buttons to sleep, so focus goes back to the arrow. */
+      if (state.openWays && button.closest(".ways")) { closeWays(true); }
       if (act === "unbabysit" || act === "forget") {
         run(id, act, function () { return send("POST", "/api/sessions/" + id + "/unbabysit", {}); });
       }
@@ -1602,6 +1612,9 @@
        have done with the key on its own. */
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") { return; }
+      /* A menu whose focus went elsewhere, when its card moved or was
+         drawn again, still closes with Escape. */
+      if (state.openWays) { event.preventDefault(); closeWays(true); return; }
       var dialog = document.querySelector("dialog[open]");
       if (dialog) {
         event.preventDefault();
