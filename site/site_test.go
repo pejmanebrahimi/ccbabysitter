@@ -270,9 +270,9 @@ func TestOnlyTheVersionPlaceholder(t *testing.T) {
 	}
 }
 
-// TestHomeIntroAndSeeMore checks that the intro, the short line
-// search results and link previews show, the "See more" disclosure and its
-// notes are in the static HTML, where search engines and visitors without
+// TestHomeIntroAndSeeMore checks that the short intro line, which search
+// results and link previews show too, the "See more" disclosure with the
+// longer story and its notes are in the static HTML, where search engines and visitors without
 // scripts can read them, and that the old story and the old "What it does"
 // section are gone.
 func TestHomeIntroAndSeeMore(t *testing.T) {
@@ -282,7 +282,9 @@ func TestHomeIntroAndSeeMore(t *testing.T) {
 		`<meta name="description" content="` + short + `">`,
 		`<meta property="og:description" content="` + short + `">`,
 		`"description": "Turned on Claude Code Remote Control, checked \"keep computer awake\" and went on vacation? I admire your optimism, but you need a babysitter."`,
-		`<p class="tagline">No matter how hard you hope or try, your computer and the Claude Code app will find a creative way<sup><a class="fn" href="#note-1" id="ref-1" aria-label="Note 1">1</a></sup> to kill the remote-controlled session you started before leaving the computer, hoping you could keep issuing destiny-defining orders to your coding agents while you're vacationing where the map gives up.`,
+		`<p class="tagline">Turned on Claude Code Remote Control, checked "keep computer awake" and went on vacation? I admire your optimism, but you need a babysitter.</p>`,
+		`<div class="why-body">
+        <p>No matter how hard you hope or try, your computer and the Claude Code app will find a creative way<sup><a class="fn" href="#note-1" id="ref-1" aria-label="Note 1">1</a></sup> to kill the remote-controlled session you started before leaving the computer, hoping you could keep issuing destiny-defining orders to your coding agents while you're vacationing where the map gives up.`,
 		`Well, this has happened to me, and believe me, we are not alone<sup><a class="fn" href="#note-2" id="ref-2" aria-label="Note 2">2</a></sup>. Of course, you can go ahead and write some watchdog scripts on a laptop, or tmux and whatnot on a server, but some of us prefer a babysitter.</p>`,
 		`<details class="why">`, "<summary>See more <svg",
 		"<p>If a babysat session's app dies, the session comes back in the background with Remote Control on, and the computer stays awake. On a server, babysat sessions survive SSH drops and reboots, no tmux needed. And one page shows every Claude Code session on the machine, in any app, with its tokens and uptime. Your agents can use it too: <code>ccbabysitter babysit self</code>.</p>",
