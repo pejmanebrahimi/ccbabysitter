@@ -67,7 +67,7 @@ func causeFor(host claude.Host, apps AppsNow, knownVersion string) string {
 	case claude.HostVSCode:
 		return "VS Code closed, or the session ended in it"
 	case claude.HostTerminal:
-		return "its terminal closed, or the session was quit"
+		return "its terminal or SSH connection closed, or the session was quit"
 	case claude.HostBackground:
 		return "the background copy ended"
 	}
@@ -154,6 +154,22 @@ func (s *Supervisor) appsOnce() func() AppsNow {
 	}
 }
 
+// watchedHost picks, of the apps a babysat session is running in, the one
+// its watch is in: the background for a watch our copy carries, and the
+// app it was babysat in otherwise, else the first.
+func watchedHost(w state.Watch, running []claude.Host) claude.Host {
+	want := w.OriginHost
+	if w.PromiseState == "fallback" {
+		want = claude.HostBackground
+	}
+	for _, host := range running {
+		if host == want {
+			return host
+		}
+	}
+	return running[0]
+}
+
 // hostOf is the app a babysat session was last seen running in. Until it
 // is seen, that is the background for a watch our copy carries, and the
 // app it was babysat in otherwise.
@@ -190,20 +206,34 @@ func (s *Supervisor) noteDesktopVersion() {
 	}
 }
 
-// noteBoot saves the boot time this run starts in, and remembers whether
-// the computer restarted since the run before, which saved its own.
+// noteBoot saves the boot this run starts in, by id and by time, and
+// remembers whether the computer restarted since the run before, which
+// saved its own: by the id where both runs have one, since the boot time
+// moves with the clock, and otherwise by the time.
 func (s *Supervisor) noteBoot() {
-	if s.deps.BootTime == nil {
-		return
+	var id string
+	var sec uint64
+	if s.deps.BootID != nil {
+		id = s.deps.BootID()
 	}
-	now := s.deps.BootTime()
-	if now == 0 {
-		return
+	if s.deps.BootTime != nil {
+		sec = s.deps.BootTime()
 	}
-	prev := s.st.BootTime
-	s.rebooted = prev != 0 && (now > prev+bootSlack || prev > now+bootSlack)
-	if prev != now {
-		s.st.BootTime = now
+	prevID, prevSec := s.st.BootID, s.st.BootTime
+	switch {
+	case id != "" && prevID != "":
+		s.rebooted = id != prevID
+	case sec != 0 && prevSec != 0:
+		s.rebooted = sec > prevSec+bootSlack || prevSec > sec+bootSlack
+	}
+	changed := false
+	if id != "" && id != prevID {
+		s.st.BootID, changed = id, true
+	}
+	if sec != 0 && sec != prevSec {
+		s.st.BootTime, changed = sec, true
+	}
+	if changed {
 		s.persist()
 	}
 }
@@ -307,6 +337,15 @@ func (s *Supervisor) toldCause(reason string) {
 	}
 }
 
+// forget drops what is kept about the way down of a session that is no
+// longer babysat.
+func (s *Supervisor) forget(id string) {
+	delete(s.absent, id)
+	delete(s.lastHost, id)
+	delete(s.causes, id)
+	delete(s.announced, id)
+}
+
 // forgetGone drops what is kept about the way down of sessions that are no
 // longer babysat.
 func (s *Supervisor) forgetGone() {
@@ -363,7 +402,20 @@ func (s *Supervisor) followUpDesktop() {
 			s.causes[id] = restarted
 		}
 	}
-	if p.told {
-		s.logInfo("", "Claude Desktop is back, updated from "+p.from+" to "+apps.DesktopVersion+".")
+	if !p.told {
+		return
+	}
+	s.logInfo("", "Claude Desktop is back, updated from "+p.from+" to "+apps.DesktopVersion+".")
+	// The cards of the sessions brought back since the app closed say what
+	// really happened too.
+	changed := false
+	for i := range s.st.Watches {
+		w := &s.st.Watches[i]
+		if rank := desktopRank(w.BackgroundCause); (rank == rankClosed || rank == rankUpdated) && !w.BackgroundSince.Before(p.at) {
+			w.BackgroundCause, changed = restarted, true
+		}
+	}
+	if changed {
+		s.persist()
 	}
 }

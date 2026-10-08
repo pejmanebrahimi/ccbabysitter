@@ -775,7 +775,7 @@ func demoExitReason(host claude.Host) string {
 	case claude.HostVSCode:
 		return "VS Code closed, or the session ended in it"
 	case claude.HostTerminal:
-		return "its terminal closed, or the session was quit"
+		return "its terminal or SSH connection closed, or the session was quit"
 	}
 	return "the process running it exited"
 }

@@ -34,7 +34,7 @@ func TestCauseFor(t *testing.T) {
 		{claude.HostDesktop, running, "2.1.0", "the session ended while Claude Desktop kept running"},
 		{claude.HostDesktop, unknown, "2.1.0", ""},
 		{claude.HostVSCode, running, "2.1.0", "VS Code closed, or the session ended in it"},
-		{claude.HostTerminal, running, "", "its terminal closed, or the session was quit"},
+		{claude.HostTerminal, running, "", "its terminal or SSH connection closed, or the session was quit"},
 		{claude.HostBackground, running, "", "the background copy ended"},
 		{claude.HostOther, running, "", ""},
 	} {
@@ -272,11 +272,17 @@ func TestDesktopBackNewerBeforeTheRescueNamesTheUpdate(t *testing.T) {
 	}
 }
 
-// restartFixture is sessions babysat in host by an earlier run of CC
-// Babysitter that saw the computer booted at savedBoot, now started again
-// with the computer booted at nowBoot, either zero when not known, and
+// boots is the boot an earlier run of CC Babysitter saved and the boot it
+// now starts in, by time and by id, each zero or empty when not known.
+type boots struct {
+	savedTime, nowTime uint64
+	savedID, nowID     string
+}
+
+// restartFixture is sessions babysat in host, in promise, by an earlier run
+// of CC Babysitter, now started again in another or the same boot, with
 // Claude Desktop 2.1.0 running.
-func restartFixture(t *testing.T, host claude.Host, savedBoot, nowBoot uint64, ids ...string) (*fixture, *Supervisor, *time.Time) {
+func restartFixture(t *testing.T, host claude.Host, promise string, b boots, ids ...string) (*fixture, *Supervisor, *time.Time) {
 	t.Helper()
 	f := newFixture(t, nil)
 	f.r.SetRespond(resumeWithRC(f))
@@ -284,12 +290,14 @@ func restartFixture(t *testing.T, host claude.Host, savedBoot, nowBoot uint64, i
 	for _, id := range ids {
 		f.writeTranscript(t, "/home/dev/ws", id)
 		watches = append(watches, state.Watch{SessionID: id, ShortID: id[:8], Cwd: "/home/dev/ws",
-			OriginHost: host, PromiseState: "inplace", HasSavedOptions: true})
+			OriginHost: host, PromiseState: promise, HasSavedOptions: true})
 	}
-	if err := f.d.Store.Save(state.State{Version: "test", Settings: state.DefaultSettings(), BootTime: savedBoot, Watches: watches}); err != nil {
+	if err := f.d.Store.Save(state.State{Version: "test", Settings: state.DefaultSettings(),
+		BootTime: b.savedTime, BootID: b.savedID, Watches: watches}); err != nil {
 		t.Fatal(err)
 	}
-	f.d.BootTime = func() uint64 { return nowBoot }
+	f.d.BootTime = func() uint64 { return b.nowTime }
+	f.d.BootID = func() string { return b.nowID }
 	f.d.Apps = func() AppsNow { return AppsNow{DesktopKnown: true, DesktopRunning: true, DesktopVersion: "2.1.0"} }
 	clock := time.Date(2026, 10, 8, 7, 0, 0, 0, time.UTC)
 	f.d.Now = func() time.Time { return clock }
@@ -313,29 +321,42 @@ func rescueReason(t *testing.T, f *fixture) string {
 
 // A babysat session not seen running since CC Babysitter started went down
 // while it was not running, so how the apps look now says nothing about
-// why. Only a restart of the computer since the run before is known:
-// another boot time than the one that run saved.
+// why. Only a restart of the computer since the run before is known: by
+// another boot id where the system has one, and otherwise by another boot
+// time. A session given the plain reason saves no cause for its card.
 func TestASessionNotSeenSinceStartOnlyNamesARestart(t *testing.T) {
 	const earlier, later = 1_790_000_000, 1_790_050_000
+	const plain, restarted = "the process running it exited", "the computer restarted"
 	for _, c := range []struct {
-		name            string
-		host            claude.Host
-		savedBoot, boot uint64
-		want            string
+		name    string
+		host    claude.Host
+		promise string
+		b       boots
+		want    string
 	}{
-		{"another boot", claude.HostTerminal, earlier, later, "the computer restarted"},
-		{"another boot, Desktop", claude.HostDesktop, earlier, later, "the computer restarted"},
-		{"the same boot", claude.HostTerminal, later, later + 1, "the process running it exited"},
-		{"the same boot, Desktop running", claude.HostDesktop, later, later, "the process running it exited"},
-		{"no boot saved", claude.HostTerminal, 0, later, "the process running it exited"},
-		{"boot not known", claude.HostTerminal, earlier, 0, "the process running it exited"},
+		{"another boot time", claude.HostTerminal, "inplace", boots{savedTime: earlier, nowTime: later}, restarted},
+		{"another boot time, Desktop", claude.HostDesktop, "inplace", boots{savedTime: earlier, nowTime: later}, restarted},
+		{"another boot id", claude.HostTerminal, "inplace", boots{savedTime: later, nowTime: later, savedID: "boot-a", nowID: "boot-b"}, restarted},
+		{"same boot id, clock moved", claude.HostTerminal, "inplace", boots{savedTime: earlier, nowTime: later, savedID: "boot-a", nowID: "boot-a"}, plain},
+		{"the same boot time", claude.HostTerminal, "inplace", boots{savedTime: later, nowTime: later + 1}, plain},
+		{"the same boot, Desktop running", claude.HostDesktop, "inplace", boots{savedTime: later, nowTime: later}, plain},
+		{"the same boot, carried in the background", claude.HostDesktop, "fallback", boots{savedTime: later, nowTime: later}, plain},
+		{"no boot saved", claude.HostTerminal, "inplace", boots{nowTime: later}, plain},
+		{"boot not known", claude.HostTerminal, "inplace", boots{savedTime: earlier}, plain},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			f, s, clock := restartFixture(t, c.host, c.savedBoot, c.boot, "cccccccc-0000-4000-8000-000000000003")
+			f, s, clock := restartFixture(t, c.host, c.promise, c.b, "cccccccc-0000-4000-8000-000000000003")
 			pass(s, clock)
 			pass(s, clock)
 			if got := rescueReason(t, f); got != c.want {
 				t.Fatalf("reason %q, want %q", got, c.want)
+			}
+			st, err := f.d.Store.Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if want := map[bool]string{true: "", false: c.want}[c.want == plain]; c.promise == "inplace" && st.Watches[0].BackgroundCause != want {
+				t.Fatalf("saved cause %q, want %q", st.Watches[0].BackgroundCause, want)
 			}
 		})
 	}
@@ -344,7 +365,7 @@ func TestASessionNotSeenSinceStartOnlyNamesARestart(t *testing.T) {
 // Sessions that went down with the computer are named in one line as the
 // first is brought back.
 func TestARestartIsNamedOnceForAllItsSessions(t *testing.T) {
-	f, s, clock := restartFixture(t, claude.HostTerminal, 1_790_000_000, 1_790_050_000,
+	f, s, clock := restartFixture(t, claude.HostTerminal, "inplace", boots{savedTime: 1_790_000_000, nowTime: 1_790_050_000},
 		"cccccccc-0000-4000-8000-000000000008", "dddddddd-0000-4000-8000-000000000008")
 	pass(s, clock)
 	pass(s, clock)
@@ -353,16 +374,17 @@ func TestARestartIsNamedOnceForAllItsSessions(t *testing.T) {
 	}
 }
 
-// The boot time CC Babysitter starts in is saved, for the next start to
-// tell whether the computer restarted in between.
-func TestTheBootTimeIsSavedAtStart(t *testing.T) {
-	f, _, _ := restartFixture(t, claude.HostTerminal, 1_790_000_000, 1_790_050_000, "cccccccc-0000-4000-8000-000000000006")
+// The boot CC Babysitter starts in is saved, by time and by id, for the
+// next start to tell whether the computer restarted in between.
+func TestTheBootIsSavedAtStart(t *testing.T) {
+	f, _, _ := restartFixture(t, claude.HostTerminal, "inplace",
+		boots{savedTime: 1_790_000_000, nowTime: 1_790_050_000, savedID: "boot-a", nowID: "boot-b"}, "cccccccc-0000-4000-8000-000000000006")
 	st, err := f.d.Store.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st.BootTime != 1_790_050_000 {
-		t.Fatalf("saved boot time %d", st.BootTime)
+	if st.BootTime != 1_790_050_000 || st.BootID != "boot-b" {
+		t.Fatalf("saved boot %d %q", st.BootTime, st.BootID)
 	}
 }
 
@@ -410,7 +432,7 @@ func TestACopyThatEndsEarlyIsNotBlamedOnDesktop(t *testing.T) {
 	}
 }
 
-// What is kept about a session's way down goes once it is no longer
+// What is kept about a session's way down goes the moment it is no longer
 // babysat.
 func TestUnbabysitForgetsTheWayDown(t *testing.T) {
 	a := "aaaaaaaa-0000-4000-8000-00000000000a"
@@ -419,7 +441,6 @@ func TestUnbabysitForgetsTheWayDown(t *testing.T) {
 	if res := s.Unbabysit(a, ViaPage); !res.OK {
 		t.Fatal(res.Message)
 	}
-	pass(s, clock, inDesktop(a))
 	if s.keptForTest(a) {
 		t.Fatal("the session is still remembered after unbabysit")
 	}
@@ -481,5 +502,40 @@ func TestTheCauseIsKeptForTheCard(t *testing.T) {
 	}
 	if got := s.View().Watches[0].BackgroundCause; got != want {
 		t.Fatalf("view cause %q, want %q", got, want)
+	}
+}
+
+// Claude Desktop that comes back newer after a rescue said it closed had
+// restarted for an update, and the card of that rescue says so too.
+func TestTheCardFollowsTheUpdate(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-00000000000e"
+	f, s, apps, clock := handDesktop(t, a)
+	pass(s, clock, inDesktop(a))
+	apps.set(AppsNow{DesktopKnown: true, DesktopVersion: "2.1.0"})
+	pass(s, clock)
+	pass(s, clock)
+	pass(s, clock, inBackground(a))
+	apps.set(AppsNow{DesktopKnown: true, DesktopRunning: true, DesktopVersion: "2.2.0"})
+	pass(s, clock, inBackground(a))
+	want := "Claude Desktop restarted for an update from 2.1.0 to 2.2.0"
+	st, err := f.d.Store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := st.Watches[0].BackgroundCause; got != want {
+		t.Fatalf("saved cause %q, want %q", got, want)
+	}
+}
+
+// A session open in two apps at once that goes down in both is explained
+// by the one its watch is in.
+func TestTwoCopiesAreExplainedByTheWatchedOne(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-00000000000f"
+	f, s, _, clock := handDesktop(t, a)
+	pass(s, clock, inDesktop(a), inBackground(a))
+	pass(s, clock)
+	pass(s, clock)
+	if got := rescueReason(t, f); got != "the session ended while Claude Desktop kept running" {
+		t.Fatalf("reason %q", got)
 	}
 }

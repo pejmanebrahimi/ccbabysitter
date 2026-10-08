@@ -45,6 +45,11 @@ type Deps struct {
 	// went down with the computer. It may be nil.
 	BootTime func() uint64
 
+	// BootID reports the id the system gave this boot, or "" where it gives
+	// none. Where both runs have one it decides, in place of BootTime,
+	// whether the computer restarted in between. It may be nil.
+	BootID func() string
+
 	// DaemonLog is the CLI daemon's log, read to tell when the daemon itself
 	// stopped an idle background session. Empty skips that, so only the real
 	// program, which sets it, ever reads ~/.claude.

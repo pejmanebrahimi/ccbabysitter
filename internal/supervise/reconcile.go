@@ -119,15 +119,15 @@ func (s *Supervisor) countAbsence(snap observe.Snapshot) {
 		return
 	}
 	s.lastCounted = snap.At
-	live := map[string]claude.Host{}
+	live := map[string][]claude.Host{}
 	for _, sn := range snap.Sessions {
-		live[sn.ID] = sn.Host
+		live[sn.ID] = append(live[sn.ID], sn.Host)
 	}
 	var gone, again []state.Watch
 	for _, w := range s.st.Watches {
-		if host, ok := live[w.SessionID]; ok {
+		if running, ok := live[w.SessionID]; ok {
 			s.absent[w.SessionID] = 0
-			s.lastHost[w.SessionID] = host
+			s.lastHost[w.SessionID] = watchedHost(w, running)
 			delete(s.causes, w.SessionID)
 			delete(s.announced, w.SessionID)
 			continue
@@ -235,7 +235,9 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 			// same stay in the background, so the time it began is kept.
 			if cur.BackgroundSince.IsZero() {
 				cur.BackgroundSince = now
-				cur.BackgroundCause = reason
+				if reason != unknownExit {
+					cur.BackgroundCause = reason
+				}
 			}
 		}
 		cur.LastResume = now

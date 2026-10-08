@@ -224,6 +224,7 @@ func (s *Supervisor) removeWatch(id string) {
 	}
 	s.st.Watches = kept
 	s.trouble.forget(id)
+	s.forget(id)
 }
 
 // whereItIs describes where a session is running right now.

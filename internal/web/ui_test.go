@@ -778,7 +778,7 @@ func TestTheBackgroundCardSaysWhyItWentDown(t *testing.T) {
 		{"Claude Desktop restarted for an update from 2.7032.0 to 2.7033.0", "at 22:11", "At 22:11, Claude Desktop restarted for an update"},
 		{"Claude Desktop closed and updated from 2.1.0 to 2.2.0", "Oct 3 at 09:15", "Oct 3 at 09:15, Claude Desktop closed and updated"},
 		{"the computer restarted", "yesterday at 07:02", "Yesterday at 07:02, the computer restarted"},
-		{"its terminal closed, or the session was quit", "", "Its terminal closed, or the session was quit"},
+		{"its terminal or SSH connection closed, or the session was quit", "", "Its terminal or SSH connection closed, or the session was quit"},
 		{"", "at 22:11", ""},
 	}
 	var script strings.Builder

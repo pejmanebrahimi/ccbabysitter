@@ -453,6 +453,7 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 			DaemonLog:          claude.DaemonLogPath(),
 			Apps:               apps,
 			BootTime:           bootTime,
+			BootID:             procs.BootID,
 			URL:                pageURL,
 			SSHTarget:          target.get,
 			Autostart:          autostartInstaller,

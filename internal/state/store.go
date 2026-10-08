@@ -108,6 +108,10 @@ type State struct {
 	// epoch, as CC Babysitter last started. Another one at the next start
 	// means the computer restarted in between. Zero when not known.
 	BootTime uint64 `json:"bootTime,omitempty"`
+	// BootID is the id the system gave the boot CC Babysitter last started
+	// in, which tells a restart more surely than the boot time, which moves
+	// with the clock. Empty where the system gives none.
+	BootID string `json:"bootId,omitempty"`
 }
 
 // Find returns the watch with the given session id, or nil.
