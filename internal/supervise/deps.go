@@ -27,6 +27,11 @@ type Deps struct {
 	ProjectsDir string
 	Now         func() time.Time
 
+	// JobsDir is the CLI's folder of background job records, read to tell
+	// whether a session keeps saved options of its own. Empty skips that
+	// check, so only the real program, which sets it, ever reads ~/.claude.
+	JobsDir string
+
 	// Home is the account's home folder, where a background session cannot
 	// be started. ClaudeConfig is the CLI's own settings file, read to tell
 	// whether it trusts a folder. Both default to the real ones.
