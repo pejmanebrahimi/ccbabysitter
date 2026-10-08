@@ -2,6 +2,14 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Changed: when Claude Code's daemon stops a background session that sat idle and CC Babysitter brings it back, Activity now gives the reason as "Claude Code stopped it after 8 hours idle" instead of "host process exited", which read like a crash (#49).
+- Fixed: the Claude Code plugin could ask whether you had installed CC Babysitter without ever showing the install command, and after quitting CC Babysitter it offered a settings change that cannot work once it has quit. It now shows every command in the reply before asking, and offers `ccbabysitter uninstall` to stop CC Babysitter for good (#58).
+- Fixed: after Back to Desktop, the next rescue of that session first passed `--remote-control`, which made the CLI fork a copy; CC Babysitter stopped and removed the copy and retried without flags, but Activity showed "resume forked a copy", and a copy that lived long enough left an empty Remote Control entry in Claude Desktop under Other. A session the CLI keeps a background job record for is now resumed without flags from the first try (#55).
+- Fixed: the Back to Desktop dialog said Remote Control stays off until you switch it on in Desktop, but Desktop turns it back on by itself when it was on for that session before. The dialog now says so (#52).
+- Fixed: on a machine without the `claude` CLI, Activity got "agents --json did not answer:" every minute with nothing after the colon. It now says once that the Claude Code CLI is not installed, and says it again only after the CLI has worked in between; when the CLI answers with nothing, the line gives its error (#40).
+
 ## 0.6.0 (2026-10-07)
 
 - New: `ccbabysitter open` opens the page in your browser and prints no key, so an AI agent can run it. On a machine with no display it says how to connect instead.

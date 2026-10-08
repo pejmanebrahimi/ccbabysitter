@@ -766,7 +766,7 @@ func TestTheBackDialog(t *testing.T) {
 		`data-el="back-desktop"`,
 		`<p class="line">The background copy ends and <span data-f="name"></span> goes back to Desktop.</p>`,
 		`<p class="line">Open it from Desktop's sidebar to carry on where you left off.</p>`,
-		`<p class="line warn">Remote Control stays off until you switch it on in Desktop.</p>`,
+		`<p class="line">Desktop turns Remote Control back on if it was on there before. If not, switch it on in Desktop.</p>`,
 		`data-el="back-vscode"`,
 		`<p class="line">The background copy ends and <span data-f="name"></span> goes back to VS Code.</p>`,
 		`<p class="line">Open it from the Claude Code panel's past conversations to carry on.</p>`,

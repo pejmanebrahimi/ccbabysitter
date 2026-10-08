@@ -2,6 +2,7 @@ package supervise
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -185,6 +186,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 		return false, false
 	}
 
+	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
 	short, res := s.deps.resumeBackground(ctx, w.SessionID, w.Name, w.Cwd, w.HasSavedOptions)
 	cur := s.find(w.SessionID)
 	if cur == nil {
@@ -226,7 +228,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 		if clause := remoteControlClauseOf(res.Message); clause != "" {
 			msg += ". " + clause
 		}
-		s.logAuto(label, "host process exited", msg)
+		s.logAuto(label, reason, msg)
 		return true, true
 	}
 
@@ -239,7 +241,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 
 	cur.Failures = append(withinWindow(cur.Failures, now), now)
 	s.backoffUntil[w.SessionID] = now.Add(s.deps.Backoff)
-	s.logAuto(label, "host process exited", res.Message)
+	s.logAuto(label, reason, res.Message)
 	if ShouldPauseForFailures(cur.Failures, now) {
 		cur.Paused = true
 		cur.PauseReason = "three failed resumes in five minutes: " + res.Message
@@ -805,4 +807,48 @@ func listOf(ids []string) string {
 		return "none"
 	}
 	return strings.Join(ids, ", ")
+}
+
+// retireWindow is how long after the CLI daemon stopped an idle background
+// session its log line still explains the session's exit.
+const retireWindow = 5 * time.Minute
+
+// exitReason is the reason Activity gives for bringing a session back: the
+// CLI daemon stopping it after it sat idle, when its log says so, and
+// otherwise the plain fact that the process running it exited. A retire line
+// counts only when it is recent and newer than the session's last rescue,
+// lastResume: an older one explained an exit that was already dealt with.
+func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
+	if s.deps.DaemonLog == "" {
+		return "host process exited"
+	}
+	now := s.deps.Now()
+	from := now.Add(-retireWindow)
+	if lastResume.After(from) {
+		from = lastResume
+	}
+	for _, sh := range []string{strings.ToLower(short), strings.ToLower(shortOf(id))} {
+		if idle, ok := claude.Retired(s.deps.DaemonLog, sh, from, now); ok {
+			return "Claude Code stopped it after " + idleWords(idle) + " idle"
+		}
+	}
+	return "host process exited"
+}
+
+// idleWords says a duration the way a person would: whole hours as hours,
+// otherwise whole minutes, and anything shorter as under a minute.
+func idleWords(d time.Duration) string {
+	plural := func(n int64, unit string) string {
+		if n == 1 {
+			return "1 " + unit
+		}
+		return fmt.Sprintf("%d %ss", n, unit)
+	}
+	if d >= time.Hour && d%time.Hour == 0 {
+		return plural(int64(d/time.Hour), "hour")
+	}
+	if d >= time.Minute {
+		return plural(int64(d/time.Minute), "minute")
+	}
+	return "under a minute"
 }
