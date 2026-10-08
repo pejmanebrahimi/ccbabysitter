@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+// binCCB is the program where the install script puts it on macOS and
+// Linux, written the way this system writes paths.
+var binCCB = filepath.FromSlash("/home/dev/.local/bin/ccbabysitter")
+
 // fakeUninstall records the steps an uninstall takes, in order.
 type fakeUninstall struct {
 	steps    []string
@@ -57,7 +61,7 @@ func runFlow(t *testing.T, f *fakeUninstall, d uninstallSteps, args []string, an
 // did, and asks nothing.
 func TestUninstallKeepFiles(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter"}}
-	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", false), []string{"--keep-files"}, "")
+	rc, out := runFlow(t, f, f.deps(binCCB, false), []string{"--keep-files"}, "")
 	if rc != 0 || strings.Join(f.steps, "|") != "start" {
 		t.Fatalf("rc %d, steps %v", rc, f.steps)
 	}
@@ -70,11 +74,11 @@ func TestUninstallKeepFiles(t *testing.T) {
 // changes nothing.
 func TestUninstallAsksFirst(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter"}}
-	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", true), nil, "n\n")
+	rc, out := runFlow(t, f, f.deps(binCCB, true), nil, "n\n")
 	if rc != 0 || len(f.steps) != 0 {
 		t.Fatalf("rc %d, steps %v", rc, f.steps)
 	}
-	for _, want := range []string{"/home/dev/.local/state/ccbabysitter", "/home/dev/.local/bin/ccbabysitter", "Continue? [y/N]", "Nothing changed."} {
+	for _, want := range []string{"/home/dev/.local/state/ccbabysitter", binCCB, "Continue? [y/N]", "Nothing changed."} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output has no %q:\n%s", want, out)
 		}
@@ -85,7 +89,7 @@ func TestUninstallAsksFirst(t *testing.T) {
 // it would remove, changes nothing and exits with 2.
 func TestUninstallWithoutATerminalNeedsYes(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter"}}
-	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", false), nil, "y\n")
+	rc, out := runFlow(t, f, f.deps(binCCB, false), nil, "y\n")
 	if rc != 2 || len(f.steps) != 0 || !strings.Contains(out, "there is no terminal here to ask in") || !strings.Contains(out, "ccbabysitter uninstall --yes") {
 		t.Fatalf("rc %d, steps %v, output %q", rc, f.steps, out)
 	}
@@ -96,8 +100,8 @@ func TestUninstallWithoutATerminalNeedsYes(t *testing.T) {
 // shared folder only its own file goes, and the folder stays on PATH.
 func TestUninstallRemovesEverythingInOrder(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter", "rustup", "uv"}}
-	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", true), nil, "y\n")
-	want := "start|quit|state /home/dev/.local/state/ccbabysitter|files /home/dev/.local/bin/ccbabysitter"
+	rc, out := runFlow(t, f, f.deps(binCCB, true), nil, "y\n")
+	want := "start|quit|state /home/dev/.local/state/ccbabysitter|files " + binCCB
 	if rc != 0 || strings.Join(f.steps, "|") != want {
 		t.Fatalf("rc %d, steps %v, want %s", rc, f.steps, want)
 	}
@@ -105,7 +109,7 @@ func TestUninstallRemovesEverythingInOrder(t *testing.T) {
 		t.Fatalf("output %q", out)
 	}
 	f = &fakeUninstall{entries: []string{"ccbabysitter"}}
-	rc, _ = runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", false), []string{"--yes"}, "")
+	rc, _ = runFlow(t, f, f.deps(binCCB, false), []string{"--yes"}, "")
 	if rc != 0 || len(f.steps) != 4 {
 		t.Fatalf("--yes asks nothing: rc %d, steps %v", rc, f.steps)
 	}
@@ -129,7 +133,7 @@ func TestUninstallRemovesItsOwnFolderAndPath(t *testing.T) {
 // so nothing more is deleted and uninstall says why.
 func TestUninstallStopsWhileStillRunning(t *testing.T) {
 	f := &fakeUninstall{held: true, entries: []string{"ccbabysitter"}}
-	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", false), []string{"--yes"}, "")
+	rc, out := runFlow(t, f, f.deps(binCCB, false), []string{"--yes"}, "")
 	if rc != 1 || strings.Join(f.steps, "|") != "start|quit" || !strings.Contains(out, "still running") {
 		t.Fatalf("rc %d, steps %v, output %q", rc, f.steps, out)
 	}
@@ -139,7 +143,7 @@ func TestUninstallStopsWhileStillRunning(t *testing.T) {
 // goes.
 func TestUninstallGoesOnWhenTheStateFolderStays(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter"}, stateErr: errors.New("busy")}
-	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", false), []string{"--yes"}, "")
+	rc, out := runFlow(t, f, f.deps(binCCB, false), []string{"--yes"}, "")
 	if rc != 1 || len(f.steps) != 4 || !strings.Contains(out, "busy") {
 		t.Fatalf("rc %d, steps %v, output %q", rc, f.steps, out)
 	}
@@ -187,11 +191,11 @@ func TestPlanRemoval(t *testing.T) {
 		files     []string
 		whole     bool
 	}{
-		{"shared folder", "/home/dev/.local/bin/ccbabysitter", "", []string{"ccbabysitter", "uv"}, []string{"/home/dev/.local/bin/ccbabysitter"}, false},
-		{"alone, no own folder here", "/home/dev/.local/bin/ccbabysitter", "", []string{"ccbabysitter"}, []string{"/home/dev/.local/bin/ccbabysitter"}, false},
-		{"leftovers of an install cut short", "/home/dev/.local/bin/ccbabysitter", "",
+		{"shared folder", binCCB, "", []string{"ccbabysitter", "uv"}, []string{binCCB}, false},
+		{"alone, no own folder here", binCCB, "", []string{"ccbabysitter"}, []string{binCCB}, false},
+		{"leftovers of an install cut short", binCCB, "",
 			[]string{"ccbabysitter", ".ccbabysitter.Ab12Cd", ".ccbabysitter-notes", ".ccbabysitterrc"},
-			[]string{"/home/dev/.local/bin/ccbabysitter", "/home/dev/.local/bin/.ccbabysitter.Ab12Cd"}, false},
+			[]string{binCCB, filepath.Join(filepath.Dir(binCCB), ".ccbabysitter.Ab12Cd")}, false},
 		{"own folder", filepath.Join(win, "ccbabysitter.exe"), win,
 			[]string{"ccbabysitter.exe", "ccbabysitter-background.exe", "ccbabysitter.exe.bak", ".ccbabysitter-1f2e.part"},
 			[]string{filepath.Join(win, "ccbabysitter.exe"), filepath.Join(win, "ccbabysitter-background.exe"), filepath.Join(win, "ccbabysitter.exe.bak"), filepath.Join(win, ".ccbabysitter-1f2e.part")}, true},
@@ -216,7 +220,7 @@ func TestPlanRemoval(t *testing.T) {
 // run again.
 func TestUninstallStopsWhenStartAtLoginStays(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter"}, startRC: 1}
-	rc, out := runFlow(t, f, f.deps("/home/dev/.local/bin/ccbabysitter", false), []string{"--yes"}, "")
+	rc, out := runFlow(t, f, f.deps(binCCB, false), []string{"--yes"}, "")
 	if rc != 1 || strings.Join(f.steps, "|") != "start" || !strings.Contains(out, "run ccbabysitter uninstall again") {
 		t.Fatalf("rc %d, steps %v, output %q", rc, f.steps, out)
 	}
@@ -241,9 +245,9 @@ func TestUninstallNeverDeletesAFolderItCannotList(t *testing.T) {
 func TestUninstallDeletesTheLinkNotItsTarget(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter", "go.mod"}}
 	d := f.deps("/home/dev/src/ccbabysitter/bin/ccbabysitter", false)
-	d.link = "/home/dev/.local/bin/ccbabysitter"
+	d.link = binCCB
 	rc, out := runFlow(t, f, d, []string{"--yes"}, "")
-	if rc != 0 || !strings.HasSuffix(strings.Join(f.steps, "|"), "files /home/dev/.local/bin/ccbabysitter") || !strings.Contains(out, "which stays") {
+	if rc != 0 || !strings.HasSuffix(strings.Join(f.steps, "|"), "files "+binCCB) || !strings.Contains(out, "which stays") {
 		t.Fatalf("rc %d, steps %v, output %q", rc, f.steps, out)
 	}
 }
@@ -282,7 +286,7 @@ func TestFindLink(t *testing.T) {
 // folder, is named at the end, for the person to delete if they want.
 func TestUninstallNamesAnotherCopyOnPath(t *testing.T) {
 	f := &fakeUninstall{entries: []string{"ccbabysitter"}}
-	d := f.deps("/home/dev/.local/bin/ccbabysitter", false)
+	d := f.deps(binCCB, false)
 	d.otherCopy = "/home/dev/go/bin/ccbabysitter"
 	rc, out := runFlow(t, f, d, []string{"--yes"}, "")
 	if rc != 0 || !strings.Contains(out, "Another ccbabysitter is still on your PATH, at /home/dev/go/bin/ccbabysitter.") {
