@@ -41,6 +41,13 @@ func (s *Supervisor) babysit(_ context.Context, id string, startAtLogin bool, vi
 	s.st.Watches = append(s.st.Watches, newWatch(sn, s.deps.Now()))
 	s.seen[id] = true
 	s.persist()
+	s.lastHost[id] = sn.Host
+	if sn.Host == claude.HostDesktop {
+		// The version is read now, so an update that closes the session
+		// before the next look can still be told from a closed app.
+		s.desktopVersionAt = time.Time{}
+		s.noteDesktopVersion()
+	}
 
 	msg := "Babysitting " + label + " in " + hostLabel(sn.Host) + ". " + remoteControlSentence(sn)
 	if warning := s.fallbackWarning(sn.Cwd, sn.Host); warning != "" {

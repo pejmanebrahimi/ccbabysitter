@@ -341,7 +341,7 @@ func (d *DemoEngine) tick() {
 			it.stats.Turns++
 		}
 	}
-	type said struct{ label, short string }
+	type said struct{ label, short, reason string }
 	var started []said
 	if d.elapsed == demoAppClosesAfter {
 		if it, ok := d.items[demoVSCodeID]; ok && it.watched && it.running && it.host == claude.HostVSCode {
@@ -367,13 +367,13 @@ func (d *DemoEngine) tick() {
 				it.backgroundSince = time.Now()
 			}
 		}
-		started = append(started, said{demoLabel(it), it.shortID})
+		started = append(started, said{demoLabel(it), it.shortID, demoExitReason(it.originHost)})
 	}
 	notify := d.notify
 	d.mu.Unlock()
 
 	for _, s := range started {
-		d.log.Auto(s.label, "host process exited", "resumed as background "+s.short+". Remote Control is on.")
+		d.log.Auto(s.label, s.reason, "resumed as background "+s.short+". Remote Control is on.")
 	}
 	if notify != nil {
 		notify()
@@ -757,4 +757,18 @@ func demoShortID(id string) string {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(id))
 	return fmt.Sprintf("%08x", h.Sum32())
+}
+
+// demoExitReason is the reason the demo gives for a scripted rescue, in the
+// words the real engine uses for a session that went down in that app.
+func demoExitReason(host claude.Host) string {
+	switch host {
+	case claude.HostDesktop:
+		return "Claude Desktop restarted for an update from 2.7032.0 to 2.7033.0"
+	case claude.HostVSCode:
+		return "VS Code closed, or the session ended in it"
+	case claude.HostTerminal:
+		return "its terminal closed, or the session was quit"
+	}
+	return "the process running it exited"
 }

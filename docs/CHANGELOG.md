@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Changed: Activity says why a babysat session went down, when CC Babysitter can tell, instead of "host process exited": Claude Desktop closed, Claude Desktop restarted for an update with both versions, the session ended while Claude Desktop kept running, the computer restarted, VS Code or the session's terminal closed, or the background copy ended. The Claude Desktop reasons need macOS or Windows. Sessions taken down together get one line for all of them as the first is brought back. Where nothing tells, the reason is "the process running it exited" (#68).
+
 ## 0.6.1 (2026-10-08)
 
 - Changed: when Claude Code's daemon stops a background session that sat idle and CC Babysitter brings it back, Activity now gives the reason as "Claude Code stopped it after 8 hours idle" instead of "host process exited", which read like a crash (#49).

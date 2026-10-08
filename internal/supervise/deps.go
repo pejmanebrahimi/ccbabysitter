@@ -32,6 +32,19 @@ type Deps struct {
 	// check, so only the real program, which sets it, ever reads ~/.claude.
 	JobsDir string
 
+	// Apps reports the desktop app's state right now: whether this system
+	// can tell its process is running, whether it is, and the version
+	// installed. It is asked the moment a babysat session goes missing, to
+	// tell an update, a closed app and a session that ended on its own
+	// apart, so it must be quick. It may be nil.
+	Apps func() AppsNow
+
+	// BootTime reports when the computer booted, in seconds since the Unix
+	// epoch, or 0 when unknown. It is saved at start, and another one saved
+	// by the run before means a babysat session missing at the first look
+	// went down with the computer. It may be nil.
+	BootTime func() uint64
+
 	// DaemonLog is the CLI daemon's log, read to tell when the daemon itself
 	// stopped an idle background session. Empty skips that, so only the real
 	// program, which sets it, ever reads ~/.claude.

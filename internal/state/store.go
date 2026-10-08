@@ -100,6 +100,10 @@ type State struct {
 	Version  string   `json:"version"`
 	Settings Settings `json:"settings"`
 	Watches  []Watch  `json:"watches"`
+	// BootTime is when the computer had booted, in seconds since the Unix
+	// epoch, as CC Babysitter last started. Another one at the next start
+	// means the computer restarted in between. Zero when not known.
+	BootTime uint64 `json:"bootTime,omitempty"`
 }
 
 // Find returns the watch with the given session id, or nil.

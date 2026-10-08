@@ -433,6 +433,12 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 		envAt = cache.get
 
 		terminal := hosts.NewTerminalLauncher(stateDir)
+		// apps is the desktop app as it is right now, asked when babysat
+		// sessions go missing, to say why they went down.
+		apps := func() supervise.AppsNow {
+			known, running, version := hosts.DesktopNow(probes)
+			return supervise.AppsNow{DesktopKnown: known, DesktopRunning: running, DesktopVersion: version}
+		}
 		deps := supervise.Deps{
 			Store:  store,
 			Log:    log,
@@ -445,6 +451,8 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 			ProjectsDir:        claude.ProjectsDir(),
 			JobsDir:            claude.JobsDir(),
 			DaemonLog:          claude.DaemonLogPath(),
+			Apps:               apps,
+			BootTime:           bootTime,
 			URL:                pageURL,
 			SSHTarget:          target.get,
 			Autostart:          autostartInstaller,

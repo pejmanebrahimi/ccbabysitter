@@ -133,31 +133,7 @@ func detect(ctx context.Context, p Probes, runner claude.Runner, snapshotHasDesk
 		}
 	}
 
-	switch p.Platform {
-	case "windows":
-		if handler, ok := p.RegistryHandler("claude"); ok {
-			env.DesktopInstalled = true
-			env.DesktopVersion = "installed"
-			if m := reDesktopVersion.FindStringSubmatch(handler); m != nil {
-				env.DesktopVersion = m[1]
-			}
-		}
-	case "darwin":
-		if p.FileExists("/Applications/Claude.app") {
-			env.DesktopInstalled, env.DesktopVersion = true, "installed"
-			if b, err := p.ReadFile("/Applications/Claude.app/Contents/Info.plist"); err == nil {
-				if m := rePlistVersion.FindSubmatch(b); m != nil {
-					env.DesktopVersion = string(m[1])
-				}
-			}
-		}
-	default:
-		// Linux has no install location to stat: the desktop scheme
-		// handler registered with xdg-mime is the only signal.
-		if _, ok := p.RegistryHandler("claude"); ok {
-			env.DesktopInstalled, env.DesktopVersion = true, "installed"
-		}
-	}
+	env.DesktopInstalled, env.DesktopVersion = desktopInstall(p)
 	env.DesktopRunning = env.DesktopInstalled && (snapshotHasDesktop || p.desktopProcessRunning())
 
 	if _, err := p.LookPath("code"); err == nil || p.FileExists(vscodeDefaultDir(p)) {
@@ -167,6 +143,48 @@ func detect(ctx context.Context, p Probes, runner claude.Runner, snapshotHasDesk
 
 	env.Headless = isHeadless(p)
 	return env
+}
+
+// desktopInstall reports whether the desktop app is installed and its
+// version, "installed" when the version cannot be read.
+func desktopInstall(p Probes) (bool, string) {
+	switch p.Platform {
+	case "windows":
+		if handler, ok := p.RegistryHandler("claude"); ok {
+			if m := reDesktopVersion.FindStringSubmatch(handler); m != nil {
+				return true, m[1]
+			}
+			return true, "installed"
+		}
+	case "darwin":
+		if p.FileExists("/Applications/Claude.app") {
+			if b, err := p.ReadFile("/Applications/Claude.app/Contents/Info.plist"); err == nil {
+				if m := rePlistVersion.FindSubmatch(b); m != nil {
+					return true, string(m[1])
+				}
+			}
+			return true, "installed"
+		}
+	default:
+		// Linux has no install location to stat: the desktop scheme
+		// handler registered with xdg-mime is the only signal.
+		if _, ok := p.RegistryHandler("claude"); ok {
+			return true, "installed"
+		}
+	}
+	return false, ""
+}
+
+// DesktopNow reads the desktop app's part of the environment and nothing
+// else: whether this system can tell the app's own process is running
+// (macOS and Windows can, Linux cannot), whether it is, and the version
+// installed. It runs no CLI, so it is quick enough to ask the moment a
+// babysat session goes missing.
+func DesktopNow(p Probes) (known, running bool, version string) {
+	installed, version := desktopInstall(p)
+	known = installed && (p.Platform == "darwin" || p.Platform == "windows")
+	running = installed && p.desktopProcessRunning()
+	return known, running, version
 }
 
 // cliAnswerTimeout bounds each question env detection puts to the CLI.

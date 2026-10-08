@@ -37,6 +37,10 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 	}
 
 	s.countAbsence(snap)
+	if s.anyInDesktop() {
+		s.noteDesktopVersion()
+	}
+	s.followUpDesktop()
 
 	changed := s.settleLegacyPauses(snap)
 	// One pass resumes at most one absent session. Resuming is the slowest
@@ -115,21 +119,42 @@ func (s *Supervisor) countAbsence(snap observe.Snapshot) {
 		return
 	}
 	s.lastCounted = snap.At
-	live := map[string]bool{}
+	live := map[string]claude.Host{}
 	for _, sn := range snap.Sessions {
-		live[sn.ID] = true
+		live[sn.ID] = sn.Host
 	}
+	var gone, again []state.Watch
 	for _, w := range s.st.Watches {
-		if live[w.SessionID] {
+		if host, ok := live[w.SessionID]; ok {
 			s.absent[w.SessionID] = 0
+			s.lastHost[w.SessionID] = host
+			delete(s.causes, w.SessionID)
+			delete(s.announced, w.SessionID)
 			continue
+		}
+		switch s.absent[w.SessionID] {
+		case 0:
+			gone = append(gone, w)
+		case 1:
+			again = append(again, w)
 		}
 		s.absent[w.SessionID]++
 	}
 	for id := range s.absent {
 		if s.find(id) == nil {
 			delete(s.absent, id)
+			delete(s.lastHost, id)
+			delete(s.causes, id)
+			delete(s.announced, id)
 		}
+	}
+	first := !s.countedOnce
+	s.countedOnce = true
+	if len(gone) > 0 {
+		s.explainExits(gone, first)
+	}
+	if len(again) > 0 {
+		s.lookAgain(again)
 	}
 }
 
@@ -176,6 +201,8 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if claude.Listed(list, w.SessionID) {
 		return false, false
 	}
+	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
+	s.announce(w.SessionID, reason)
 	s.logInfo(label, "resuming: "+agentsSeen(list, w.SessionID, w.ShortID))
 	// A shutdown between the check above and the resume below would leave a
 	// resume that was cut short looking exactly like a session that refused
@@ -186,7 +213,6 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 		return false, false
 	}
 
-	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
 	short, res := s.deps.resumeBackground(ctx, w.SessionID, w.Name, w.Cwd, w.HasSavedOptions)
 	cur := s.find(w.SessionID)
 	if cur == nil {
@@ -229,6 +255,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 			msg += ". " + clause
 		}
 		s.logAuto(label, reason, msg)
+		s.toldCause(reason)
 		return true, true
 	}
 
@@ -242,6 +269,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	cur.Failures = append(withinWindow(cur.Failures, now), now)
 	s.backoffUntil[w.SessionID] = now.Add(s.deps.Backoff)
 	s.logAuto(label, reason, res.Message)
+	s.toldCause(reason)
 	if ShouldPauseForFailures(cur.Failures, now) {
 		cur.Paused = true
 		cur.PauseReason = "three failed resumes in five minutes: " + res.Message
@@ -809,18 +837,28 @@ func listOf(ids []string) string {
 	return strings.Join(ids, ", ")
 }
 
+// knownCause is the cause worked out for id the moment it went missing, or
+// the plain fact that its process exited.
+func (s *Supervisor) knownCause(id string) string {
+	if reason := s.causes[id]; reason != "" {
+		return reason
+	}
+	return unknownExit
+}
+
 // retireWindow is how long after the CLI daemon stopped an idle background
 // session its log line still explains the session's exit.
 const retireWindow = 5 * time.Minute
 
 // exitReason is the reason Activity gives for bringing a session back: the
-// CLI daemon stopping it after it sat idle, when its log says so, and
-// otherwise the plain fact that the process running it exited. A retire line
+// CLI daemon stopping it after it sat idle, when its log says so; else the
+// cause worked out the moment the session went missing; else the plain
+// fact that the process running it exited. A retire line
 // counts only when it is recent and newer than the session's last rescue,
 // lastResume: an older one explained an exit that was already dealt with.
 func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
 	if s.deps.DaemonLog == "" {
-		return "host process exited"
+		return s.knownCause(id)
 	}
 	now := s.deps.Now()
 	from := now.Add(-retireWindow)
@@ -832,7 +870,7 @@ func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
 			return "Claude Code stopped it after " + idleWords(idle) + " idle"
 		}
 	}
-	return "host process exited"
+	return s.knownCause(id)
 }
 
 // idleWords says a duration the way a person would: whole hours as hours,

@@ -122,6 +122,22 @@ type Supervisor struct {
 	seen         map[string]bool
 	stats        map[string]claude.Stats
 	statsAt      map[string]time.Time
+	// lastHost is the app each babysat session was last seen running in,
+	// causes the reason each went down, worked out the moment it went
+	// missing, announced the sessions one line already named the cause
+	// for, desktopVersion the desktop app's version last seen running and
+	// when it was read, and pending a desktop app that looked closed and
+	// may turn out to have restarted for an update. countedOnce says the
+	// first look since start has been taken, and rebooted that the
+	// computer restarted since the run before this one.
+	lastHost         map[string]claude.Host
+	causes           map[string]string
+	announced        map[string]bool
+	desktopVersion   string
+	desktopVersionAt time.Time
+	pending          *pendingDesktop
+	countedOnce      bool
+	rebooted         bool
 	// statsInFlight names the sessions the worker has been asked about and
 	// has not answered for yet, so the same read is never queued twice.
 	statsInFlight map[string]bool
@@ -187,6 +203,9 @@ func New(d Deps) *Supervisor {
 		statsReqs:     make(chan statsRequest, statsQueueDepth),
 		statsResults:  make(chan statsResult, statsQueueDepth),
 		absent:        map[string]int{},
+		lastHost:      map[string]claude.Host{},
+		causes:        map[string]string{},
+		announced:     map[string]bool{},
 		backoffUntil:  map[string]time.Time{},
 		seen:          map[string]bool{},
 		stats:         map[string]claude.Stats{},
@@ -213,6 +232,7 @@ func New(d Deps) *Supervisor {
 		s.logError("", report.Reason)
 	}
 	s.st = st
+	s.noteBoot()
 	if s.deps.Obs != nil {
 		s.snap = s.deps.Obs.Current()
 	}

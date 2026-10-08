@@ -125,7 +125,7 @@ func TestDemoWalksThroughTheStates(t *testing.T) {
 	}
 	found := false
 	for _, e := range d.log.Recent(20, "") {
-		if e.Automatic && e.Reason == "host process exited" && e.Session == "shop-api" {
+		if e.Automatic && e.Reason == "VS Code closed, or the session ended in it" && e.Session == "shop-api" {
 			found = true
 		}
 	}

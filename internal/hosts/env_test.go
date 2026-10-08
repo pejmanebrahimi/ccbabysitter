@@ -251,3 +251,35 @@ func TestDetectWithoutLoginNeverAsksForTheLogin(t *testing.T) {
 		t.Fatalf("only the version is asked: %v", calls)
 	}
 }
+
+// DesktopNow reads only the desktop app's state: whether its process can be
+// checked on this system, whether it runs, and the installed version. It
+// never runs the CLI.
+func TestDesktopNow(t *testing.T) {
+	mac := probes("darwin")
+	mac.FileExists = func(p string) bool { return p == "/Applications/Claude.app" }
+	mac.ReadFile = func(string) ([]byte, error) {
+		return []byte("<key>CFBundleShortVersionString</key>\n<string>2.26454.2</string>"), nil
+	}
+	mac.DesktopProcess = func() bool { return true }
+	if known, running, version := DesktopNow(mac); !known || !running || version != "2.26454.2" {
+		t.Fatalf("mac, running: %v %v %q", known, running, version)
+	}
+	mac.DesktopProcess = func() bool { return false }
+	if known, running, version := DesktopNow(mac); !known || running || version != "2.26454.2" {
+		t.Fatalf("mac, closed: %v %v %q", known, running, version)
+	}
+	win := probes("windows")
+	win.DesktopProcess = func() bool { return true }
+	if known, running, version := DesktopNow(win); !known || !running || version != "2.2553.1" {
+		t.Fatalf("windows: %v %v %q", known, running, version)
+	}
+	linux := probes("linux")
+	if known, _, version := DesktopNow(linux); known || version != "installed" {
+		t.Fatalf("linux cannot check the process: %v %q", known, version)
+	}
+	none := probes("darwin")
+	if known, running, version := DesktopNow(none); known || running || version != "" {
+		t.Fatalf("no desktop app: %v %v %q", known, running, version)
+	}
+}

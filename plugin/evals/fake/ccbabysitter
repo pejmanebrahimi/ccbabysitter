@@ -22,7 +22,7 @@ case "$1 $2" in
 "babysit 11111111"|"babysit 22222222") echo "Babysitting that session. Remote Control is on."; exit 0 ;;
 "list --json") echo '{"schema":1,"sessions":[{"id":"11111111-0000-4000-8000-000000000001","shortId":"11111111","name":"api-server","folder":"/home/dev/api","app":"background","running":true,"babysat":false},{"id":"22222222-0000-4000-8000-000000000002","shortId":"22222222","name":"api-docs","folder":"/home/dev/docs","app":"desktop","running":true,"babysat":false}]}'; exit 0 ;;
 "show self") if [ -n "${EVAL_CCB_BACKGROUND:-}" ]; then app=background; else app=desktop; fi; echo "{\"schema\":1,\"session\":{\"shortId\":\"33333333\",\"name\":\"This session\",\"app\":\"$app\",\"babysat\":true,\"state\":\"watching\"}}"; exit 0 ;;
-"activity "*|"activity ") echo "2026-10-06 03:12:04  This session  resumed as background 33333333. (automatic: host process exited)"; exit 0 ;;
+"activity "*|"activity ") echo "2026-10-06 03:12:04  This session  resumed as background 33333333. (automatic: the process running it exited)"; exit 0 ;;
 "open "*|"open ") echo "Opened the CC Babysitter page in your browser."; exit 0 ;;
 "stop "*) echo "Stopped. Open it again any time from Not running."; exit 0 ;;
 esac
