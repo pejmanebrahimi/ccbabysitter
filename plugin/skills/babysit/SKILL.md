@@ -15,7 +15,7 @@ CC Babysitter is a separate program on this computer. For a session it babysits,
 - Run each CC Babysitter command on its own and exactly as written here, with nothing added: no `;`, `&&`, `|`, `2>&1` or `echo`. The exit code shows in the result, and anything added makes the command ask for permission.
 - When you give the person a command to run, put it in its own code block in your reply, before any card. Never refer to a command you have not shown in that same reply, and never put it only on a card.
 - Ask the person with AskUserQuestion cards, never by asking them to type yes or no. Only where that tool is not available, ask the same question in plain words.
-- Ask on a card every time before `ccbabysitter stop`, `ccbabysitter settings NAME VALUE`, `ccbabysitter install`, `ccbabysitter uninstall` and `ccbabysitter quit`. Never run `ccbabysitter reset`: explain what it deletes and give the command for them to run.
+- Ask on a card every time before `ccbabysitter stop`, `ccbabysitter settings NAME VALUE`, `ccbabysitter install`, `ccbabysitter uninstall --keep-files` and `ccbabysitter quit`. Never run `ccbabysitter reset` or `ccbabysitter uninstall` without `--keep-files`: both delete the saved state, and uninstall the program too. Explain what they delete and give the command for them to run.
 - Never install or update anything yourself.
 - Answer in the person's language. Say what CC Babysitter answered in plain words, but keep its commands exactly as written.
 - In a place with no shell (claude.ai chat or Cowork), say that this works only in Claude Code, on the computer CC Babysitter runs on, and stop.
@@ -73,7 +73,8 @@ When the person asks for the page, panel or dashboard, run `ccbabysitter open` s
 - Stop babysitting: `ccbabysitter unbabysit <session>`. Try a stuck one again: `ccbabysitter retry <session>`.
 - Stop a background copy: a card first, then `ccbabysitter stop <session> --yes`.
 - Settings: `ccbabysitter settings` shows them; a card first, then `ccbabysitter settings NAME VALUE`.
-- Quit, install or uninstall: ask on a card first, then run the command yourself; the person runs nothing here. Quitting lasts only until the next login (or boot, on a server) when start at login is on; to stop it for good, offer `ccbabysitter uninstall`, which also removes start at login, and never a settings change after quitting: CC Babysitter must be running to change a setting.
+- Quit, install or stop for good: ask on a card first, then run the command yourself; the person runs nothing here. Quitting lasts only until the next login (or boot, on a server) when start at login is on; to stop it for good, offer `ccbabysitter uninstall --keep-files`, which quits it and removes start at login, and keeps the program and its settings. Never offer a settings change after quitting: CC Babysitter must be running to change a setting.
+- Remove CC Babysitter completely: explain that `ccbabysitter uninstall` deletes start at login, the state folder and the program, and that babysat sessions keep running, then give the command for them to run. It says what it deletes and asks them.
 - Reset: explain that it deletes CC Babysitter's state folder, then give `ccbabysitter reset` for them to run.
 - What a command does: `ccbabysitter help <command>`, and answer from what it says; it works even when CC Babysitter is not running and matches the installed version.
 - How it behaves (what happens on a restart, what babysitting does, what it never does): references/how-it-works.md.

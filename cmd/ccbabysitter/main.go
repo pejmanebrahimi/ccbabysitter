@@ -46,18 +46,17 @@ func run(args []string) int {
 		switch args[0] {
 		case "version":
 			return runVersion(args[1:])
-		case "install", "uninstall", "reset":
+		case "uninstall":
+			return runUninstall(args[1:])
+		case "install", "reset":
 			// These take no arguments: a stray word is a usage error, and
 			// nothing is installed, removed or deleted.
 			if len(args) > 1 {
 				printUsage(os.Stderr)
 				return 2
 			}
-			switch args[0] {
-			case "install":
+			if args[0] == "install" {
 				return runInstall(os.Stdout)
-			case "uninstall":
-				return runUninstall(os.Stdout)
 			}
 			return runReset()
 		default:

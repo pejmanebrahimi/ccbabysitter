@@ -15,11 +15,17 @@ func runInstall(out io.Writer) int {
 	return 2
 }
 
-// runUninstall mirrors runInstall: there is nothing to reverse here since
-// install never did anything on this platform.
-func runUninstall(out io.Writer) int {
-	fmt.Fprintln(out, "uninstall removes the systemd user service, which is for Linux. On macOS and Windows, switch off autostart in its settings instead.")
-	return 2
+// uninstallSystem is what uninstall does here: the program is one file,
+// nothing changes PATH, and there is no start at login to remove.
+func uninstallSystem() uninstallSteps {
+	return uninstallSteps{removeStart: removeStartAtLogin, removeFiles: removeFilesNow}
+}
+
+// removeStartAtLogin has nothing to do on this platform, where CC
+// Babysitter never starts at login.
+func removeStartAtLogin(out io.Writer) int {
+	fmt.Fprintln(out, "There is no start at login to remove on this system.")
+	return 0
 }
 
 // newServiceControl is nil here: a plain run on this platform always

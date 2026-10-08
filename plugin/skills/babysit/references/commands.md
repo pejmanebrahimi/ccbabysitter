@@ -12,7 +12,7 @@ Run it:
   ccbabysitter --demo          scripted sessions, touches nothing real
   ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
   ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
-  ccbabysitter uninstall       stop the background copy and remove its service or login entry
+  ccbabysitter uninstall       remove CC Babysitter from this computer, after asking
   ccbabysitter reset           delete the state folder after confirmation
   ccbabysitter version         print the name and version
 
@@ -563,17 +563,30 @@ Example:
 ## uninstall
 
 ```
-ccbabysitter uninstall
+ccbabysitter uninstall [--yes] [--keep-files]
 
-On Linux, stops and disables the service, however it was set up, removes its
-file, and turns lingering off when CC Babysitter turned it on. On macOS, stops
-the LaunchAgent and removes its plist. On Windows, quits CC Babysitter, removes
-its Run value and an earlier version's Startup folder script. The state folder
-stays, but a later plain ccbabysitter turns start at login on again, as on a
-machine that never had CC Babysitter.
+Removes CC Babysitter from this computer. It says what goes and asks Continue? [y/N]
+first, and anything but y changes nothing. Then it removes start at login, asks a
+copy still running to quit, and deletes the state folder and the program. Start at
+login is the systemd user service on Linux, where lingering is turned off only when
+CC Babysitter turned it on, the LaunchAgent on macOS and the Run value on Windows.
+On macOS and Linux the program is one file, and its folder stays. On Windows the
+install script's folder, %LOCALAPPDATA%\Programs\CCBabysitter, comes out of the
+user Path and is deleted a moment after the command ends. A program in a folder
+that holds other files is deleted on its own. Babysat sessions keep running where
+they are. It stops, with exit code 1, when a copy is still running after it was
+asked to quit.
 
-Example:
+Flags:
+  --yes          ask nothing. Without it, and without a terminal to ask in,
+                 nothing changes and the exit code is 2
+  --keep-files   only remove start at login, asking nothing. A later plain
+                 ccbabysitter turns it on again, as on a machine that never had
+                 CC Babysitter
+
+Examples:
   ccbabysitter uninstall
+  ccbabysitter uninstall --keep-files
 ```
 
 ## reset

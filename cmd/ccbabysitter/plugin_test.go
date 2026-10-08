@@ -254,7 +254,8 @@ func TestSkillFindsWindowsInstallFromGitBash(t *testing.T) {
 // without ever showing the install command, then said it was "above". The
 // skill has to say the command goes in the reply itself, before any card.
 // And quitting lasts only until the next login: stopping for good is
-// uninstall, never a settings change made after quitting.
+// uninstall --keep-files, never a settings change made after quitting, and
+// the skill never runs an uninstall that deletes the program and its state.
 func TestSkillShowsCommandsBeforeCards(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
 	if err != nil {
@@ -264,8 +265,9 @@ func TestSkillShowsCommandsBeforeCards(t *testing.T) {
 		"in its own code block in your reply, before any card",
 		"Never refer to a command you have not shown in that same reply",
 		"Quitting lasts only until the next login",
-		"to stop it for good, offer `ccbabysitter uninstall`",
-		"never a settings change after quitting",
+		"to stop it for good, offer `ccbabysitter uninstall --keep-files`",
+		"Never offer a settings change after quitting",
+		"Never run `ccbabysitter reset` or `ccbabysitter uninstall` without `--keep-files`",
 	} {
 		if !strings.Contains(string(data), want) {
 			t.Errorf("SKILL.md does not say %q", want)
