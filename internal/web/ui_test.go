@@ -723,8 +723,8 @@ func TestTheBackgroundCard(t *testing.T) {
 		`<span class="arrow"></span>`,
 		`<div class="wayon" data-el="way" hidden>`,
 		`<button class="b primary" data-act="back"></button>`,
-		`<button class="b primary icon" data-act="ways" aria-haspopup="menu" aria-expanded="false" aria-label="More ways on"><span class="caret"></span></button>`,
-		`<div class="ways" role="menu" aria-label="More ways on" data-el="ways" hidden>`,
+		`<button class="b primary icon" data-act="ways" aria-haspopup="menu" aria-expanded="false" aria-label="More ways to use this session"><span class="caret"></span></button>`,
+		`<div class="ways" role="menu" aria-label="More ways to use this session" data-el="ways" hidden>`,
 		`<a class="way" role="menuitem" tabindex="-1" data-el="remote" target="_blank" rel="noopener noreferrer" hidden>Open on claude.ai<span class="ext"></span><small>Keeps it running in the background</small></a>`,
 		`<button class="way" role="menuitem" tabindex="-1" data-act="open-terminal" data-el="terminal" hidden><span data-f="terminal">Open in Terminal</span><small>Keeps it running in the background</small></button>`,
 		`<button class="way" role="menuitem" tabindex="-1" data-act="copy-attach" data-el="copyattach" hidden>Copy attach command<small class="mono" data-f="attachcmd"></small></button>`,
@@ -757,7 +757,7 @@ func TestTheBackgroundCard(t *testing.T) {
 	}
 	css := readUI(t, "ui/app.css")
 	for _, want := range []string{".rescue {", ".journey .arrow {", ".acts.stack {", ".wayon {", ".ways {", ".ways .way {", ".caret {", ".split.alone .b:first-child {", ".b .ext {",
-		"z-index: 36;", ".split .b.icon { min-width: 44px; }"} {
+		"z-index: 36;", ".split .b { min-height: 44px; }", ".split .b.icon { min-width: 44px; }"} {
 		if !strings.Contains(css, want) {
 			t.Errorf("app.css does not style %s", want)
 		}
@@ -779,12 +779,17 @@ func TestTheWaysMenu(t *testing.T) {
 		`button.setAttribute("aria-expanded", "false");`,
 		`if (button && (event.key === "ArrowDown" || event.key === "ArrowUp")) {`,
 		`openWays(button, event.key === "ArrowUp");`,
-		`closeWays(event.key === "Escape");`,
+		`event.stopPropagation();
+      closeWays(true);`,
 		`return $$('[role="menuitem"]', menu).filter(function (item) { return !item.hidden; });`,
 		`document.addEventListener("click", closeWaysOnClick);`,
 		`if (state.openWays && button.closest(".ways")) { closeWays(true); }`,
 		`if (button.dataset.act === "ways") { return; }`,
 		`if (state.openWays) { event.preventDefault(); closeWays(true); return; }`,
+		`$("#watches").addEventListener("focusout", onWaysFocusOut);`,
+		`if (state.openWays && !document.contains(state.openWays)) { state.openWays = null; }`,
+		`menu.id = "ways-" + w.sessionId;`,
+		`arrow.setAttribute("aria-controls", menu.id);`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)
@@ -875,7 +880,8 @@ func TestTheBackgroundCardSaysWhyItWentDown(t *testing.T) {
 // nodes: opening puts focus on the first or the last item; the keys move it
 // and never scroll the page, even where focus has nowhere to go; Escape
 // closes the menu and gives focus back to its arrow, and so does a choice,
-// while a click elsewhere only closes it.
+// while a click elsewhere only closes it. Tab moves focus on as it always
+// does, and the menu closes once focus has left it.
 func TestTheWaysMenuMovesFocus(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Skip("node is not installed")
@@ -884,7 +890,7 @@ func TestTheWaysMenuMovesFocus(t *testing.T) {
 	var fns strings.Builder
 	fns.WriteString("var MENU_MOVES = " + between(t, app, "var MENU_MOVES = ", ";\n") + ";\n")
 	for _, name := range []string{"menuStep(key, index, count)", "menuItems(menu)", "openWays(button, last)", "closeWays(refocus)",
-		"closeWaysOnClick(event)", "onWaysKey(event)"} {
+		"closeWaysOnClick(event)", "onWaysKey(event)", "onWaysFocusOut(event)"} {
 		head := "function " + name + " {"
 		fns.WriteString(head + between(t, app, head, "\n  }") + "\n}\n")
 	}
@@ -939,6 +945,8 @@ items[1].hidden = items[2].hidden = true;
 openWays(arrow, false);
 e = key("ArrowDown", focused); out.push(at() + " " + e.prevented);
 e = key("Tab", focused); out.push(menu.hidden + " " + e.prevented);
+onWaysFocusOut({target: items[0], relatedTarget: arrow}); out.push(menu.hidden);
+onWaysFocusOut({target: items[0], relatedTarget: elsewhere}); out.push(menu.hidden + " " + at());
 console.log(out.join("\n"));
 `
 	got := runNode(t, fns.String()+script)
@@ -952,7 +960,9 @@ console.log(out.join("\n"));
 		"item2 true",
 		"arrow true",
 		"item0 true",
-		"true false",
+		"false false",
+		"false",
+		"true item0",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
