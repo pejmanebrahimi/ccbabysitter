@@ -82,7 +82,9 @@
   var queued = false;
   function mark() {
     queued = false;
-    var at = sectionAt(heads.map(function (h) { return h.getBoundingClientRect().top; }), 90);
+    // The line sits just below where a heading lands when its link is
+    // followed: the header's 56px and the heading's scroll margin in docs.css.
+    var at = sectionAt(heads.map(function (h) { return h.getBoundingClientRect().top; }), 80);
     // At the very end of the page the last section is the one being read,
     // even when its heading cannot scroll up to the line.
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) at = heads.length - 1;

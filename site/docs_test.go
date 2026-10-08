@@ -42,7 +42,7 @@ func docsURL(file string) string { return "/" + strings.TrimSuffix(file, "index.
 var (
 	sidebar     = regexp.MustCompile(`(?s)<nav class="side" id="docs-nav" aria-label="Docs">.*?</nav>`)
 	sideLink    = regexp.MustCompile(`<a href="(/docs/[^"]*)"( aria-current="page")?>([^<]*)</a>`)
-	sideGroup   = regexp.MustCompile(`(?s)<p class="group">([^<]*)</p>\s*<ul>(.*?)</ul>`)
+	sideGroup   = regexp.MustCompile(`(?s)<p class="group" id="(nav-[a-z-]+)">([^<]*)</p>\s*<ul aria-labelledby="(nav-[a-z-]+)">(.*?)</ul>`)
 	pager       = regexp.MustCompile(`(?s)<nav class="pager" aria-label="Previous and next">(.*?)</nav>`)
 	pagerLink   = regexp.MustCompile(`<a class="(prev|next)" href="([^"]*)">`)
 	editLink    = regexp.MustCompile(`<a class="edit" href="([^"]*)"`)
@@ -238,9 +238,17 @@ var docsGroups = map[string]string{
 // sidebar group for that kind.
 func TestDocsPagesSayWhatKindTheyAre(t *testing.T) {
 	group := map[string]string{}
-	for _, g := range sideGroup.FindAllStringSubmatch(sidebar.FindString(readSite(t, "docs/index.html")), -1) {
-		for _, l := range sideLink.FindAllStringSubmatch(g[2], -1) {
-			group[l[1]] = g[1]
+	nav := sidebar.FindString(readSite(t, "docs/index.html"))
+	groups := sideGroup.FindAllStringSubmatch(nav, -1)
+	if n := strings.Count(nav, `class="group"`); n != len(groups) {
+		t.Errorf("the sidebar has %d groups, %d of them a name with an id that labels its list", n, len(groups))
+	}
+	for _, g := range groups {
+		if g[1] != g[3] {
+			t.Errorf("the sidebar group %q is named by %s but its list is labelled by %s", g[2], g[1], g[3])
+		}
+		for _, l := range sideLink.FindAllStringSubmatch(g[4], -1) {
+			group[l[1]] = g[2]
 		}
 	}
 	for _, f := range docsPages(t) {
@@ -408,5 +416,45 @@ console.log(run(375)); console.log(run(900)); console.log(run(1280));`
 	}, "\n")
 	if got := strings.TrimSpace(string(out)); got != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// uiWords marks the words of the program's own page a docs page quotes:
+// button and section names in <strong>, messages in <em>.
+var uiWords = regexp.MustCompile(`<(strong|em)>([^<]+)</(?:strong|em)>`)
+
+// composedWords are quoted page words the page builds from pieces, with
+// the pieces as they are written in its code.
+var composedWords = map[string][]string{
+	"Watching in a terminal window": {`"Watching in "`, `"a terminal window"`},
+}
+
+// TestDocsQuoteThePageAsItIs checks that every button, section name and
+// message a docs page quotes from the program's page is still written in
+// that page's code, so a renamed button fails here instead of misleading
+// a reader.
+func TestDocsQuoteThePageAsItIs(t *testing.T) {
+	var code strings.Builder
+	for _, f := range []string{"index.html", "app.js"} {
+		b, err := os.ReadFile(filepath.Join("..", "internal", "web", "ui", f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		code.Write(b)
+	}
+	ui := code.String()
+	for _, f := range docsPages(t) {
+		for _, m := range uiWords.FindAllStringSubmatch(readSite(t, f), -1) {
+			words := strings.ReplaceAll(m[2], "&quot;", `"`)
+			pieces, composed := composedWords[words]
+			if !composed {
+				pieces = []string{words}
+			}
+			for _, p := range pieces {
+				if !strings.Contains(ui, p) {
+					t.Errorf("%s quotes %q, but the page's code has no %s", f, words, p)
+				}
+			}
+		}
 	}
 }

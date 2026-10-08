@@ -118,6 +118,7 @@ details[open] > .fold .caret { transform: rotate(180deg); }
   .docs { grid-template-columns: minmax(0, 1fr); grid-template-areas: "side" "toc" "main"; padding: 0 16px; }
   .sidebox, .toc { position: relative; top: auto; max-height: none; overflow: visible; padding: 14px 0 0; }
   .sidebox > summary { display: inline-flex; }
+  .fold { min-height: 44px; padding: 10px 14px; }
   .sidebox[open] > summary, .toc[open] > summary { margin-bottom: 8px; }
   .toc a { padding: 6px 0; }
   .side a { padding: 6px 0 6px 12px; }
