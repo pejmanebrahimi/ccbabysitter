@@ -10,4 +10,4 @@ The styles here are copied verbatim from their releases, each with its license, 
 | Readability | https://github.com/errata-ai/Readability | v0.1.1 | MIT |
 | ai-tells | https://github.com/tbhb/vale-ai-tells | v1.37.0 (the `styles/ai-tells` folder) | MIT |
 
-CCBabysitter is this project's own: sentences of at most 25 words and paragraphs of at most five, as GOV.UK keeps them, no filler transitions such as "moreover", and the names of things written one way. `config/vocabularies/CCBabysitter` lists the names of things, so the other styles take them as written.
+CCBabysitter is this project's own: sentences of at most 25 words and paragraphs of at most five, as GOV.UK keeps them, no filler transitions such as "moreover" or idioms such as "quick win", and the names of things written one way. `config/vocabularies/CCBabysitter` lists the names of things, so the other styles take them as written.

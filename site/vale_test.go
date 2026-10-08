@@ -13,7 +13,7 @@ func TestTheWritingPassesVale(t *testing.T) {
 	if err != nil {
 		t.Skip("vale is not installed")
 	}
-	cmd := exec.Command(vale, "--minAlertLevel", "error", "README.md", "site")
+	cmd := exec.Command(vale, "--no-global", "--minAlertLevel", "error", "README.md", "site")
 	cmd.Dir = ".."
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("vale README.md site: %v\n%s", err, out)

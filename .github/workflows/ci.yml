@@ -190,4 +190,4 @@ jobs:
 
       # Suggestions stay out of the log, so the findings that matter show.
       - name: Check the writing
-        run: vale --minAlertLevel warning README.md site
+        run: vale --no-global --minAlertLevel warning README.md site

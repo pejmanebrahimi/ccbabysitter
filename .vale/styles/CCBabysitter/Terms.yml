@@ -5,6 +5,10 @@ ignorecase: false
 swap:
   CCBabysitter: CC Babysitter
   CC babysitter: CC Babysitter
+  cc babysitter: CC Babysitter
+  claude code: Claude Code
+  vscode: VS Code
+  mac os: macOS
   Claude code: Claude Code
   Claude desktop: Claude Desktop
   Remote control: Remote Control
