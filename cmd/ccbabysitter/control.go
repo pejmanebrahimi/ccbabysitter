@@ -601,30 +601,41 @@ func (env controlEnv) printList(asJSON bool, v supervise.View) int {
 		env.writeJSON(listDoc{Schema: 1, Sessions: sessions})
 		return 0
 	}
-	if len(sessions) == 0 {
-		fmt.Fprintln(env.stdout, "No Claude Code sessions are running.")
-		return 0
-	}
 	// A Claude Desktop scheduled task's run is never babysat, so runs are
-	// listed apart, after the other sessions.
-	var others, runs []client.Session
+	// listed apart, after the other sessions, and the conversations that
+	// are not running come last, as on the page.
+	var others, runs, past []client.Session
 	for _, s := range sessions {
-		if s.ScheduledTask {
+		switch {
+		case s.NotRunning:
+			past = append(past, s)
+		case s.ScheduledTask:
 			runs = append(runs, s)
-		} else {
+		default:
 			others = append(others, s)
 		}
 	}
-	if len(others) > 0 {
-		env.printTable(others)
-	}
-	if len(runs) > 0 {
-		if len(others) > 0 {
+	printed := false
+	section := func(heading string, list []client.Session) {
+		if len(list) == 0 {
+			return
+		}
+		if printed {
 			fmt.Fprintln(env.stdout)
 		}
-		fmt.Fprintln(env.stdout, "Scheduled task runs, never babysat:")
-		env.printTable(runs)
+		if heading != "" {
+			fmt.Fprintln(env.stdout, heading)
+		}
+		env.printTable(list)
+		printed = true
 	}
+	if len(others)+len(runs) == 0 {
+		fmt.Fprintln(env.stdout, "No Claude Code sessions are running.")
+		printed = true
+	}
+	section("", others)
+	section("Scheduled task runs, never babysat:", runs)
+	section("Not running:", past)
 	return 0
 }
 

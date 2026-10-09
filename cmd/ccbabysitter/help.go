@@ -136,8 +136,10 @@ stdout is {"schema":1,"running":false} with --json. That is the answer, not an e
 		"ccbabysitter list",
 		`Lists every Claude Code session on this machine, babysat or not, running or not.
 Sessions that are not babysat come first, then the babysat ones. Runs of a Claude
-Desktop scheduled task come last, under their own heading, since they are never
-babysat: Desktop starts the task again on its schedule.`,
+Desktop scheduled task follow, under their own heading, since they are never
+babysat: Desktop starts the task again on its schedule. Last come the page's Not
+running conversations from the last two weeks, under their own heading. show gives
+the command that starts one again.`,
 		"",
 		`Text: a header, then one line per session, columns separated by two spaces:
   ID       short id, 8 characters
@@ -149,11 +151,13 @@ babysat: Desktop starts the task again on its schedule.`,
   UPTIME   as 45s, 12m, 3h 5m or 2d 4h, - when it is not running
   FOLDER   the folder it works in
 Scheduled task runs follow, after an empty line when other sessions come first,
-under the line "Scheduled task runs, never babysat:", with the same columns.
-With no sessions it says: No Claude Code sessions are running.
+under the line "Scheduled task runs, never babysat:", with the same columns, then the
+conversations that are not running, under the line "Not running:". With no sessions
+running it says: No Claude Code sessions are running.
 
 With --json: {"schema":1,"sessions":[...]}, an empty array when there are none.
-A scheduled task's run is in the same array, with scheduledTask true.
+A scheduled task's run is in the same array, with scheduledTask true, and so is a
+conversation that is not running, with notRunning true.
 Each session has the fields shown by ccbabysitter help show, and the same names.
 In JSON, state is watching, background, starting or stuck, and is left out when the
 session is not babysat. The text says in background for background.`,
@@ -178,8 +182,9 @@ With --json: {"schema":1,"session":{...}}. These fields are always there: id, sh
 name, folder, app, apps, running, remoteControl, status, babysat, tokens {input,
 output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask.
 Empty ones are "" or [], and app is "" when it runs nowhere. These are left out when
-not set: alsoCalled, pid, state, model, lastActivity as RFC 3339 in UTC, remoteUrl,
-attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added.
+not set: alsoCalled, pid, state, notRunning (true), model, lastActivity as RFC
+3339 in UTC, remoteUrl, attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New
+fields may be added.
 In JSON, state is watching, background, starting or stuck. The text says in
 background for background, so filter on background when using --json.`,
 		`  ccbabysitter show self

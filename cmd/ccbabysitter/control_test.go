@@ -920,3 +920,29 @@ func TestStatusSaysWhileItsLidIsOpen(t *testing.T) {
 		t.Fatalf("status with no lid that sleeps = %d\n%s", code, out)
 	}
 }
+
+// The page's Not running conversations are on the command line too: last
+// in list under their own heading, in show with the command that starts
+// them again, and in activity.
+func TestNotRunningSessionsAreListedAndShown(t *testing.T) {
+	env, e, _ := testEnv(t)
+	idE := "eeeeeeee-5555-4555-8555-eeeeeeeeeeee"
+	e.view.NotRunning = []supervise.PastView{{ID: idE, ShortID: "eeeeeeee", Name: "old", Cwd: "/srv/old",
+		ResumeCmd: "cd /srv/old && claude --resume " + idE}}
+	_, out, _ := runCmd(t, env, "list")
+	i := strings.Index(out, "Not running:\n")
+	if i < 0 || !strings.Contains(out[i:], "eeeeeeee") || strings.Contains(out[:i], "eeeeeeee") {
+		t.Fatalf("list:\n%s", out)
+	}
+	code, out, _ := runCmd(t, env, "show", "old")
+	if code != 0 || !strings.Contains(out, "Running: no\n") || !strings.Contains(out, "Resume: cd /srv/old && claude --resume "+idE+"\n") {
+		t.Fatalf("show old = %d\n%s", code, out)
+	}
+	_, out, _ = runCmd(t, env, "show", "old", "--json")
+	if doc := oneJSON(t, out); doc["session"].(map[string]any)["notRunning"] != true {
+		t.Fatalf("show --json: %v", doc)
+	}
+	if code, _, errOut := runCmd(t, env, "activity", "old"); code != 0 {
+		t.Fatalf("activity old = %d %s", code, errOut)
+	}
+}
