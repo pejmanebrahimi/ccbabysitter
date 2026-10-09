@@ -5,7 +5,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 ## Unreleased
 
 - New: on a machine with no display, New session on the page and `ccbabysitter start PATH` start a babysat background session with Remote Control in a project folder. When Claude Code does not trust the folder yet, the page asks first and `start` wants `--trust`. Then CC Babysitter answers Claude Code's own question whether to trust the folder, and Claude Code records the trust itself (#87).
-- Fixed: `ccbabysitter retry` on a babysat session that is not stuck is refused and says so, instead of answering "Babysitting it again" and writing to Activity while nothing happened (#95).
+- Fixed: `ccbabysitter retry` on a babysat session that is not stuck is refused and says so, with what the session is doing, instead of answering that it is babysitting it again and writing to Activity while nothing happened (#95).
 
 ## 0.8.0 (2026-10-09)
 

@@ -723,8 +723,9 @@ func (d *DemoEngine) ResumeWatch(id string, via supervise.Via) supervise.Result 
 	}
 	if !it.paused {
 		label := demoLabel(it)
+		msg := supervise.NotStuck(label, supervise.StateOf(it.watch(), it.live()))
 		d.mu.Unlock()
-		return supervise.Result{Message: supervise.NotStuck(label)}
+		return supervise.Result{Message: msg}
 	}
 	it.paused = false
 	it.pauseReason = ""

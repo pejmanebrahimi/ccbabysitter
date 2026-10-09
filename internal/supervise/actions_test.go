@@ -803,9 +803,8 @@ func TestBabysitWithStartAtLoginFromTheCommandLineMarksIt(t *testing.T) {
 	}
 }
 
-// Try again is for a stuck session. On one that is not stuck it does
-// nothing, so it says so and leaves Activity alone, rather than answering
-// as if it had done something.
+// Try again is for a stuck session. On one that is not stuck it is
+// refused with what the session is doing, and Activity is left alone.
 func TestRetryRefusesASessionThatIsNotStuck(t *testing.T) {
 	s, log, id := newSupervisorWithLiveTerminalSession(t, "api")
 	if r := s.Babysit(id, false, ViaCLI); !r.OK {
@@ -813,7 +812,7 @@ func TestRetryRefusesASessionThatIsNotStuck(t *testing.T) {
 	}
 	before := len(logMessages(log))
 	r := s.ResumeWatch(id, ViaCLI)
-	if r.OK || !strings.Contains(r.Message, "is not stuck") {
+	if r.OK || !strings.Contains(r.Message, "api is not stuck: it is being watched where it runs.") {
 		t.Fatalf("retry on a watched session: %+v", r)
 	}
 	if got := logMessages(log); len(got) != before {

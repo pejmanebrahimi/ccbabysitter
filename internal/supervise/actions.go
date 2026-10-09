@@ -61,9 +61,17 @@ func (s *Supervisor) babysit(_ context.Context, id string, startAtLogin bool, vi
 }
 
 // NotStuck is the answer to trying again on a babysat session that is not
-// stuck. It is exported because the demonstration engine says the same.
-func NotStuck(label string) string {
-	return label + " is not stuck, so there is nothing to try again."
+// stuck, in state st. It is exported because the demonstration engine
+// says the same.
+func NotStuck(label string, st WatchState) string {
+	doing := "it is being watched where it runs"
+	switch st {
+	case StateInBackground:
+		doing = "it is running in the background"
+	case StateStarting:
+		doing = "it is being started in the background"
+	}
+	return label + " is not stuck: " + doing + ". There is nothing to try again."
 }
 
 // Unbabysit stops watching a session. Nothing is closed or started: the
@@ -95,8 +103,7 @@ func (s *Supervisor) unbabysit(_ context.Context, id string, via Via) Result {
 }
 
 // ResumeWatch clears a pause and lets the watch act again. It is for a
-// stuck watch only: on any other there is nothing to try again, and it
-// says so rather than answer as if it had done something.
+// stuck watch only: any other is refused with what the session is doing.
 func (s *Supervisor) ResumeWatch(id string, via Via) Result {
 	return s.ask(func(context.Context) Result {
 		w := s.find(id)
@@ -104,7 +111,8 @@ func (s *Supervisor) ResumeWatch(id string, via Via) Result {
 			return Result{Message: "That session is not being babysat."}
 		}
 		if !w.Paused {
-			return Result{Message: NotStuck(sessionLabel(w.Name, w.SessionID))}
+			s.refreshSnap()
+			return Result{Message: NotStuck(sessionLabel(w.Name, w.SessionID), StateOf(*w, s.snap.All(id)))}
 		}
 		w.Paused = false
 		w.PauseReason = ""
