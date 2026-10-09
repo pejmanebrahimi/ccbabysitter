@@ -120,8 +120,12 @@ type Supervisor struct {
 	absent       map[string]int
 	backoffUntil map[string]time.Time
 	seen         map[string]bool
-	stats        map[string]claude.Stats
-	statsAt      map[string]time.Time
+	// started holds the short ids of the sessions Start started, with when,
+	// until the first look that finds each one babysits it, or startedWait
+	// has passed.
+	started map[string]time.Time
+	stats   map[string]claude.Stats
+	statsAt map[string]time.Time
 	// lastHost is the app each babysat session was last seen running in,
 	// causes the reason each went down, worked out the moment it went
 	// missing, announced the sessions one line already named the cause
@@ -212,6 +216,7 @@ func New(d Deps) *Supervisor {
 		announced:     map[string]bool{},
 		backoffUntil:  map[string]time.Time{},
 		seen:          map[string]bool{},
+		started:       map[string]time.Time{},
 		stats:         map[string]claude.Stats{},
 		statsAt:       map[string]time.Time{},
 		statsInFlight: map[string]bool{},

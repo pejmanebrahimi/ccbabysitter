@@ -21,14 +21,17 @@ func TestEveryCommandInTheUsageHasHelp(t *testing.T) {
 		if len(f) < 2 || f[0] != "ccbabysitter" || !(runCommands[f[1]] || isControlCommand(f[1])) {
 			continue
 		}
+		if f[1] == "start" && len(f) > 2 && f[2] == "CC" {
+			continue // the plain run line, whose description begins with "start"
+		}
 		seen++
 		var h bytes.Buffer
 		if !printCommandHelp(&h, f[1]) || !strings.Contains(h.String(), "ccbabysitter "+f[1]) {
 			t.Errorf("no help page for %s", f[1])
 		}
 	}
-	if seen != 16 {
-		t.Errorf("found %d commands in the usage, want 16", seen)
+	if seen != 17 {
+		t.Errorf("found %d commands in the usage, want 17", seen)
 	}
 }
 

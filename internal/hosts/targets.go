@@ -62,6 +62,17 @@ func BackgroundResumeCommandIn(cwd, id string) string {
 	return inFolder(cwd, "claude --bg --resume "+id)
 }
 
+// NewBackgroundArgs starts a new session in the background with Remote
+// Control, in the folder it is run from.
+func NewBackgroundArgs() []string { return []string{"--bg", "--remote-control"} }
+
+// NewBackgroundCommandIn renders the command line that starts a new
+// background session with Remote Control in cwd, for a person to run by
+// hand when this program could not.
+func NewBackgroundCommandIn(cwd string) string {
+	return inFolder(cwd, "claude --bg --remote-control")
+}
+
 // TrustCommandIn renders the command line that runs the claude CLI in cwd,
 // which asks once whether to trust that folder. The CLI starts a
 // background session only in a folder it trusts.

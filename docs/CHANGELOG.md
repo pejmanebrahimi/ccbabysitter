@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- New: `ccbabysitter start PATH` starts a babysat background session with Remote Control in a project folder, on a machine with no display. When Claude Code does not trust the folder yet, it says so, and with `--trust` it answers Claude Code's own question whether to trust the folder for you; Claude Code records the trust itself (#87).
+
 ## 0.8.0 (2026-10-09)
 
 - Changed: on the In background card of a session that came from a terminal, or from no app it can go back to, the main button attaches to the background copy, which keeps running with Remote Control on: Open in Terminal where CC Babysitter can open a terminal, and Copy attach command where it cannot, such as on a server. End background copy, which ends the copy and gives the command to resume the session in any terminal, moves to the card's menu (#79).
