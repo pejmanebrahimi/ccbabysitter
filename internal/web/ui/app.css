@@ -289,7 +289,9 @@ button, input, select { font-family: inherit; }
 .journey .hop .hicon { width: 14px; height: 14px; }
 .journey .arrow { width: 7px; height: 7px; border-top: 1.5px solid var(--faint); border-right: 1.5px solid var(--faint); transform: rotate(45deg); }
 .journey .since { color: var(--faint); white-space: nowrap; }
-.acts.stack { flex-direction: column; align-items: stretch; min-width: 196px; }
+/* The stack never wraps: its one line is then as wide as the column, so
+   the buttons fill it from the first layout on. */
+.acts.stack { flex-direction: column; flex-wrap: nowrap; align-items: stretch; min-width: 196px; }
 .acts.stack .b { justify-content: center; text-align: center; }
 a.b { display: inline-block; text-decoration: none; }
 .b.quiet { background: transparent; }
