@@ -214,7 +214,8 @@ Unbabysit button.`,
 	"retry": controlPage(
 		"ccbabysitter retry S",
 		`Tries again on a babysat session that is stuck, as the page's Try again button
-does. Use it when list or show says its state is stuck.`,
+does. Use it when list or show says its state is stuck. On a session that is not
+stuck there is nothing to try again: it says so and exits with 1.`,
 		"",
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
 
