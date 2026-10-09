@@ -2086,3 +2086,13 @@ console.log([startAnswerFits(3, 3, true), startAnswerFits(2, 3, true), startAnsw
 		t.Fatalf("startAnswerFits gave %q", got)
 	}
 }
+
+// Start's refusal while Claude Code is not logged in is the page's own note,
+// so the dialog and the note say the same thing.
+func TestTheLoginRefusalIsThePagesNote(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	note := strings.ReplaceAll(strings.ReplaceAll(supervise.StartNotLoggedIn, "`claude`", `<code class="mono">claude</code>`), "\n", "")
+	if !strings.Contains(index, `<p class="info warn" id="login-note" hidden>`+note+`</p>`) {
+		t.Fatalf("the page's note is not %q", supervise.StartNotLoggedIn)
+	}
+}
