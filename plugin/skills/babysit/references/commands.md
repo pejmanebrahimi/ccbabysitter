@@ -42,6 +42,8 @@ Examples:
   ccbabysitter babysit self
   ccbabysitter list --json
   ccbabysitter stop 3f2a9c1e --yes
+
+Docs, with a tutorial and an entry for every warning: https://ccbabysitter.dev/docs/
 ```
 
 ## status
