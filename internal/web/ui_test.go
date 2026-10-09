@@ -2008,3 +2008,54 @@ func TestScheduledTaskRunsAreListedApart(t *testing.T) {
 		}
 	}
 }
+
+// On a machine with no display the header has a New session button. Its
+// dialog takes a folder, and when Claude Code does not trust it yet asks
+// whether to trust it, in Claude Code's own terms, before trying again
+// with the person's yes.
+func TestTheNewSessionDialog(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	for _, want := range []string{
+		`<button class="b primary" id="open-start" aria-haspopup="dialog" hidden>New session</button>`,
+		`<dialog class="dlg" id="dlg-start" aria-labelledby="dlg-start-h">`,
+		`<h2 id="dlg-start-h">New session</h2>`,
+		`<label class="field" for="start-path"><span>Folder</span><input id="start-path" type="text" spellcheck="false" autocomplete="off" placeholder="/home/you/project"></label>`,
+		`<p class="line warn" data-f="starterr" role="alert" hidden></p>`,
+		`<p class="line" data-f="trustq" hidden></p>`,
+	} {
+		if !strings.Contains(index, want) {
+			t.Errorf("index.html does not contain %s", want)
+		}
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`show($("#open-start"), !!(view.env && view.env.headless));`,
+		`postJSON("/api/start", { path: path, trust: trust })`,
+		`onDialog($("#dlg-start"), doStart);`,
+		`$("#open-start").addEventListener("click", openStart);`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	fn := "function startStepFor(status, body) {" + between(t, app, "function startStepFor(status, body) {", "\n  }") + "\n}"
+	script := fn + `
+console.log([
+  startStepFor(200, { ok: true, message: "Started" }),
+  startStepFor(409, { ok: false, needsTrust: true, message: "Trust this folder?" }),
+  startStepFor(409, { ok: false, message: "There is no folder at /x." }),
+  startStepFor(400, null),
+  startStepFor(0, null)
+].join(" "));`
+	out, err := exec.Command(node, "-e", script).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(string(out)); got != "done trust path path path" {
+		t.Fatalf("startStepFor gave %q", got)
+	}
+}

@@ -294,7 +294,10 @@
     saveChain: Promise.resolve(),
     dialog: { id: null },
     /* openWays is the arrow button of the ways menu that is open, if any. */
-    openWays: null
+    openWays: null,
+    /* startStep is the New session dialog's step: the folder, or the trust
+       question. */
+    startStep: "path"
   };
 
   function watchById(id) {
@@ -502,6 +505,9 @@
 
     renderHeader(view);
     renderInfo(view);
+    /* A session can be started from here only on a machine with no
+       display; elsewhere people start them in their own apps. */
+    show($("#open-start"), !!(view.env && view.env.headless));
 
     var watches = (view.watches || []).filter(function (w) { return matches(w.name, w.cwd, w.shortId); });
     var listed = (view.sessions || []).filter(function (s) { return matches(s.name, s.cwd, s.shortId); });
@@ -1070,6 +1076,80 @@
 
   function closeDialog(dialog) {
     if (dialog.open) { dialog.close(); }
+  }
+
+  /* ---------- new session ---------- */
+
+  /* startStepFor is where the New session dialog goes after the engine
+     answered with status and body: done, the trust question when Claude
+     Code does not trust the folder yet, or back to the folder with the
+     reason. */
+  function startStepFor(status, body) {
+    if (body && body.ok) { return "done"; }
+    if (body && body.needsTrust) { return "trust"; }
+    return "path";
+  }
+
+  /* postJSON sends payload and resolves with the status and the body,
+     refusals included, so the caller can read why. */
+  function postJSON(url, payload) {
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload || {})
+    }).then(function (res) {
+      return res.json().catch(function () { return null; }).then(function (body) {
+        return { status: res.status, body: body };
+      });
+    }, function () {
+      return { status: 0, body: null };
+    });
+  }
+
+  function openStart() {
+    state.startStep = "path";
+    showStartStep("path", "");
+    openDialog($("#dlg-start"));
+    $("#start-path").focus();
+  }
+
+  /* showStartStep shows the folder field, with message as the reason it
+     was refused, or Claude Code's trust question in message. */
+  function showStartStep(step, message) {
+    var dialog = $("#dlg-start");
+    state.startStep = step;
+    show(el(dialog, "start-path"), step === "path");
+    show(f(dialog, "starterr"), step === "path" && !!message);
+    setText(f(dialog, "starterr"), step === "path" ? message : "");
+    show(f(dialog, "trustq"), step === "trust");
+    setText(f(dialog, "trustq"), step === "trust" ? message : "");
+    setText($('[data-act="go"]', dialog), step === "trust" ? "Trust and start" : "Start");
+  }
+
+  /* doStart asks the engine to start a session in the folder typed in,
+     trusting it first only on the trust step, where the person has read
+     the question and pressed Trust and start. */
+  function doStart() {
+    var dialog = $("#dlg-start");
+    var go = $('[data-act="go"]', dialog);
+    if (go.disabled) { return; }
+    var path = $("#start-path").value.trim();
+    var trust = state.startStep === "trust";
+    go.classList.add("busy");
+    go.disabled = true;
+    postJSON("/api/start", { path: path, trust: trust }).then(function (r) {
+      go.classList.remove("busy");
+      go.disabled = false;
+      var step = startStepFor(r.status, r.body);
+      var message = r.body && r.body.message ? r.body.message : (r.status ? statusMessage(r.status) : "CC Babysitter did not answer. It may have stopped running.");
+      if (step === "done") {
+        closeDialog(dialog);
+        toast(message, false);
+        return;
+      }
+      showStartStep(step, message);
+      if (step === "path") { $("#start-path").focus(); }
+    });
   }
 
   function openBabysit(id) {
@@ -1734,6 +1814,11 @@
     onSettingBox("#set-auto-babysit", "autoBabysit");
 
     onDialog($("#dlg-babysit"), doBabysit);
+    onDialog($("#dlg-start"), doStart);
+    $("#open-start").addEventListener("click", openStart);
+    $("#start-path").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") { event.preventDefault(); doStart(); }
+    });
     onDialog($("#dlg-stop"), doStop);
     onDialog($("#dlg-quit"), doQuit);
     $("#open-quit").addEventListener("click", function () { openDialog($("#dlg-quit")); });

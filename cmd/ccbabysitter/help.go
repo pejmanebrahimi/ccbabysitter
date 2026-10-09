@@ -279,7 +279,7 @@ With --json: {"schema":1,"settings":{"autostart":false,"autoBabysit":true,
 	"start": controlPage(
 		"ccbabysitter start PATH [--trust]",
 		`Starts a new background session with Remote Control in the folder PATH, on a
-machine with no display, and babysits it. A PATH that does not start with / is
+machine with no display, as the page's New session does, and babysits it. A PATH that does not start with / is
 taken from this folder, or from the home folder when it starts with ~/. The home
 folder itself, / and the folders above home are refused.
 Claude Code runs on its own only in a folder it trusts. When it does not trust

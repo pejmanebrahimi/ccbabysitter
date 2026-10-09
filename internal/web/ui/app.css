@@ -463,6 +463,12 @@ code.mono { background: var(--card-2); border-radius: 5px; padding: 1px 5px; fon
 .line { margin: 0 0 8px; font-size: 14px; line-height: 1.5; color: var(--text); }
 .line.warn { color: var(--warn); }
 .dlg .check { margin-top: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; margin: 12px 0 8px; font-size: 13px; color: var(--dim); }
+.field input {
+  width: 100%; min-width: 0; background: var(--card); color: var(--text); font: 14px/1.4 var(--mono);
+  border: 1px solid var(--border); border-radius: 9px; padding: 9px 11px;
+}
+.field input:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 .dlg .attach { margin: 0 0 8px; }
 .dlg .attach code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; }
 .field { display: grid; gap: 6px; margin: 14px 0 0; font-size: 13px; color: var(--dim); }
