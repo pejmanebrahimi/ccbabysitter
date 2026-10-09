@@ -7,6 +7,7 @@ on:
       - "site/**"
       - "scripts/install.sh"
       - "scripts/install.ps1"
+      - "scripts/stamp-site.sh"
       - "internal/buildinfo/**"
       - ".github/workflows/site.yml"
   workflow_dispatch:
@@ -71,6 +72,10 @@ jobs:
           if grep -rn -e '{{VERSION}}' _site; then echo "::error::placeholder left"; exit 1; fi
           cmp scripts/install.sh _site/install.sh
           cmp scripts/install.ps1 _site/install.ps1
+          # Each deploy's pages ask for their own stylesheets, scripts and
+          # screenshots, so a browser never pairs a new page with a file it
+          # kept from the last deploy.
+          sh scripts/stamp-site.sh _site "${GITHUB_SHA::12}"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
