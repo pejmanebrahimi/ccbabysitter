@@ -104,7 +104,7 @@ func (s *Supervisor) planStart(dir string, trust bool, plan *startPlan) Result {
 	switch {
 	case home != "" && dir == home:
 		return Result{Message: "Claude Code does not start background sessions in the home folder. Choose a project folder."}
-	case dir == "/" || (home != "" && strings.HasPrefix(home, dir+"/")):
+	case filepath.Dir(dir) == dir || (home != "" && holds(dir, home)):
 		return Result{Message: dir + " holds your home folder. Choose a project folder."}
 	}
 	plan.dir = dir
@@ -118,6 +118,12 @@ func (s *Supervisor) planStart(dir string, trust bool, plan *startPlan) Result {
 		plan.trust = true
 	}
 	return Result{OK: true}
+}
+
+// holds reports whether the folder dir has inside path, at any depth.
+func holds(dir, path string) bool {
+	rel, err := filepath.Rel(dir, path)
+	return err == nil && rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 // realPath is p by its real path, or p cleaned when that cannot be told,

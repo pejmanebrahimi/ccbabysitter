@@ -58,7 +58,7 @@ func (e *ctlEngine) ResumeWatch(id string, v supervise.Via) supervise.Result {
 func (e *ctlEngine) OpenTerminal(string) supervise.Result { return supervise.Result{} }
 func (e *ctlEngine) Start(dir string, trust bool, v supervise.Via) supervise.Result {
 	e.calls = append(e.calls, fmt.Sprintf("start %s trust=%v %s", dir, trust, v))
-	if dir == "/srv/new" && !trust {
+	if dir == fullPath("/srv/new") && !trust {
 		return supervise.Result{Message: supervise.TrustQuestion(dir), NeedsTrust: true}
 	}
 	return supervise.Result{OK: true, Message: "Started a new session in " + dir + ".", ShortID: "1a2b3c4d"}
@@ -220,7 +220,8 @@ func TestStopNeedsYes(t *testing.T) {
 // on.
 func TestStartCommand(t *testing.T) {
 	env, e, _ := testEnv(t)
-	if code, out, _ := runCmd(t, env, "start", "/srv/shop-api"); code != 0 || !strings.Contains(out, "Started a new session in /srv/shop-api.") {
+	shop, fresh := fullPath("/srv/shop-api"), fullPath("/srv/new")
+	if code, out, _ := runCmd(t, env, "start", "/srv/shop-api"); code != 0 || !strings.Contains(out, "Started a new session in "+shop+".") {
 		t.Fatalf("start = %d, %q", code, out)
 	}
 	code, _, errOut := runCmd(t, env, "start", "/srv/new")
@@ -230,7 +231,7 @@ func TestStartCommand(t *testing.T) {
 	if code, _, _ := runCmd(t, env, "start", "/srv/new", "--trust"); code != 0 {
 		t.Fatalf("start --trust = %d", code)
 	}
-	want := "start /srv/shop-api trust=false cli|start /srv/new trust=false cli|start /srv/new trust=true cli"
+	want := "start " + shop + " trust=false cli|start " + fresh + " trust=false cli|start " + fresh + " trust=true cli"
 	if got := strings.Join(e.calls, "|"); got != want {
 		t.Fatalf("calls %q, want %q", got, want)
 	}

@@ -275,7 +275,8 @@ func TestStartRefusesFoldersAboveHome(t *testing.T) {
 	}
 	sf.f.d.Home = home
 	sf.s = New(*sf.f.d)
-	for _, dir := range []string{"/", filepath.Join(base, "home"), base} {
+	root := filepath.VolumeName(base) + string(filepath.Separator)
+	for _, dir := range []string{root, filepath.Join(base, "home"), base} {
 		res := sf.s.Start(dir, true, ViaPage)
 		if res.OK || res.Message != dir+" holds your home folder. Choose a project folder." {
 			t.Errorf("%s: %+v", dir, res)
