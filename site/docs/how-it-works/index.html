@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How CC Babysitter works - CC Babysitter docs</title>
+<meta name="description" content="How CC Babysitter keeps a babysat session going, what it does and never does, and how it starts at login on each system.">
+<link rel="canonical" href="https://ccbabysitter.dev/docs/how-it-works/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/docs.css">
+<script src="/assets/theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="dtop">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">CC Babysitter</a>
+  <a class="crumb" href="/docs/">Docs</a>
+  <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
+    <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
+  </button>
+</header>
+<div class="docs">
+  <details class="sidebox" open>
+    <summary class="fold"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="9" height="1"/><rect x="0" y="4" width="9" height="1"/><rect x="0" y="7" width="9" height="1"/></svg>Menu</summary>
+    <nav class="side" id="docs-nav" aria-label="Docs">
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+      </ul>
+      <p class="group" id="nav-tutorials">Tutorials</p>
+      <ul aria-labelledby="nav-tutorials">
+        <li><a href="/docs/first-session/">Babysit your first session</a></li>
+      </ul>
+      <p class="group" id="nav-how-to">How-to guides</p>
+      <ul aria-labelledby="nav-how-to">
+        <li><a href="/docs/server/">Run it on a server</a></li>
+        <li><a href="/docs/start-at-login/">Start at login</a></li>
+        <li><a href="/docs/claude-code-plugin/">Use it from Claude Code</a></li>
+        <li><a href="/docs/uninstall/">Stop or remove it</a></li>
+      </ul>
+      <p class="group" id="nav-reference">Reference</p>
+      <ul aria-labelledby="nav-reference">
+        <li><a href="/docs/commands/">Commands</a></li>
+      </ul>
+      <p class="group" id="nav-explanation">Explanation</p>
+      <ul aria-labelledby="nav-explanation">
+        <li><a href="/docs/how-it-works/" aria-current="page">How it works</a></li>
+      </ul>
+    </nav>
+  </details>
+  <details class="toc" open>
+    <summary class="fold">On this page<svg class="caret" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/></svg></summary>
+    <nav class="toc-list" aria-label="On this page">
+      <ul>
+<!-- generated:toc -->
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#babysitting">What babysitting does</a></li>
+        <li><a href="#hard-rules">Hard rules</a></li>
+        <li><a href="#start-at-login">Start at login</a></li>
+        <li><a href="#requirements">Requirements</a></li><!-- /generated -->
+      </ul>
+    </nav>
+  </details>
+  <main class="doc" id="content">
+    <p class="kind">Explanation</p>
+    <h1>How CC Babysitter works</h1>
+    <p class="lede">What CC Babysitter does for a session you babysit, what it never does, and how it starts at login on each system. Why it exists is on the <a href="/">home page</a>.</p>
+
+<!-- The sections below are README.md's own, written here by
+     go test ./cmd/ccbabysitter -run TestDocsExplanation -update-reference. Edit them there. -->
+<!-- generated:explanation -->
+    <h2 id="how">How it works</h2>
+    <p>A babysat session stays in its own app, and CC Babysitter never moves a session from one app to another. Once a session is carried in the background you can keep using it through Remote Control, attach to it from a terminal with <code>claude attach</code>, as Open in Terminal on the page does, or stop the background copy and open the session again wherever you like. While the copy runs, Claude Desktop shows &#34;Claude Code crashed&#34; for a session that came from it, because only one copy of a session runs at a time. Back to Desktop on the page, or <code>ccbabysitter stop</code>, ends the copy, and Try again in Desktop then picks the session up where it left off.</p>
+    <p>On a server with no display the same page is the session manager. A plain <code>ccbabysitter</code> there sets it up as a service that survives a reboot, prints the command to connect from your laptop, and gives you the terminal back; <code>ccbabysitter install</code> does the same. Start a session with New session on the page, or <code>ccbabysitter start</code> and a project folder&#39;s path, or yourself with <code>claude --bg --remote-control</code> in that folder, and it is babysat as soon as it starts. A session you start yourself is babysat unless you switch that off in Settings; one <code>ccbabysitter start</code> starts always is. Attach to a babysat session from any SSH shell, unbabysit or stop it when you are done, and reach the page with the command CC Babysitter gave you.</p>
+
+    <h2 id="babysitting">What babysitting does</h2>
+    <ul>
+    <li>Keeps the computer awake while at least one babysat session is running or being started. Keep-awake stops idle sleep only: a laptop set to sleep when its lid closes still sleeps then. macOS has no setting to stop that, short of running with the lid closed on power with an external display, keyboard and mouse; Windows and Linux can be set to do nothing when the lid closes. Where closing the lid would put the computer to sleep, the Babysit dialog and <code>status</code> say it is kept awake while its lid is open. When the computer slept while sessions were babysat, Activity says so once it is awake, with the time they could not be reached, and on macOS whether the lid was closed.</li>
+    <li>Tells you how to switch Remote Control on when it is off. Nothing outside a session can switch it on.</li>
+    <li>If the session&#39;s app closes, starts the session again as a background session with Remote Control, under the same id, with <code>claude --bg --resume</code>. Activity and the In background card say why the session went down, when CC Babysitter can tell: for example, Claude Desktop restarted for an update, or the computer restarted.</li>
+    <li>Starts a babysat background session again when it froze. A session counts as frozen when it has been waiting on the model for 20 minutes while its transcript, its status, its processes and its CPU time all stayed the same. That happens when its connection drops in the middle of a turn, and Remote Control goes offline with it. A session running a tool, waiting out a usage limit or a retry, or waiting on a question is never taken for frozen. CC Babysitter stops the frozen copy with <code>claude stop</code>, which keeps the conversation, and starts the session again in the background, and Activity says why. The turn that froze is lost. After three freezes in two hours it stops trying, and the card shows the session as stuck until you press Try again, which stops the frozen copy if it still is one. When <code>claude stop</code> cannot stop it, Activity says how to stop it by hand. A frozen session in a terminal or an app is left as it is, since it belongs to that app; its card, <code>show</code> and <code>list</code> say it is not responding.</li>
+    <li>Lets you unbabysit while the session is still in its own app. Once the background copy carries it, you stop the copy instead with <code>claude stop</code>, which keeps the conversation.</li>
+    <li>Says before you babysit when a background copy could not start, with the command that fixes it: the Claude Code CLI must trust the folder, and inside a git repository it takes that trust only from the repository&#39;s own folder, though the desktop app also accepts a trusted folder above it, while a worktree takes it from any folder above; it never starts in your home folder.</li>
+    <li>Offers, in the same dialog, to start CC Babysitter at login so the promise survives a restart, when that is off. A plain <code>ccbabysitter</code> turns it on the first time it starts CC Babysitter in the background, also when you upgrade, as Start at login below says.</li>
+    <li>Stops babysitting a session that ended before anything was said in it, and says so in Activity: Claude saves a conversation only after the first message, so there is nothing to bring back.</li>
+    <li>Never babysits a run of a Claude Desktop scheduled task, since Desktop starts the task again on its schedule and a copy brought back could repeat its work. Runs are listed apart, in a folded Scheduled task runs section on the page and after the other sessions in <code>ccbabysitter list</code>. A run stays a run even if you carry on chatting in it.</li>
+    <li>Waits 90 seconds after it starts on a machine with a display before starting anything in the background, so apps that restore their own sessions at login, Claude Desktop in particular, go first.</li>
+    <li>Gives every background session a Copy button for <code>claude attach &lt;short&gt;</code>, and on a server a second one for the same command run over <code>ssh</code> from another machine. A background copy stopped from the page keeps both on its Not running row, until CC Babysitter restarts.</li>
+    </ul>
+
+    <h2 id="hard-rules">Hard rules</h2>
+    <ul>
+    <li><b>Opt-in only.</b> Nothing happens to a session that is not babysat. On a desktop, babysitting is always something you choose. On a server, a new background session is babysat as soon as it starts, unless &#34;Babysit every new background session&#34; is switched off in Settings.</li>
+    <li><b>Every automatic action is explained</b> in the Activity panel with its reason.</li>
+    <li><b>Stopping a background copy is confirmed first</b>, and nothing else the page does closes a session. The one copy CC Babysitter stops on its own is a frozen background copy, with <code>claude stop</code>, to start it again, and Activity says so. Try again on a session stuck after freezing stops its copy too, but only while it is still the same copy and still frozen.</li>
+    <li><b>Claude&#39;s files are read-only.</b> Sessions are controlled only through the <code>claude</code> CLI.</li>
+    <li><b>Claude Desktop and VS Code are never modified or opened.</b></li>
+    <li><b>Loopback only.</b> The page is served on <code>127.0.0.1</code>, requests that come from other web pages are refused, and every request must carry the page&#39;s key, which only your account can read.</li>
+    <li><b>User mode only.</b> No admin rights, ever. CC Babysitter adds one thing to your system, its own start-at-login entry in your user account: a systemd user unit on Linux, a LaunchAgent on macOS, a Run value on Windows. It is on by default, and you can turn it off with <code>ccbabysitter settings autostart off</code>, or on a desktop in Settings.</li>
+    <li><b>One folder of state</b> (<code>%LOCALAPPDATA%\CCBabysitter</code> on Windows, the XDG data directory elsewhere: <code>~/.local/share/ccbabysitter</code>, or <code>$XDG_DATA_HOME/ccbabysitter</code> when that is set).</li>
+    </ul>
+
+    <h2 id="start-at-login">Start at login</h2>
+    <p>On Linux, <code>ccbabysitter</code> runs CC Babysitter in the background through the systemd user manager, writing the unit <code>~/.config/systemd/user/ccbabysitter.service</code> the first time, and turns start at login on that first time, also when you upgrade from an earlier version. On a desktop the unit starts with your graphical session, after it, so CC Babysitter sees the desktop. On a server it starts at boot and keeps running after you log out. Turn it off with <code>ccbabysitter settings autostart off</code>, or on a desktop in Settings: CC Babysitter keeps running until you quit it or restart, and a later <code>ccbabysitter</code> leaves it off. Every run, and <code>ccbabysitter install</code>, writes the unit again when it no longer matches this binary, such as after you move the binary, and restarts a running copy when its unit changed or it is another version. A copy already running with the right unit and version is left running. <code>ccbabysitter install</code> always turns start at boot on.</p>
+    <p>On macOS, <code>ccbabysitter</code> runs CC Babysitter in the background as a user LaunchAgent, <code>com.ccbabysitter</code>, loaded with <code>launchctl</code> the way <code>brew services start</code> does it, and turns start at login on that first time, also when you upgrade. The LaunchAgent runs the service, which never opens a browser, so logging in does not open the page; it starts CC Babysitter again if it crashes, but not after <code>ccbabysitter quit</code>. While start at login is on its plist is <code>~/Library/LaunchAgents/com.ccbabysitter.plist</code>. macOS may show a &#34;Background Items Added&#34; notice the first time, and lists CC Babysitter under System Settings, General, Login Items. Switching it off there under Allow in the Background stops macOS from starting it at all, and <code>ccbabysitter</code> then says so; switch it back on there, or run <code>ccbabysitter --foreground</code>. Turning start at login off moves the plist into the state folder: CC Babysitter keeps running until you quit it or log out, and a plain <code>ccbabysitter</code> still starts it. A Mac reached only over ssh, with nobody logged in at its screen, has no session to load the LaunchAgent into, so there <code>ccbabysitter</code> runs in the terminal.</p>
+    <p>On Windows, <code>ccbabysitter</code> starts <code>ccbabysitter-background.exe</code>, the windowless copy installed beside it, which runs in the background with no console window; closing the terminal or the app that ran <code>ccbabysitter</code> does not stop it. Start at login, turned on the first time, is the value <code>CCBabysitter</code> under <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Run</code>, which starts the windowless copy at login, again with no window. It replaces the Startup folder script <code>CCBabysitter.cmd</code> that earlier versions wrote, which <code>ccbabysitter</code> removes. A copy installed with <code>go install</code> has no windowless program, so there <code>ccbabysitter</code> runs in the terminal.</p>
+    <p>Every login entry points at the program where it is at that moment, so keep the program where the install script put it, or somewhere else it will stay, such as <code>~/bin</code>; a copy in a temporary folder is refused. <code>ccbabysitter</code> writes the unit, the LaunchAgent or the Run value again when the program has moved.</p>
+
+    <h2 id="requirements">Requirements</h2>
+    <p>The <code>claude</code> CLI at run time, on PATH or where its installer puts it (<code>~/.local/bin</code> or <code>~/.claude/local</code>): CC Babysitter reads Claude Code&#39;s own files and drives sessions through the CLI. It needs Claude Code 2.1.275 or later. With an older CLI it still runs, but prints a warning when it starts, since older versions may word their output differently and some things may not work as described. Building needs only Go 1.27 or later.</p><!-- /generated -->
+
+    <nav class="pager" aria-label="Previous and next">
+      <a class="prev" href="/docs/commands/"><small>Previous</small>Commands</a>
+    </nav>
+    <p class="edit-line"><a class="edit" href="https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/docs/how-it-works/index.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub<span class="sr"> (opens in a new tab)</span></a></p>
+  </main>
+</div>
+<footer class="foot">{{VERSION}} &middot; Preview &middot; <a href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT<span class="sr"> (opens in a new tab)</span></a> &middot; Not affiliated with Anthropic</footer>
+<script src="/assets/site.js"></script>
+<script src="/assets/docs.js"></script>
+</body>
+</html>
