@@ -87,14 +87,22 @@
     <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>To see the ssh command again, run <code>ccbabysitter open</code> on the server, and for the address, <code>ccbabysitter status</code>. On a cloud server, the printed command can contain the server's private address. Use the address you normally SSH to instead.</p></div>
 
     <h2 id="session">Start a session</h2>
-    <p>In a project folder on the server, start Claude Code in the background with Remote Control:</p>
+    <p>On the page, press <strong>New session</strong>, type the full path of a project folder on the server, and press <strong>Start</strong>. CC Babysitter starts Claude Code there in the background, with Remote Control, and babysits it. From the server's shell, the same is:</p>
+    <!-- vale off -->
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter start ~/project</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <!-- vale on -->
+    <p>Claude Code runs only in a folder it trusts. The first time you use a folder, the page shows Claude Code's question about it, and <strong>Trust and start</strong> answers Yes for you. The command says so instead and starts nothing; run it again with <code>--trust</code>. Claude Code records the trust itself. Your home folder can't be used, so choose a project folder.</p>
+    <p>You can also start a session yourself, in a project folder on the server:</p>
     <!-- vale off -->
     <button class="cmd" type="button" data-copy>
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>claude --bg --remote-control</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
     <!-- vale on -->
-    <p>CC Babysitter babysits it as soon as it starts. If you'd rather choose each time, switch off <strong>Babysit every new background session</strong> in Settings, or run <code>ccbabysitter settings auto-babysit off</code>. Then press <strong>Babysit</strong> on the sessions you want kept alive, including any that were already running when you installed CC Babysitter.</p>
+    <p>CC Babysitter babysits it as soon as it starts. If you'd rather choose each time for sessions you start this way, switch off <strong>Babysit every new background session</strong> in Settings, or run <code>ccbabysitter settings auto-babysit off</code>. Then press <strong>Babysit</strong> on the sessions you want kept alive, including any that were already running when you installed CC Babysitter.</p>
 
     <h2 id="away">Leave and come back</h2>
     <p>Close SSH. The session keeps running, and if the server restarts, CC Babysitter starts it again in the background.</p>

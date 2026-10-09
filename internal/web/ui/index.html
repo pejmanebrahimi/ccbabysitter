@@ -21,6 +21,7 @@
   <span class="pill reconnecting" id="reconnect" hidden><span id="reconnect-text">Reconnecting</span><span class="pdots" id="reconnect-dots"></span></span>
   <div class="grow"></div>
   <input class="search" id="search" type="search" placeholder="Search" aria-label="Search by name, folder or id" spellcheck="false" autocomplete="off">
+  <button class="b primary" id="open-start" aria-haspopup="dialog" hidden>New session</button>
   <button class="b" id="toggle-activity" aria-pressed="false" aria-controls="activity">Activity</button>
   <button class="b" id="open-settings" aria-controls="drawer-settings" aria-expanded="false">Settings</button>
   <button class="b" id="open-about" aria-controls="drawer-about" aria-expanded="false">About</button>
@@ -228,6 +229,22 @@
   <menu class="dlg-acts">
     <button class="b" data-act="cancel">Cancel</button>
     <button class="b primary" data-act="go"></button>
+  </menu>
+</dialog>
+
+<dialog class="dlg" id="dlg-start" aria-labelledby="dlg-start-h">
+  <div class="dlg-body">
+    <h2 id="dlg-start-h">New session</h2>
+    <div data-el="start-path">
+      <p class="line">Starts Claude Code in the background, with Remote Control, in a folder on this machine, and babysits it. Give the folder's full path.</p>
+      <label class="field" for="start-path"><span>Folder</span><input id="start-path" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="start-err" placeholder="/home/you/project"></label>
+      <p class="line warn" data-f="starterr" id="start-err" role="alert" hidden></p>
+    </div>
+    <p class="line" data-f="trustq" id="start-trustq" role="alert" tabindex="-1" hidden></p>
+  </div>
+  <menu class="dlg-acts">
+    <button class="b" data-act="cancel">Cancel</button>
+    <button class="b primary" data-act="go" aria-describedby="start-trustq">Start</button>
   </menu>
 </dialog>
 

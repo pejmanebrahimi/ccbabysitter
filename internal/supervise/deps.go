@@ -112,6 +112,12 @@ type Deps struct {
 	// button can name it. It may be nil where there is no way to open one.
 	TerminalName func() string
 
+	// AcceptTrust answers the claude CLI's question whether to trust dir
+	// with Yes, as claude.AcceptTrust does, after the person has said yes
+	// to it. The CLI records the trust itself. It may be nil where there is
+	// no way to answer it.
+	AcceptTrust func(ctx context.Context, dir string) error
+
 	// URL is the address this program is serving its page on, passed
 	// straight through to the view for display. The layer that owns the
 	// listener fills it in, since only that layer knows the port.
@@ -202,6 +208,10 @@ type Result struct {
 	// promise reads it to tell "there was nothing to do" apart from "this
 	// did not work", which are recorded quite differently.
 	AlreadyLiveIn claude.Host `json:"alreadyLiveIn,omitempty"`
+	// NeedsTrust is set when a new session was not started because the
+	// claude CLI does not trust its folder yet, and the person has not said
+	// to trust it. Asking again with trust set answers the CLI's question.
+	NeedsTrust bool `json:"needsTrust,omitempty"`
 }
 
 // defaults fills in every duration and the clock that was left at its zero

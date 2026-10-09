@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -95,6 +96,9 @@ type (
 		OK      bool   `json:"ok"`
 		Message string `json:"message"`
 		Session string `json:"session,omitempty"`
+		// NeedsTrust is set when start did not start a session because
+		// Claude Code does not trust the folder yet and --trust was not given.
+		NeedsTrust bool `json:"needsTrust,omitempty"`
 	}
 	activityDoc struct {
 		Schema  int             `json:"schema"`
@@ -122,6 +126,7 @@ type (
 // controlArgs is a control command's command line, read.
 type controlArgs struct {
 	json, yes, startAtLogin bool
+	trust                   bool // start
 	url                     string
 	n                       int      // activity, default 20
 	pos                     []string // the positional words
@@ -131,7 +136,7 @@ type controlArgs struct {
 var controlCommands = map[string]bool{
 	"status": true, "list": true, "show": true, "babysit": true, "unbabysit": true,
 	"retry": true, "stop": true, "activity": true, "settings": true, "quit": true,
-	"open": true,
+	"open": true, "start": true,
 }
 
 func isControlCommand(name string) bool { return controlCommands[name] }
@@ -189,6 +194,8 @@ func parseControlArgs(name string, args []string) (controlArgs, error) {
 		fs.BoolVar(&a.startAtLogin, "start-at-login", false, "")
 	case "stop":
 		fs.BoolVar(&a.yes, "yes", false, "")
+	case "start":
+		fs.BoolVar(&a.trust, "trust", false, "")
 	case "activity":
 		fs.StringVar(&n, "n", "", "")
 	}
@@ -212,6 +219,10 @@ func parseControlArgs(name string, args []string) (controlArgs, error) {
 	case "show", "babysit", "unbabysit", "retry", "stop":
 		if len(pos) != 1 {
 			return controlArgs{}, fmt.Errorf("%s needs one session", name)
+		}
+	case "start":
+		if len(pos) != 1 {
+			return controlArgs{}, errors.New("start needs one folder")
 		}
 	case "activity":
 		if len(pos) > 1 {
@@ -295,6 +306,18 @@ func runControl(name string, args []string, env controlEnv) int {
 			return env.failErr(a.json, false, "", err)
 		}
 		return env.printResult(a.json, res, "")
+	}
+
+	// start needs no session: it names a folder for a new one.
+	if name == "start" {
+		res, err := c.Start(ctx, fullPath(a.pos[0]), a.trust)
+		if err != nil {
+			return env.failErr(a.json, false, "", err)
+		}
+		if res.NeedsTrust {
+			res.Message += " Run it again with --trust to trust it."
+		}
+		return env.printResult(a.json, res, res.ShortID)
 	}
 
 	// open decides whether there is a display where it runs, as a plain
@@ -708,7 +731,7 @@ func (env controlEnv) printResult(asJSON bool, res supervise.Result, session str
 		exit = exitRefused
 	}
 	if asJSON {
-		env.writeJSON(resultDoc{Schema: 1, OK: res.OK, Message: msg, Session: session})
+		env.writeJSON(resultDoc{Schema: 1, OK: res.OK, Message: msg, Session: session, NeedsTrust: res.NeedsTrust})
 		return exit
 	}
 	if res.OK {
@@ -773,4 +796,22 @@ func (env controlEnv) printSettings(asJSON bool, st state.Settings) int {
 	fmt.Fprintf(env.stdout, "autostart: %s\nauto-babysit: %s\nopen-browser: %s\ntheme: %s\n",
 		onOff(st.Autostart), onOff(st.AutoBabysit), onOff(st.AutoOpenBrowser), st.Theme)
 	return 0
+}
+
+// fullPath is dir as a full path on this machine: one starting with ~ is
+// taken from the home folder, and one relative to here from this folder.
+// start runs on the same machine as the copy it asks, so here means the
+// same thing to both.
+func fullPath(dir string) string {
+	if dir == "~" || strings.HasPrefix(dir, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			dir = filepath.Join(home, strings.TrimPrefix(dir, "~"))
+		}
+	}
+	if !filepath.IsAbs(dir) {
+		if abs, err := filepath.Abs(dir); err == nil {
+			dir = abs
+		}
+	}
+	return dir
 }

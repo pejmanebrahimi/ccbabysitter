@@ -87,7 +87,7 @@ go install ccbabysitter.dev/ccbabysitter/cmd/ccbabysitter@latest
 
 1. Over SSH, run the install command. It sets itself up as a service that starts at boot, and prints how to connect.
 2. On your computer, run the `ssh -L ...` command it printed, then open the address it shows. The address includes the page's key, and `ccbabysitter status` on the server shows it again.
-3. In a project folder on the server, start a session with `claude --bg --remote-control`. CC Babysitter babysits new sessions as soon as they start.
+3. Start a session with New session on the page, or with `ccbabysitter start` and the project folder's path, adding `--trust` the first time for a folder Claude Code has not run in. Or, in the project folder, run `claude --bg --remote-control`. CC Babysitter babysits new sessions as soon as they start.
 4. Close SSH. The session survives disconnects and reboots. Reach it from your phone, or with `claude attach <id>`.
 
 ## Use it from Claude Code
@@ -133,7 +133,7 @@ Behaviour and settings may change before 1.0. Please report problems by email to
 
 A babysat session stays in its own app, and CC Babysitter never moves a session from one app to another. Once a session is carried in the background you can keep using it through Remote Control, attach to it from a terminal with `claude attach`, as Open in Terminal on the page does, or stop the background copy and open the session again wherever you like. While the copy runs, Claude Desktop shows "Claude Code crashed" for a session that came from it, because only one copy of a session runs at a time. Back to Desktop on the page, or `ccbabysitter stop`, ends the copy, and Try again in Desktop then picks the session up where it left off.
 
-On a server with no display the same page is the session manager. A plain `ccbabysitter` there sets it up as a service that survives a reboot, prints the command to connect from your laptop, and gives you the terminal back; `ccbabysitter install` does the same. Start a session yourself with `claude --bg --remote-control` in a project folder and it is babysat as soon as it starts, unless you switch that off in Settings. Attach to a babysat session from any SSH shell, unbabysit or stop it when you are done, and reach the page with the command CC Babysitter gave you.
+On a server with no display the same page is the session manager. A plain `ccbabysitter` there sets it up as a service that survives a reboot, prints the command to connect from your laptop, and gives you the terminal back; `ccbabysitter install` does the same. Start a session with New session on the page, or `ccbabysitter start` and a project folder's path, or yourself with `claude --bg --remote-control` in that folder, and it is babysat as soon as it starts. A session you start yourself is babysat unless you switch that off in Settings; one `ccbabysitter start` starts always is. Attach to a babysat session from any SSH shell, unbabysit or stop it when you are done, and reach the page with the command CC Babysitter gave you.
 
 ## What babysitting does
 
@@ -179,6 +179,7 @@ ccbabysitter babysit S       keep S alive: if its app dies, it comes back in the
 ccbabysitter unbabysit S     stop babysitting S, which keeps running where it is
 ccbabysitter retry S         try again on a babysat session that is stuck
 ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
+ccbabysitter start PATH      on a machine with no display, start a babysat session in PATH
 ccbabysitter activity [S]    what CC Babysitter did and why, newest first
 ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
 ccbabysitter open            open the page in your browser, printing no key
@@ -186,7 +187,9 @@ ccbabysitter quit            quit CC Babysitter. Babysat sessions keep running w
 ccbabysitter help COMMAND    everything about one command
 ```
 
-On a Linux server, `ccbabysitter` prints the command to connect from your laptop, such as `ssh -L 47391:127.0.0.1:47391 user@host`, then open the address it prints, `http://127.0.0.1:47391/?token=...` with the page's key, while that connection is open. The same window stays an ordinary shell on the server. On a cloud server behind NAT, the printed address can be the server's private one; use the address you normally ssh to instead. To run CC Babysitter only while a terminal stays open instead, use `ccbabysitter --foreground`.
+On a Linux server, `ccbabysitter` prints the command to connect from your laptop, such as `ssh -L 47391:127.0.0.1:47391 user@host`, then open the address it prints, `http://127.0.0.1:47391/?token=...` with the page's key, while that connection is open. The same window stays an ordinary shell on the server. To start a new session there, run `ccbabysitter start` with the project folder's path. It babysits the session, and when Claude Code does not trust the folder yet it says so; with `--trust` it answers Claude Code's own question whether to trust it for you. On a cloud server behind NAT, the printed address can be the server's private one; use the address you normally ssh to instead. To run CC Babysitter only while a terminal stays open instead, use `ccbabysitter --foreground`.
+
+New session on the page starts a session on the server: type the project folder's path, and CC Babysitter starts it in the background and babysits it. `ccbabysitter start` with the path does the same from a terminal. A folder Claude Code does not trust yet needs your yes first, on the page or as `--trust`, and then CC Babysitter answers Claude Code's trust question for you.
 
 ## Start at login
 

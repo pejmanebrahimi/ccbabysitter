@@ -662,6 +662,13 @@ func (d *DemoEngine) Stop(id string, via supervise.Via) supervise.Result {
 	return supervise.Result{OK: true, Message: supervise.StopDone, ShortID: short}
 }
 
+// Start answers as the real engine does on a computer with a display, which
+// the demo shows: starting a session from the page is for a machine with
+// none.
+func (d *DemoEngine) Start(string, bool, supervise.Via) supervise.Result {
+	return supervise.Result{Message: supervise.StartRefusedWithDisplay}
+}
+
 // OpenTerminal answers as the real engine does on a Mac for a session with
 // a background copy running, and opens nothing.
 func (d *DemoEngine) OpenTerminal(id string) supervise.Result {
