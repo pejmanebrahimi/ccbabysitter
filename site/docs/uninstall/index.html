@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Stop babysitting or remove CC Babysitter - CC Babysitter docs</title>
-<meta name="description" content="Stop babysitting a session, quit CC Babysitter for now, stop it for good, or remove everything it put on your computer.">
+<meta name="description" content="Stop babysitting a session, quit CC Babysitter for now, stop it starting at login, or remove everything it put on your computer.">
 <link rel="canonical" href="https://ccbabysitter.dev/docs/uninstall/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
@@ -49,7 +49,7 @@
       <ul>
         <li><a href="#unbabysit">Stop babysitting one session</a></li>
         <li><a href="#quit">Quit CC Babysitter for now</a></li>
-        <li><a href="#for-good">Stop it for good, keep its files</a></li>
+        <li><a href="#keep-files">Stop it and keep its files</a></li>
         <li><a href="#remove">Remove it completely</a></li>
       </ul>
     </nav>
@@ -57,15 +57,15 @@
   <main class="doc" id="content">
     <p class="kind">How-to guide</p>
     <h1>Stop babysitting or remove CC Babysitter</h1>
-    <p class="lede">You can stop babysitting a single session, quit CC Babysitter until you need it again, or remove it from the computer. In every case, your sessions keep running where they are.</p>
+    <p class="lede">You can stop babysitting one session, quit CC Babysitter until you need it again, or remove it from the computer. In every case, your sessions keep running where they are.</p>
 
     <h2 id="unbabysit">Stop babysitting one session</h2>
-    <p>On the page, press <strong>Unbabysit</strong> on the session's card. The session keeps running in its app, and CC Babysitter no longer brings it back if that app closes. From a terminal, name the session by its name or short id:</p>
+    <p>On the page, press <strong>Unbabysit</strong> on the session's card. The session keeps running in its app, and CC Babysitter no longer brings it back if that app closes. From a terminal, give the session's name or short id:</p>
     <button class="cmd" type="button" data-copy>
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter unbabysit api</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
-    <p>On a computer with a display, a session that CC Babysitter brought back in the background has no Unbabysit button. Its way back to its own app ends the babysitting too: <strong>Back to Desktop</strong> or <strong>Back to VS Code</strong> for a session from those apps, or <strong>End background copy</strong> for one from a terminal. On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has <strong>Stop watching</strong> instead.</p>
+    <p>On a computer with a display, a session that CC Babysitter brought back in the background has no Unbabysit button. Its way back to its own app ends the babysitting too. That is <strong>Back to Desktop</strong> or <strong>Back to VS Code</strong> for a session from those apps, or <strong>End background copy</strong> for one from a terminal. On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has <strong>Stop watching</strong> instead.</p>
 
     <h2 id="quit">Quit CC Babysitter for now</h2>
     <p>Open <strong>Settings</strong> on the page and press <strong>Quit CC Babysitter</strong>, or run:</p>
@@ -75,12 +75,14 @@
     </button>
     <p>Babysat sessions keep running, but nothing brings them back if their app closes, and the computer may sleep. Run <code>ccbabysitter</code> to start it again. If start at login is on, it also starts again the next time you log in, or at boot on a server.</p>
 
-    <h2 id="for-good">Stop it for good, keep its files</h2>
+    <h2 id="keep-files">Stop it and keep its files</h2>
     <p>To stop CC Babysitter and keep it from starting at login, while keeping the program and its settings, run:</p>
+    <!-- vale off -->
     <button class="cmd" type="button" data-copy>
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter uninstall --keep-files</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
+    <!-- vale on -->
     <p>A later plain <code>ccbabysitter</code> starts it again and turns start at login back on, as on a computer that never had it.</p>
 
     <h2 id="remove">Remove it completely</h2>
@@ -98,7 +100,7 @@
     </ul>
     <p>On Linux, it also turns lingering off, but only if CC Babysitter turned it on. If another <code>ccbabysitter</code> is still on your PATH, such as one from <code>go install</code>, it names it at the end for you to delete. In a script with no terminal to ask in, add <code>--yes</code> to skip the question.</p>
     <p>If you added the Claude Code plugin, remove it in Claude Code with <code>/plugin uninstall ccbabysitter</code>.</p>
-    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>To keep the program but start over with no settings and no babysat sessions, quit CC Babysitter and run <code>ccbabysitter reset</code>. It names the state folder and asks before deleting it.</p></div>
+    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>To keep the program but start over from empty settings, quit CC Babysitter and run <code>ccbabysitter reset</code>. It shows which state folder it will delete and asks first.</p></div>
 
     <nav class="pager" aria-label="Previous and next">
       <a class="prev" href="/docs/claude-code-plugin/"><small>Previous</small>Use it from Claude Code</a>
