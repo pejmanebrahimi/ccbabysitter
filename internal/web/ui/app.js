@@ -296,8 +296,12 @@
     /* openWays is the arrow button of the ways menu that is open, if any. */
     openWays: null,
     /* startStep is the New session dialog's step: the folder, or the trust
-       question. */
-    startStep: "path"
+       question. startPath is the folder the trust question is about, and
+       startSeq counts the requests, so only the latest one's answer is
+       shown. */
+    startStep: "path",
+    startPath: "",
+    startSeq: 0
   };
 
   function watchById(id) {
@@ -1106,8 +1110,18 @@
     });
   }
 
+  /* startAnswerFits reports whether the answer to request seq still
+     belongs in the dialog: it is the latest request and the dialog is
+     open. */
+  function startAnswerFits(seq, latest, open) {
+    return seq === latest && open;
+  }
+
   function openStart() {
-    state.startStep = "path";
+    var go = $('[data-act="go"]', $("#dlg-start"));
+    state.startSeq++;
+    go.classList.remove("busy");
+    go.disabled = false;
     showStartStep("path", "");
     openDialog($("#dlg-start"));
     $("#start-path").focus();
@@ -1119,6 +1133,10 @@
     var dialog = $("#dlg-start");
     state.startStep = step;
     show(el(dialog, "start-path"), step === "path");
+    /* The text is cleared first, so the same refusal twice is still
+       announced. */
+    setText(f(dialog, "starterr"), "");
+    setText(f(dialog, "trustq"), "");
     show(f(dialog, "starterr"), step === "path" && !!message);
     setText(f(dialog, "starterr"), step === "path" ? message : "");
     show(f(dialog, "trustq"), step === "trust");
@@ -1128,27 +1146,34 @@
 
   /* doStart asks the engine to start a session in the folder typed in,
      trusting it first only on the trust step, where the person has read
-     the question and pressed Trust and start. */
+     the question about that folder and pressed Trust and start. */
   function doStart() {
     var dialog = $("#dlg-start");
     var go = $('[data-act="go"]', dialog);
     if (go.disabled) { return; }
-    var path = $("#start-path").value.trim();
     var trust = state.startStep === "trust";
+    var path = trust ? state.startPath : $("#start-path").value.trim();
+    var seq = ++state.startSeq;
     go.classList.add("busy");
     go.disabled = true;
     postJSON("/api/start", { path: path, trust: trust }).then(function (r) {
-      go.classList.remove("busy");
-      go.disabled = false;
       var step = startStepFor(r.status, r.body);
       var message = r.body && r.body.message ? r.body.message : (r.status ? statusMessage(r.status) : "CC Babysitter did not answer. It may have stopped running.");
+      if (!startAnswerFits(seq, state.startSeq, dialog.open)) {
+        /* A session that started is still news, wherever the dialog is. */
+        if (step === "done") { toast(message, false); }
+        return;
+      }
+      go.classList.remove("busy");
+      go.disabled = false;
       if (step === "done") {
         closeDialog(dialog);
         toast(message, false);
         return;
       }
+      if (step === "trust") { state.startPath = path; }
       showStartStep(step, message);
-      if (step === "path") { $("#start-path").focus(); }
+      if (step === "path") { $("#start-path").focus(); } else { go.focus(); }
     });
   }
 

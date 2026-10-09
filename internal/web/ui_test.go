@@ -2021,7 +2021,7 @@ func TestTheNewSessionDialog(t *testing.T) {
 		`<h2 id="dlg-start-h">New session</h2>`,
 		`<label class="field" for="start-path"><span>Folder</span><input id="start-path" type="text" spellcheck="false" autocomplete="off" placeholder="/home/you/project"></label>`,
 		`<p class="line warn" data-f="starterr" role="alert" hidden></p>`,
-		`<p class="line" data-f="trustq" hidden></p>`,
+		`<p class="line" data-f="trustq" role="alert" hidden></p>`,
 	} {
 		if !strings.Contains(index, want) {
 			t.Errorf("index.html does not contain %s", want)
@@ -2033,6 +2033,15 @@ func TestTheNewSessionDialog(t *testing.T) {
 		`postJSON("/api/start", { path: path, trust: trust })`,
 		`onDialog($("#dlg-start"), doStart);`,
 		`$("#open-start").addEventListener("click", openStart);`,
+		// The yes on the trust step is for the folder the question named,
+		// whatever the field says by then.
+		`var path = trust ? state.startPath : $("#start-path").value.trim();`,
+		`if (step === "trust") { state.startPath = path; }`,
+		// Reopening the dialog wakes its button, and an answer to an older
+		// request or to a closed dialog is not shown in it.
+		`go.classList.remove("busy");
+    go.disabled = false;`,
+		`if (!startAnswerFits(seq, state.startSeq, dialog.open)) {`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)
@@ -2057,5 +2066,14 @@ console.log([
 	}
 	if got := strings.TrimSpace(string(out)); got != "done trust path path path" {
 		t.Fatalf("startStepFor gave %q", got)
+	}
+	fits := "function startAnswerFits(seq, latest, open) {" + between(t, app, "function startAnswerFits(seq, latest, open) {", "\n  }") + "\n}"
+	out, err = exec.Command(node, "-e", fits+`
+console.log([startAnswerFits(3, 3, true), startAnswerFits(2, 3, true), startAnswerFits(3, 3, false)].join(" "));`).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(string(out)); got != "true false false" {
+		t.Fatalf("startAnswerFits gave %q", got)
 	}
 }
