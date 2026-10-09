@@ -237,14 +237,14 @@
     <h2 id="dlg-start-h">New session</h2>
     <div data-el="start-path">
       <p class="line">Starts Claude Code in the background, with Remote Control, in a folder on this machine, and babysits it. Give the folder's full path.</p>
-      <label class="field" for="start-path"><span>Folder</span><input id="start-path" type="text" spellcheck="false" autocomplete="off" placeholder="/home/you/project"></label>
-      <p class="line warn" data-f="starterr" role="alert" hidden></p>
+      <label class="field" for="start-path"><span>Folder</span><input id="start-path" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="start-err" placeholder="/home/you/project"></label>
+      <p class="line warn" data-f="starterr" id="start-err" role="alert" hidden></p>
     </div>
-    <p class="line" data-f="trustq" role="alert" hidden></p>
+    <p class="line" data-f="trustq" id="start-trustq" role="alert" tabindex="-1" hidden></p>
   </div>
   <menu class="dlg-acts">
     <button class="b" data-act="cancel">Cancel</button>
-    <button class="b primary" data-act="go">Start</button>
+    <button class="b primary" data-act="go" aria-describedby="start-trustq">Start</button>
   </menu>
 </dialog>
 

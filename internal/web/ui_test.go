@@ -1570,8 +1570,8 @@ func TestTheEmptyBabysatHero(t *testing.T) {
 		`[["Press ",{"b":"Babysit"}," on a session below to start."],false,[]]`,
 		`[["Start a Claude Code session, then press ",{"b":"Babysit"}," on it here."],false,[]]`,
 		`[["Start a Claude Code session, then press ",{"b":"Babysit"}," on it here."],false,[]]`,
-		`[["Start a background session in a project folder:"],true,["It is babysat as soon as it starts."]]`,
-		`[["Start a background session in a project folder:"],true,["Then press ",{"b":"Babysit"}," on it here."]]`,
+		`[["Press ",{"b":"New session"}," above, or start a background session in a project folder:"],true,["It is babysat as soon as it starts."]]`,
+		`[["Press ",{"b":"New session"}," above, or start a background session in a project folder:"],true,["A session started that way needs ",{"b":"Babysit"}," on it here."]]`,
 	}
 	got := runNode(t, script)
 	if len(got) != len(want) {
@@ -2019,9 +2019,11 @@ func TestTheNewSessionDialog(t *testing.T) {
 		`<button class="b primary" id="open-start" aria-haspopup="dialog" hidden>New session</button>`,
 		`<dialog class="dlg" id="dlg-start" aria-labelledby="dlg-start-h">`,
 		`<h2 id="dlg-start-h">New session</h2>`,
-		`<label class="field" for="start-path"><span>Folder</span><input id="start-path" type="text" spellcheck="false" autocomplete="off" placeholder="/home/you/project"></label>`,
-		`<p class="line warn" data-f="starterr" role="alert" hidden></p>`,
-		`<p class="line" data-f="trustq" role="alert" hidden></p>`,
+		// A path is typed as it is: no capitals or corrections added.
+		`<label class="field" for="start-path"><span>Folder</span><input id="start-path" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="start-err" placeholder="/home/you/project"></label>`,
+		`<p class="line warn" data-f="starterr" id="start-err" role="alert" hidden></p>`,
+		`<p class="line" data-f="trustq" id="start-trustq" role="alert" tabindex="-1" hidden></p>`,
+		`<button class="b primary" data-act="go" aria-describedby="start-trustq">Start</button>`,
 	} {
 		if !strings.Contains(index, want) {
 			t.Errorf("index.html does not contain %s", want)
@@ -2042,6 +2044,13 @@ func TestTheNewSessionDialog(t *testing.T) {
 		`go.classList.remove("busy");
     go.disabled = false;`,
 		`if (!startAnswerFits(seq, state.startSeq, dialog.open)) {`,
+		// A held Enter starts one request, and only from the folder step;
+		// the trust step takes the focus to its question, not its button,
+		// so a key still held cannot answer it.
+		`if (!event.repeat && state.startStep === "path") { doStart(); }`,
+		`if (step === "path") { $("#start-path").focus(); } else { f(dialog, "trustq").focus(); }`,
+		// The field waits with the button, so the folder shown is the one sent.
+		`$("#start-path").disabled = true;`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)

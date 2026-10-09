@@ -506,6 +506,11 @@ code.mono { background: var(--card-2); border-radius: 5px; padding: 1px 5px; fon
   .row.past .elsewhere { justify-content: flex-start; }
   .drawer { width: 100%; border-left: none; }
   .split .b { min-height: 44px; }
+  #open-start { min-height: 44px; }
+  /* 16px keeps a phone from zooming the page into the field. */
+  .field input { font-size: 16px; }
+  /* The dialog fits above the keyboard, where the screen has one. */
+  .dlg { max-height: calc(100dvh - 48px); }
   .split .b.icon { min-width: 44px; }
   .toasts { left: 16px; right: 16px; max-width: none; }
 }

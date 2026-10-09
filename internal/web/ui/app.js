@@ -605,9 +605,9 @@
     }
     var auto = !!(view.settings || {}).autoBabysit;
     return {
-      next: ["Start a background session in a project folder:"],
+      next: ["Press ", { b: "New session" }, " above, or start a background session in a project folder:"],
       command: true,
-      after: auto ? ["It is babysat as soon as it starts."] : ["Then press ", { b: "Babysit" }, " on it here."]
+      after: auto ? ["It is babysat as soon as it starts."] : ["A session started that way needs ", { b: "Babysit" }, " on it here."]
     };
   }
 
@@ -1122,6 +1122,7 @@
     state.startSeq++;
     go.classList.remove("busy");
     go.disabled = false;
+    $("#start-path").disabled = false;
     showStartStep("path", "");
     openDialog($("#dlg-start"));
     $("#start-path").focus();
@@ -1156,6 +1157,7 @@
     var seq = ++state.startSeq;
     go.classList.add("busy");
     go.disabled = true;
+    $("#start-path").disabled = true;
     postJSON("/api/start", { path: path, trust: trust }).then(function (r) {
       var step = startStepFor(r.status, r.body);
       var message = r.body && r.body.message ? r.body.message : (r.status ? statusMessage(r.status) : "CC Babysitter did not answer. It may have stopped running.");
@@ -1166,6 +1168,7 @@
       }
       go.classList.remove("busy");
       go.disabled = false;
+      $("#start-path").disabled = false;
       if (step === "done") {
         closeDialog(dialog);
         toast(message, false);
@@ -1173,7 +1176,7 @@
       }
       if (step === "trust") { state.startPath = path; }
       showStartStep(step, message);
-      if (step === "path") { $("#start-path").focus(); } else { go.focus(); }
+      if (step === "path") { $("#start-path").focus(); } else { f(dialog, "trustq").focus(); }
     });
   }
 
@@ -1842,7 +1845,9 @@
     onDialog($("#dlg-start"), doStart);
     $("#open-start").addEventListener("click", openStart);
     $("#start-path").addEventListener("keydown", function (event) {
-      if (event.key === "Enter") { event.preventDefault(); doStart(); }
+      if (event.key !== "Enter") { return; }
+      event.preventDefault();
+      if (!event.repeat && state.startStep === "path") { doStart(); }
     });
     onDialog($("#dlg-stop"), doStop);
     onDialog($("#dlg-quit"), doQuit);
