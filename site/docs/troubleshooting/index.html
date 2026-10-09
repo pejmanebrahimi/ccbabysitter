@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting - CC Babysitter docs</title>
+<meta name="description" content="What each CC Babysitter warning and Activity message means, and what to do about it.">
+<link rel="canonical" href="https://ccbabysitter.dev/docs/troubleshooting/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/docs.css">
+<script src="/assets/theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="dtop">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24"><span class="name">CC Babysitter</span></a>
+  <a class="crumb" href="/docs/">Docs</a>
+  <form class="search" role="search" hidden>
+    <label class="sr" for="docs-search">Search the docs</label>
+    <input id="docs-search" type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" aria-controls="docs-results">
+    <p class="sr" role="status"></p>
+    <ul class="results" id="docs-results" aria-label="Search results" hidden></ul>
+  </form>
+  <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
+    <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
+  </button>
+</header>
+<div class="docs">
+  <details class="sidebox" open>
+    <summary class="fold"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="9" height="1"/><rect x="0" y="4" width="9" height="1"/><rect x="0" y="7" width="9" height="1"/></svg>Menu</summary>
+    <nav class="side" id="docs-nav" aria-label="Docs">
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+      </ul>
+      <p class="group" id="nav-tutorials">Tutorials</p>
+      <ul aria-labelledby="nav-tutorials">
+        <li><a href="/docs/first-session/">Babysit your first session</a></li>
+      </ul>
+      <p class="group" id="nav-how-to">How-to guides</p>
+      <ul aria-labelledby="nav-how-to">
+        <li><a href="/docs/server/">Run it on a server</a></li>
+        <li><a href="/docs/start-at-login/">Start at login</a></li>
+        <li><a href="/docs/claude-code-plugin/">Use it from Claude Code</a></li>
+        <li><a href="/docs/uninstall/">Stop or remove it</a></li>
+      </ul>
+      <p class="group" id="nav-reference">Reference</p>
+      <ul aria-labelledby="nav-reference">
+        <li><a href="/docs/commands/">Commands</a></li>
+      </ul>
+      <p class="group" id="nav-explanation">Explanation</p>
+      <ul aria-labelledby="nav-explanation">
+        <li><a href="/docs/how-it-works/">How it works</a></li>
+      </ul>
+      <p class="group" id="nav-troubleshooting">Troubleshooting</p>
+      <ul aria-labelledby="nav-troubleshooting">
+        <li><a href="/docs/troubleshooting/" aria-current="page">Troubleshooting</a></li>
+      </ul>
+    </nav>
+  </details>
+  <details class="toc" open>
+    <summary class="fold">On this page<svg class="caret" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/></svg></summary>
+    <nav class="toc-list" aria-label="On this page">
+      <ul>
+        <li><a href="#wont-come-back">Won't come back if its app closes</a></li>
+        <li><a href="#remote-control-off">Remote Control is off</a></li>
+        <li><a href="#not-responding">Not responding</a></li>
+        <li><a href="#stuck">Stuck</a></li>
+        <li><a href="#brought-back">A session brought back in the background</a></li>
+        <li><a href="#desktop-says-background">Claude Desktop says the session is running in the background</a></li>
+        <li><a href="#phone-title">The phone shows another name for the session</a></li>
+        <li><a href="#found-elsewhere">The session is running somewhere else</a></li>
+        <li><a href="#extra-copies">More than one background copy</a></li>
+        <li><a href="#adopted">Babysat on its own on a server</a></li>
+        <li><a href="#nothing-to-bring-back">Nothing to bring back</a></li>
+        <li><a href="#not-logged-in">Claude Code is not logged in</a></li>
+        <li><a href="#no-cli">The Claude Code CLI cannot be used</a></li>
+        <li><a href="#page-key">The page needs its key</a></li>
+        <li><a href="#state">Saved state could not be read or saved</a></li>
+        <li><a href="#keep-awake">The computer may sleep</a></li>
+        <li><a href="#file-watcher">Sessions are noticed more slowly</a></li>
+        <li><a href="#page-stopped">The page stopped updating</a></li>
+      </ul>
+    </nav>
+  </details>
+  <main class="doc" id="content">
+    <p class="kind">Troubleshooting</p>
+    <h1>Troubleshooting</h1>
+    <p class="lede">What each warning on a card or the page means, and each Activity line about trouble or an automatic action. Each entry says what to do.</p>
+    <p>Search the docs for a message's first words to find its entry.</p>
+
+    <h2 id="wont-come-back">Won't come back if its app closes</h2>
+    <ul class="msgs">
+      <li><code>Won't come back if its app closes. Claude Code needs a one-time OK to run on its own in this folder.</code></li>
+      <li><code>Background can't start in the home folder.</code></li>
+    </ul>
+    <p>CC Babysitter brings a session back in the background with the <code>claude</code> CLI, which runs on its own only in a folder it trusts. Claude Desktop also accepts trust given to a folder above a git repository, but the CLI does not. So a session that works in Desktop can still be refused in the background. The CLI never starts a background session in your home folder.</p>
+    <p>For the trust, run the command the card shows in a terminal and answer Yes before you exit, and the warning goes away within seconds. For the home folder, start the session in a project folder instead.</p>
+
+    <h2 id="remote-control-off">Remote Control is off</h2>
+    <ul class="msgs">
+      <li><code>Type /rc in that terminal session.</code></li>
+      <li><code>Switch Remote Control on in the desktop app for this session.</code></li>
+    </ul>
+    <p>Remote Control is what lets you reach the session from your phone or the browser. Nothing outside a session can switch it on, so the card says how to do it in the session's own app. A session CC Babysitter brings back in the background always has Remote Control on.</p>
+
+    <h2 id="not-responding">Not responding</h2>
+    <ul class="msgs">
+      <li><code>Not responding in</code></li>
+      <li><code>not responding: busy for</code></li>
+      <li><code>stopped it to start it again in the background</code></li>
+      <li><code>could not stop it after it stopped responding</code></li>
+    </ul>
+    <p>A session counts as frozen after 20 minutes of waiting on the model with the same output, the same processes and the same CPU time. It happens when its connection drops in the middle of a turn, and Remote Control goes offline with it. A session running a tool, waiting out a usage limit or waiting on a question never counts.</p>
+    <p>A frozen background session is stopped with <code>claude stop</code> and started again, which keeps the conversation; the turn that froze is lost. A frozen session in a terminal or an app is only marked, since it belongs to that app. Press Escape in it, or close it, and CC Babysitter brings it back if it is babysat. If <code>claude stop</code> could not stop it, Activity names the command to run by hand.</p>
+
+    <h2 id="stuck">Stuck</h2>
+    <ul class="msgs">
+      <li><code>three failed resumes in five minutes</code></li>
+      <li><code>it froze three times in two hours</code></li>
+      <li><code>stuck until you press Try again</code></li>
+      <li><code>stuck until you press Try again. The frozen copy is left as it is</code></li>
+    </ul>
+    <p>CC Babysitter stops trying when starting a session failed three times in five minutes, or its background copy froze three times in two hours. That way it never retries in a loop. Activity has the reason for the last failure.</p>
+    <p>Fix what the reason names, then press <strong>Try again</strong> on the card, or run <code>ccbabysitter retry</code> with the session. For a session stuck after freezing, Try again stops the frozen copy so it is started again. <strong>Stop watching</strong> ends the babysitting instead.</p>
+
+    <h2 id="brought-back">A session brought back in the background</h2>
+    <ul class="msgs">
+      <li><code>resumed as background</code></li>
+      <li><code>Claude Desktop closed</code></li>
+      <li><code>Claude Desktop closed and updated from</code></li>
+      <li><code>Claude Desktop restarted for an update from</code></li>
+      <li><code>the session ended while Claude Desktop kept running</code></li>
+      <li><code>the computer restarted</code></li>
+      <li><code>Claude Code stopped it after</code></li>
+      <li><code>it stopped responding</code></li>
+      <li><code>the process running it exited</code></li>
+    </ul>
+    <p>When a babysat session's app goes away, CC Babysitter starts the same session again in the background, under the same id, with Remote Control on. When that can be told, the Activity line says why the session went down. For example, Claude Desktop closed or updated, the computer restarted, or Claude Code ended it after it sat idle. When nothing tells, the line says only that its process exited.</p>
+    <p>Nothing needs doing. Reach the session from your phone. To go back to its app, use the card's <strong>Back to Desktop</strong>, <strong>Back to VS Code</strong> or <strong>End background copy</strong>.</p>
+
+    <h2 id="desktop-says-background">Claude Desktop says the session is running in the background</h2>
+    <ul class="msgs">
+      <li><code>That session is running in the background</code></li>
+    </ul>
+    <p>Only one copy of a session runs at a time. While CC Babysitter's background copy carries it, Claude Desktop shows this when you open the session, and may show "Claude Code crashed" for it.</p>
+    <p>Press <strong>Back to Desktop</strong> on the session's card, or run <code>ccbabysitter stop</code> with the session and <code>--yes</code>. Then open the session from Claude Desktop's sidebar, where it carries on.</p>
+
+    <h2 id="phone-title">The phone shows another name for the session</h2>
+    <ul class="msgs">
+      <li><code>Claude Code's automatic title</code></li>
+    </ul>
+    <p>After a session goes back to Claude Desktop, the Claude app on your phone may show Claude Code's automatic title for it. That replaces the name you gave it. It is the same session; only the name shown changes, and that name comes from Claude Code.</p>
+
+    <h2 id="found-elsewhere">The session is running somewhere else</h2>
+    <ul class="msgs">
+      <li><code>session found running elsewhere</code></li>
+      <li><code>session open in</code></li>
+      <li><code>babysitting it in</code></li>
+    </ul>
+    <p>CC Babysitter was about to bring a session back and found it already running, in an app or as a background copy. It never starts a second copy of a session, so it went back to watching it where it runs. Nothing needs doing.</p>
+
+    <h2 id="extra-copies">More than one background copy</h2>
+    <ul class="msgs">
+      <li><code>more than one background copy of the same session</code></li>
+      <li><code>stopped and removed</code></li>
+      <li><code>left an extra background copy with</code></li>
+      <li><code>could not clean up the extra background copy</code></li>
+    </ul>
+    <p>Two background copies of one session were running, which Claude Code does not expect. CC Babysitter keeps the copy it knows and stops and removes the others with <code>claude stop</code> and <code>claude rm</code>. It leaves a copy alone when its short id is also the short id of an app session of the same conversation. When a clean-up failed, Activity gives the commands to run by hand.</p>
+
+    <h2 id="adopted">Babysat on its own on a server</h2>
+    <ul class="msgs">
+      <li><code>server auto-babysit</code></li>
+      <li><code>adopted background session</code></li>
+    </ul>
+    <p>On a machine with no display, a new background session is babysat as soon as it starts, so it survives SSH drops and reboots. Switch <strong>Babysit every new background session</strong> off in Settings, or run <code>ccbabysitter settings auto-babysit off</code>, to choose each time instead.</p>
+
+    <h2 id="nothing-to-bring-back">Nothing to bring back</h2>
+    <ul class="msgs">
+      <li><code>no saved conversation</code></li>
+      <li><code>a saved conversation is there now</code></li>
+      <li><code>the session is running again</code></li>
+      <li><code>babysitting it again</code></li>
+    </ul>
+    <p>Claude Code saves a conversation only after its first message, so a session that ended before anything was said has nothing to start again from. Its babysitting ends, and Activity says so. An older version of CC Babysitter paused such a session instead. Once a conversation turns up for it, or it runs again, it is babysat again by itself.</p>
+
+    <h2 id="not-logged-in">Claude Code is not logged in</h2>
+    <ul class="msgs">
+      <li><code>Claude Code is not logged in on this machine</code></li>
+    </ul>
+    <p>A Claude Code CLI that is not logged in reaches neither the model nor Remote Control, so a session started now could do nothing. The page shows this note, and New session and <code>ccbabysitter start</code> start nothing. Run <code>claude</code> once on this machine and log in, then try again.</p>
+
+    <h2 id="no-cli">The Claude Code CLI cannot be used</h2>
+    <ul class="msgs">
+      <li><code>The Claude Code CLI is not installed, so babysat sessions cannot be brought back</code></li>
+      <li><code>agents --json did not answer</code></li>
+    </ul>
+    <p>CC Babysitter brings sessions back, and checks which are running, with the <code>claude</code> CLI. Install Claude Code, or make sure <code>claude</code> runs in a terminal of the same account. When it did not answer in time, CC Babysitter tries again on its next look and starts nothing on an answer it did not get.</p>
+
+    <h2 id="page-key">The page needs its key</h2>
+    <ul class="msgs">
+      <li><code>This needs the page's key</code></li>
+      <li><code>could not create the page's key</code></li>
+      <li><code>could not save the page address</code></li>
+      <li><code>Could not open a browser</code></li>
+    </ul>
+    <p>The page only answers requests that carry its key, which changes when CC Babysitter restarts, after an update or a restart of the computer. Run <code>ccbabysitter</code> to open the page again, or <code>ccbabysitter status</code> for its address with the key. When no browser could be opened, open that address yourself. When the key or the address could not be saved, check that CC Babysitter's state folder can be written.</p>
+
+    <h2 id="state">Saved state could not be read or saved</h2>
+    <ul class="msgs">
+      <li><code>saved state could not be read and was moved to state.json.bad, so no sessions are being babysat</code></li>
+      <li><code>saved state was written by version</code></li>
+      <li><code>could not read saved state, starting from defaults</code></li>
+      <li><code>could not save state</code></li>
+    </ul>
+    <p>CC Babysitter keeps the babysat sessions and its settings in one state folder. A state file it cannot read, or one a version it cannot use wrote, is moved to <code>state.json.bad</code>, and CC Babysitter starts from the defaults. The sessions that were babysat need <strong>Babysit</strong> again. A save that failed is tried again on the next change: check that the disk has room and the folder can be written.</p>
+
+    <h2 id="keep-awake">The computer may sleep</h2>
+    <ul class="msgs">
+      <li><code>the system refused the keep-awake request</code></li>
+    </ul>
+    <p>CC Babysitter asks the system to stay awake while a session is babysat. The system said no. Babysat sessions are still brought back when their app closes. But the computer may sleep, and nobody can reach a sleeping computer. Check the system's power settings, then quit CC Babysitter and run <code>ccbabysitter</code> again.</p>
+
+    <h2 id="file-watcher">Sessions are noticed more slowly</h2>
+    <ul class="msgs">
+      <li><code>file watcher</code></li>
+      <li><code>file watcher unavailable, sweep only</code></li>
+    </ul>
+    <p>CC Babysitter watches Claude Code's session folder to notice a session the moment it starts or ends. Without the watch it still looks every few seconds, so everything works, only a little later. Nothing needs doing.</p>
+
+    <h2 id="page-stopped">The page stopped updating</h2>
+    <ul class="msgs">
+      <li><code>the page view could not be encoded, so the page is still showing the last one it received</code></li>
+      <li><code>the web server stopped unexpectedly</code></li>
+      <li><code>that part of the page is missing from this build</code></li>
+    </ul>
+    <p>These mean CC Babysitter itself went wrong, not your sessions. Run <code>ccbabysitter</code> to start it again and open the page. If it happens again, report it with the Activity line on <a href="https://github.com/pejmanebrahimi/ccbabysitter/issues" target="_blank" rel="noopener noreferrer">the issue tracker<span class="sr"> (opens in a new tab)</span></a>.</p>
+
+    <nav class="pager" aria-label="Previous and next">
+      <a class="prev" href="/docs/how-it-works/"><small>Previous</small>How it works</a>
+    </nav>
+    <p class="edit-line"><a class="edit" href="https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/docs/troubleshooting/index.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub<span class="sr"> (opens in a new tab)</span></a></p>
+  </main>
+</div>
+<footer class="foot">{{VERSION}} &middot; Preview &middot; <a href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT<span class="sr"> (opens in a new tab)</span></a> &middot; Not affiliated with Anthropic</footer>
+<script src="/assets/site.js"></script>
+<script src="/assets/docs.js"></script>
+</body>
+</html>
