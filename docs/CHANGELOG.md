@@ -12,6 +12,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 - New: `ccbabysitter list` shows the page's Not running conversations last, under their own heading, and `show` and `activity` find them, with the command that starts one again. A word that names a running or babysat session still means that one (#96).
 - Fixed: the page's note that Claude Code is not logged in now shows when it is not. The CLI exits with an error when nobody is logged in, which was read as no answer (#103).
 - Changed: New session and `ccbabysitter start` start nothing while Claude Code is not logged in, and say so: such a session could reach neither the model nor Remote Control (#103).
+- New: documentation at https://ccbabysitter.dev/docs/: a tutorial, how-to guides, every command made from the help pages, How it works made from the README, a troubleshooting entry for every warning and Activity error, and search. The README and `ccbabysitter help` point to it (#35).
 
 ## 0.8.0 (2026-10-09)
 
