@@ -425,3 +425,23 @@ func TestScheduledRunWithAPromptPastTheReadLimit(t *testing.T) {
 		t.Fatal("a long ordinary prompt read as a run")
 	}
 }
+
+// Claude Code writes messages of its own with the model <synthetic>, such
+// as the reply it adds when a resumed conversation ended in the middle of a
+// turn. The model shown stays the last real one.
+func TestStatsSkipsSyntheticModel(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "s.jsonl")
+	lines := `{"type":"user","timestamp":"2026-09-21T10:00:00Z","message":{"role":"user","content":"hi"}}` + "\n" +
+		`{"type":"assistant","timestamp":"2026-09-21T10:00:05Z","message":{"id":"msg_1","role":"assistant","model":"claude-opus-5-5","usage":{"input_tokens":10,"output_tokens":4}}}` + "\n" +
+		`{"type":"assistant","timestamp":"2026-09-21T10:30:00Z","message":{"id":"msg_2","role":"assistant","model":"<synthetic>","usage":{"input_tokens":0,"output_tokens":0}}}` + "\n"
+	if err := os.WriteFile(p, []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, err := (&StatsReader{}).Update(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Model != "claude-opus-5-5" {
+		t.Fatalf("model %q, want claude-opus-5-5", s.Model)
+	}
+}
