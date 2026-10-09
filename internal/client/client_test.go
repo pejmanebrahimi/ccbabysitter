@@ -43,6 +43,9 @@ func (e *engine) ResumeWatch(id string, v supervise.Via) supervise.Result {
 	return e.act("resume", id, v)
 }
 func (e *engine) OpenTerminal(string) supervise.Result { return supervise.Result{} }
+func (e *engine) Start(dir string, trust bool, v supervise.Via) supervise.Result {
+	return supervise.Result{}
+}
 func (e *engine) SetSettings(s state.Settings, v supervise.Via) supervise.Result {
 	e.view.Settings = s
 	return supervise.Result{OK: true}

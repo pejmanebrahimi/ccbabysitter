@@ -469,8 +469,9 @@ code.mono { background: var(--card-2); border-radius: 5px; padding: 1px 5px; fon
 .opt { font-style: normal; color: var(--faint); font-size: 12px; margin-left: 4px; }
 .field input {
   background: var(--card-2); color: var(--text); border: 1px solid var(--border);
-  border-radius: 9px; font-size: 13.5px; padding: 9px 11px; width: 100%;
+  border-radius: 9px; font-family: var(--mono); font-size: 13.5px; padding: 9px 11px; width: 100%; min-width: 0;
 }
+.field input:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 .dlg-acts {
   display: flex; justify-content: flex-end; gap: 10px; flex: none; list-style: none;
   margin: 0; padding: 14px 24px 18px; border-top: 1px solid var(--border);
@@ -505,6 +506,11 @@ code.mono { background: var(--card-2); border-radius: 5px; padding: 1px 5px; fon
   .row.past .elsewhere { justify-content: flex-start; }
   .drawer { width: 100%; border-left: none; }
   .split .b { min-height: 44px; }
+  #open-start { min-height: 44px; }
+  /* 16px keeps a phone from zooming the page into the field. */
+  .field input { font-size: 16px; }
+  /* The dialog fits above the keyboard, where the screen has one. */
+  .dlg { max-height: calc(100dvh - 48px); }
   .split .b.icon { min-width: 44px; }
   .toasts { left: 16px; right: 16px; max-width: none; }
 }

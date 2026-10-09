@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -53,6 +54,9 @@ func (f *fakeEngine) ResumeWatch(id string, via supervise.Via) supervise.Result 
 }
 func (f *fakeEngine) OpenTerminal(id string) supervise.Result {
 	return f.answer("open-terminal", id, supervise.ViaPage)
+}
+func (f *fakeEngine) Start(dir string, trust bool, via supervise.Via) supervise.Result {
+	return f.answer("start", fmt.Sprintf("%s trust=%v", dir, trust), via)
 }
 func (f *fakeEngine) SetSettings(s state.Settings, via supervise.Via) supervise.Result {
 	f.via = via
@@ -183,6 +187,35 @@ func TestActionsCallTheEngine(t *testing.T) {
 			t.Fatal(action, r.StatusCode, e.calls)
 		}
 	}
+}
+
+// Starting a session takes the folder and whether the person said to trust
+// it, and nothing else; a request without them never reaches the engine.
+func TestTheStartRoute(t *testing.T) {
+	ts, e, _ := newTS(t)
+	r := postJSON(t, ts.URL+"/api/start", `{"path":"/srv/shop-api","trust":true}`)
+	if r.StatusCode != 200 || e.calls[len(e.calls)-1] != "start /srv/shop-api trust=true" {
+		t.Fatal(r.StatusCode, e.calls)
+	}
+	r = postJSON(t, ts.URL+"/api/start", `{"path":"/srv/shop-api"}`)
+	if r.StatusCode != 200 || e.calls[len(e.calls)-1] != "start /srv/shop-api trust=false" {
+		t.Fatal(r.StatusCode, e.calls)
+	}
+	before := len(e.calls)
+	for _, body := range []string{"", `{"path":"/srv/a","sudo":true}`, `not json`} {
+		if r := postJSON(t, ts.URL+"/api/start", body); r.StatusCode != 400 {
+			t.Errorf("%q: status %d", body, r.StatusCode)
+		}
+	}
+	if len(e.calls) != before {
+		t.Fatalf("a bad request reached the engine: %v", e.calls[before:])
+	}
+}
+
+// Starting a session starts programs, so the guard in front of it is
+// pinned on its own like the stop and terminal routes.
+func TestTheStartRouteIsGuarded(t *testing.T) {
+	guardedRoute(t, "/api/start")
 }
 
 // Stopping a background copy ends a running session and opening a terminal
