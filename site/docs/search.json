@@ -319,115 +319,127 @@
  {
   "url": "/docs/troubleshooting/",
   "page": "Troubleshooting",
-  "text": "What each warning on a card or the page means, and each Activity line about trouble or an automatic action. Each entry says what to do. Search the docs for a message's first words to find its entry."
+  "text": "What each warning on a card or the page means, and each Activity line about trouble or an automatic action. Each entry says what to do. Search the docs for a message's first words to find its entry. A quote that ends in ... is the start of a longer message, which goes on with a session, a folder or a reason."
  },
  {
   "url": "/docs/troubleshooting/#wont-come-back",
   "page": "Troubleshooting",
   "section": "Won't come back if its app closes",
-  "text": "Won't come back if its app closes. Claude Code needs a one-time OK to run on its own in this folder. Background can't start in the home folder. CC Babysitter brings a session back in the background with the claude CLI, which runs on its own only in a folder it trusts. Claude Desktop also accepts trust given to a folder above a git repository, but the CLI does not. So a session that works in Desktop can still be refused in the background. The CLI never starts a background session in your home folder. For the trust, run the command the card shows in a terminal and answer Yes before you exit, and the warning goes away within seconds. For the home folder, start the session in a project folder instead."
+  "text": "Won't come back if its app closes. Claude Code needs a one-time OK to run on its own in this folder. ... Background can't start in the home folder. CC Babysitter brings a session back in the background with the claude CLI, which runs on its own only in a folder it trusts. Inside a git repository the CLI takes that trust only from the repository's own folder. Claude Desktop also accepts a trusted folder above it, so a session that works in Desktop can still be refused in the background. A git worktree takes the trust from any folder above it. The CLI never starts a background session in your home folder. For the trust, run the command the card shows in a terminal and answer Yes before you exit, and the warning goes away within seconds. For the home folder, start the session in a project folder instead."
  },
  {
   "url": "/docs/troubleshooting/#remote-control-off",
   "page": "Troubleshooting",
   "section": "Remote Control is off",
-  "text": "Type /rc in that terminal session. Switch Remote Control on in the desktop app for this session. Remote Control is what lets you reach the session from your phone or the browser. Nothing outside a session can switch it on, so the card says how to do it in the session's own app. A session CC Babysitter brings back in the background always has Remote Control on."
+  "text": "Type /rc in that terminal session. Switch Remote Control on in the desktop app for this session. Switch Remote Control on in the VS Code panel for this session. Attach with ... Remote Control is on Remote Control is not connected yet. The card shows when it is Remote Control is off: attach with ... Remote Control is what lets you reach the session from your phone or the browser. Nothing outside a session can switch it on, so the card says how to do it in the session's own app. A session CC Babysitter brings back in the background usually has Remote Control on, and its Activity line says so. When the line says it is not connected yet, wait: the card shows when it is. When the line says it is off, attach to the session with the command it gives and type /rc."
  },
  {
   "url": "/docs/troubleshooting/#not-responding",
   "page": "Troubleshooting",
   "section": "Not responding",
-  "text": "Not responding in not responding: busy for stopped it to start it again in the background could not stop it after it stopped responding A session counts as frozen after 20 minutes of waiting on the model with the same output, the same processes and the same CPU time. It happens when its connection drops in the middle of a turn, and Remote Control goes offline with it. A session running a tool, waiting out a usage limit or waiting on a question never counts. A frozen background session is stopped with claude stop and started again, which keeps the conversation; the turn that froze is lost. A frozen session in a terminal or an app is only marked, since it belongs to that app. Press Escape in it, or close it, and CC Babysitter brings it back if it is babysat. If claude stop could not stop it, Activity names the command to run by hand."
+  "text": "Not responding in ... not responding: busy for ... stopped it to start it again in the background could not stop it after it stopped responding ... A session counts as frozen after 20 minutes of waiting on the model with the same output, the same processes and the same CPU time. It happens when its connection drops in the middle of a turn, and Remote Control goes offline with it. A session running a tool, waiting out a usage limit or a retry, or waiting on a question never counts. A frozen background session is stopped with claude stop and started again, which keeps the conversation; the turn that froze is lost. A frozen session in a terminal or an app is only marked, since it belongs to that app. Press Escape in it to stop the turn and carry on there. Or close it, and CC Babysitter brings it back in the background if it is babysat. When claude stop could not stop a copy, Activity says how to stop it by hand."
  },
  {
   "url": "/docs/troubleshooting/#stuck",
   "page": "Troubleshooting",
   "section": "Stuck",
-  "text": "three failed resumes in five minutes it froze three times in two hours stuck until you press Try again stuck until you press Try again. The frozen copy is left as it is CC Babysitter stops trying when starting a session failed three times in five minutes, or its background copy froze three times in two hours. That way it never retries in a loop. Activity has the reason for the last failure. Fix what the reason names, then press Try again on the card, or run ccbabysitter retry with the session. For a session stuck after freezing, Try again stops the frozen copy so it is started again. Stop watching ends the babysitting instead."
+  "text": "three failed resumes in five minutes three starts failed in five minutes it froze three times in two hours stuck until you press Try again stuck until you press Try again. The frozen copy is left as it is CC Babysitter stops trying when starting a session failed three times in five minutes, or its background copy froze three times in two hours. That way it never retries in a loop. Activity has the reason for the last failure. Fix what the reason names, then press Try again on the card, or run ccbabysitter retry with the session. For a session stuck after freezing, Try again stops the copy only if it is still the same copy and still frozen. Then the session is started again. A copy that came back to life is only watched. Stop watching ends the babysitting instead."
  },
  {
   "url": "/docs/troubleshooting/#brought-back",
   "page": "Troubleshooting",
   "section": "A session brought back in the background",
-  "text": "resumed as background Claude Desktop closed Claude Desktop closed and updated from Claude Desktop restarted for an update from the session ended while Claude Desktop kept running the computer restarted Claude Code stopped it after it stopped responding the process running it exited When a babysat session's app goes away, CC Babysitter starts the same session again in the background, under the same id, with Remote Control on. When that can be told, the Activity line says why the session went down. For example, Claude Desktop closed or updated, the computer restarted, or Claude Code ended it after it sat idle. When nothing tells, the line says only that its process exited. Nothing needs doing. Reach the session from your phone. To go back to its app, use the card's Back to Desktop, Back to VS Code or End background copy."
+  "text": "resumed as background ... running as background session ... Claude Desktop closed Claude Desktop closed and updated from ... Claude Desktop restarted for an update from ... the session ended while Claude Desktop kept running VS Code closed, or the session ended in it its terminal or SSH connection closed, or the session was quit the background copy ended the computer restarted Claude Code stopped it after ... it stopped responding the process running it exited When a babysat session's app goes away, CC Babysitter starts the same session again in the background, under the same id. When that can be told, the Activity line says why the session went down. For example, Claude Desktop closed or updated, the computer restarted, or Claude Code ended it after it sat idle. When nothing tells, the line says only that its process exited. Nothing needs doing. Reach the session from your phone. To go back to its app, use the card's Back to Desktop, Back to VS Code or End background copy. Some lines give one of these reasons but do not say the session was resumed. Those mean it could not be brought back: see the next entry."
+ },
+ {
+  "url": "/docs/troubleshooting/#could-not-bring-back",
+  "page": "Troubleshooting",
+  "section": "A session could not be brought back",
+  "text": "Resume did not start ... no output That is not a valid session id Claude forked a copy ... Claude forked a copy twice, and both copies ... Claude reported a copy ... Claude reported a copy with the same short id ... resume forked a copy stopped and removed copy ... Starting the session again in the background failed. The line says why. Where it can, it ends with \"Run by hand:\" and the command to start the session yourself. For the usual reasons, see the entries on a folder that is not trusted, logging in and the CLI. Claude Code sometimes starts a resume as a new copy of the session instead. CC Babysitter stops and removes that copy with claude stop and claude rm, and tries once more without flags. When it cannot, the line gives the commands to run by hand. After three failures in five minutes the session is stuck."
  },
  {
   "url": "/docs/troubleshooting/#desktop-says-background",
   "page": "Troubleshooting",
   "section": "Claude Desktop says the session is running in the background",
-  "text": "That session is running in the background Only one copy of a session runs at a time. While CC Babysitter's background copy carries it, Claude Desktop shows this when you open the session, and may show \"Claude Code crashed\" for it. Press Back to Desktop on the session's card, or run ccbabysitter stop with the session and --yes. Then open the session from Claude Desktop's sidebar, where it carries on."
+  "text": "That session is running in the background Only one copy of a session runs at a time. While CC Babysitter's background copy carries it, Claude Desktop shows this when you open the session, and may show \"Claude Code crashed\" for it. Press Back to Desktop on the session's card, or run ccbabysitter stop with the session and --yes. Then open the session from Claude Desktop's sidebar. If Desktop shows \"Claude Code crashed\", press Try again there, and the session carries on."
  },
  {
   "url": "/docs/troubleshooting/#phone-title",
   "page": "Troubleshooting",
   "section": "The phone shows another name for the session",
-  "text": "Claude Code's automatic title After a session goes back to Claude Desktop, the Claude app on your phone may show Claude Code's automatic title for it. That replaces the name you gave it. It is the same session; only the name shown changes, and that name comes from Claude Code."
+  "text": "After a session goes back to Claude Desktop, the Claude app on your phone may show Claude Code's automatic title for it. That replaces the name you gave it. It is the same session; only the name shown changes, and that name comes from Claude Code."
  },
  {
   "url": "/docs/troubleshooting/#found-elsewhere",
   "page": "Troubleshooting",
-  "section": "The session is running somewhere else",
-  "text": "session found running elsewhere session open in babysitting it in CC Babysitter was about to bring a session back and found it already running, in an app or as a background copy. It never starts a second copy of a session, so it went back to watching it where it runs. Nothing needs doing."
+  "section": "The session is running in an app again",
+  "text": "session found running elsewhere the session is already running in ... session open in ... babysitting it in ... CC Babysitter was about to bring a session back and found it already running, in an app or as a background copy. It never starts a second copy of a session, so it went back to watching it where it runs. \"Session open in\" is the other way round. The background copy is gone, and the session is open in an app again, after Back to Desktop or because the app restored it. It is babysat there. Nothing needs doing in either case."
  },
  {
   "url": "/docs/troubleshooting/#extra-copies",
   "page": "Troubleshooting",
   "section": "More than one background copy",
-  "text": "more than one background copy of the same session stopped and removed left an extra background copy with could not clean up the extra background copy Two background copies of one session were running, which Claude Code does not expect. CC Babysitter keeps the copy it knows and stops and removes the others with claude stop and claude rm. It leaves a copy alone when its short id is also the short id of an app session of the same conversation. When a clean-up failed, Activity gives the commands to run by hand."
+  "text": "more than one background copy of the same session stopped and removed ... left an extra background copy with ... could not clean up the extra background copy ... Two background copies of one session were running, which should not happen. CC Babysitter keeps the copy it knows and stops and removes the others with claude stop and claude rm. It leaves a copy alone when its short id cannot be put in a command safely. That happens, for example, when an app session of the same conversation has the same short id. Then, and when a clean-up failed, check claude agents and remove the copy by hand."
  },
  {
   "url": "/docs/troubleshooting/#adopted",
   "page": "Troubleshooting",
   "section": "Babysat on its own on a server",
-  "text": "server auto-babysit adopted background session On a machine with no display, a new background session is babysat as soon as it starts, so it survives SSH drops and reboots. Switch Babysit every new background session off in Settings, or run ccbabysitter settings auto-babysit off, to choose each time instead."
+  "text": "server auto-babysit adopted background session ... On a machine with no display, a new background session is babysat as soon as it starts, so it survives SSH drops and reboots. Switch Babysit every new background session off in Settings, or run ccbabysitter settings auto-babysit off, to choose each time instead."
  },
  {
   "url": "/docs/troubleshooting/#nothing-to-bring-back",
   "page": "Troubleshooting",
   "section": "Nothing to bring back",
-  "text": "no saved conversation a saved conversation is there now the session is running again babysitting it again Claude Code saves a conversation only after its first message, so a session that ended before anything was said has nothing to start again from. Its babysitting ends, and Activity says so. An older version of CC Babysitter paused such a session instead. Once a conversation turns up for it, or it runs again, it is babysat again by itself."
+  "text": "no saved conversation ended before anything was said in it, so there is nothing to bring back a saved conversation is there now the session is running again babysitting it again Claude Code saves a conversation only after its first message, so a session that ended before anything was said has nothing to start again from. Its babysitting ends, and Activity says so. To babysit it, say something in it first, then press Babysit. The last three lines are about a session shown as stuck for this reason, which ended before anything was said. Once a conversation is there for it, or it runs again, it is babysat again on its own."
  },
  {
   "url": "/docs/troubleshooting/#not-logged-in",
   "page": "Troubleshooting",
   "section": "Claude Code is not logged in",
-  "text": "Claude Code is not logged in on this machine A Claude Code CLI that is not logged in reaches neither the model nor Remote Control, so a session started now could do nothing. The page shows this note, and New session and ccbabysitter start start nothing. Run claude once on this machine and log in, then try again."
+  "text": "Claude Code is not logged in on this machine ... A Claude Code CLI that is not logged in reaches neither the model nor Remote Control, so a session started now could do nothing. The page shows this note, and New session and ccbabysitter start start nothing. Run claude once on this machine and log in, then try again."
  },
  {
   "url": "/docs/troubleshooting/#no-cli",
   "page": "Troubleshooting",
   "section": "The Claude Code CLI cannot be used",
-  "text": "The Claude Code CLI is not installed, so babysat sessions cannot be brought back agents --json did not answer CC Babysitter brings sessions back, and checks which are running, with the claude CLI. Install Claude Code, or make sure claude runs in a terminal of the same account. When it did not answer in time, CC Babysitter tries again on its next look and starts nothing on an answer it did not get."
+  "text": "The Claude Code CLI is not installed, so babysat sessions cannot be brought back agents --json did not answer ... CC Babysitter brings sessions back with the claude CLI. Install Claude Code, or make sure claude runs in a terminal of the same account. Before it brings a session back, CC Babysitter asks claude agents whether the session is running, so it never starts a second copy. An answer it cannot use counts as none: it starts nothing, and asks again on its next look."
  },
  {
   "url": "/docs/troubleshooting/#page-key",
   "page": "Troubleshooting",
   "section": "The page needs its key",
-  "text": "This needs the page's key could not create the page's key could not save the page address Could not open a browser The page only answers requests that carry its key, which changes when CC Babysitter restarts, after an update or a restart of the computer. Run ccbabysitter to open the page again, or ccbabysitter status for its address with the key. When no browser could be opened, open that address yourself. When the key or the address could not be saved, check that CC Babysitter's state folder can be written."
+  "text": "This needs the page's key. Run ccbabysitter to open the page again, or open the address ccbabysitter status prints. CC Babysitter refused that request. Open this page from the address it printed when it started. Too many pages are connected to CC Babysitter. Close one and try again. could not create the page's key ... could not save the page address ... Could not open a browser ... The page only answers requests that carry its key. The key stays the same across restarts. A page that ccbabysitter opened for you is different: it works only until CC Babysitter restarts, for example after an update. Run ccbabysitter to open the page again. The address ccbabysitter status prints carries the key and keeps working after restarts. A refused request means the page was not opened from that address. Too many pages means close a tab. When no browser could be opened, open the address the terminal shows, or the one ccbabysitter status prints: the Activity line has it without the key. When the key or the address could not be saved, check that CC Babysitter's state folder can be written."
+ },
+ {
+  "url": "/docs/troubleshooting/#page-not-running",
+  "page": "Troubleshooting",
+  "section": "The page lost CC Babysitter",
+  "text": "Not running. Start CC Babysitter to reconnect. CC Babysitter did not answer. It may have stopped running. CC Babysitter quit, or stopped, while the page was open. Babysat sessions keep running, but nothing brings them back until it runs again. Run ccbabysitter, and the page reconnects. If start at login is on, it also starts again the next time you log in."
  },
  {
   "url": "/docs/troubleshooting/#state",
   "page": "Troubleshooting",
   "section": "Saved state could not be read or saved",
-  "text": "saved state could not be read and was moved to state.json.bad, so no sessions are being babysat saved state was written by version could not read saved state, starting from defaults could not save state CC Babysitter keeps the babysat sessions and its settings in one state folder. A state file it cannot read, or one a version it cannot use wrote, is moved to state.json.bad, and CC Babysitter starts from the defaults. The sessions that were babysat need Babysit again. A save that failed is tried again on the next change: check that the disk has room and the folder can be written."
+  "text": "saved state could not be read and was moved to state.json.bad, so no sessions are being babysat saved state was written by version ... could not read saved state, starting from defaults ... could not save state ... CC Babysitter keeps the babysat sessions and its settings in its state folder: ~/.local/share/ccbabysitter on macOS and Linux, %LOCALAPPDATA%\\CCBabysitter on Windows. A state file it cannot make sense of, or one written by a version it cannot use, is moved to state.json.bad. CC Babysitter then starts from the defaults, and the sessions that were babysat need Babysit again. \"Could not read\" means the file stayed where it is, but CC Babysitter could not open it, usually for its permissions. The next save writes the defaults over it, so fix the folder's permissions and run ccbabysitter again before changing anything. A save that failed is tried again on the next change: check that the disk has room and the folder can be written."
  },
  {
   "url": "/docs/troubleshooting/#keep-awake",
   "page": "Troubleshooting",
   "section": "The computer may sleep",
-  "text": "the system refused the keep-awake request CC Babysitter asks the system to stay awake while a session is babysat. The system said no. Babysat sessions are still brought back when their app closes. But the computer may sleep, and nobody can reach a sleeping computer. Check the system's power settings, then quit CC Babysitter and run ccbabysitter again."
+  "text": "the system refused the keep-awake request CC Babysitter asks the system to stay awake while a session is babysat. The system said no. Babysat sessions are still brought back when their app closes. But the computer may sleep, and nobody can reach a sleeping computer. CC Babysitter asks again each time it looks, and Activity says it is keeping the computer awake once the system agrees."
  },
  {
   "url": "/docs/troubleshooting/#file-watcher",
   "page": "Troubleshooting",
   "section": "Sessions are noticed more slowly",
-  "text": "file watcher file watcher unavailable, sweep only CC Babysitter watches Claude Code's session folder to notice a session the moment it starts or ends. Without the watch it still looks every few seconds, so everything works, only a little later. Nothing needs doing."
+  "text": "file watcher: ... file watcher unavailable, sweep only ... CC Babysitter watches Claude Code's session folder to notice a session the moment it starts or ends. Without the watch it still looks every few seconds, so everything works, only a little later. Nothing needs doing."
  },
  {
   "url": "/docs/troubleshooting/#page-stopped",
   "page": "Troubleshooting",
   "section": "The page stopped updating",
-  "text": "the page view could not be encoded, so the page is still showing the last one it received the web server stopped unexpectedly that part of the page is missing from this build These mean CC Babysitter itself went wrong, not your sessions. Run ccbabysitter to start it again and open the page. If it happens again, report it with the Activity line on the issue tracker ."
+  "text": "the page view could not be encoded, so the page is still showing the last one it received ... the web server stopped unexpectedly ... These mean CC Babysitter itself went wrong, not your sessions. When the page stopped updating, run ccbabysitter quit, then ccbabysitter. When the web server stopped, run ccbabysitter. If it happens again, report it with the Activity line on the issue tracker ."
  },
  {
   "url": "/docs/uninstall/",
