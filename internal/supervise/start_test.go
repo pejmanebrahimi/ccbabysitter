@@ -354,3 +354,28 @@ func TestAStartedSessionThatNeverShowsUpIsForgotten(t *testing.T) {
 		t.Fatalf("still waiting for %v", sf.s.started)
 	}
 }
+
+// When Claude Code's settings cannot be read, as on a machine where it has
+// never run, the folder is not taken as trusted: the answer asks, and with
+// the person's yes the question is answered.
+func TestStartWithoutClaudeSettingsAsksAndTrusts(t *testing.T) {
+	sf := newStartFixture(t, true, func([]string) (string, error) {
+		return "backgrounded \u00b7 1A2B3C4D \u00b7 shop-api", nil
+	})
+	if err := os.Remove(sf.f.d.ClaudeConfig); err != nil {
+		t.Fatal(err)
+	}
+	if res := sf.s.Start(sf.project, false, ViaPage); res.OK || !res.NeedsTrust {
+		t.Fatalf("without trust: %+v", res)
+	}
+	res := sf.s.Start(sf.project, true, ViaPage)
+	if !res.OK || strings.Join(sf.accept, " ") != sf.project {
+		t.Fatalf("with trust: %+v, accepted %v", res, sf.accept)
+	}
+	if res.ShortID != "1a2b3c4d" {
+		t.Errorf("short id %q, want it in lower case", res.ShortID)
+	}
+	if _, ok := sf.s.started["1a2b3c4d"]; !ok {
+		t.Errorf("waiting for %v, want 1a2b3c4d", sf.s.started)
+	}
+}

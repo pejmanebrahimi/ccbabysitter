@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -54,7 +55,15 @@ func startPTY(ctx context.Context, bin, dir string) (trustTerminal, error) {
 	cmd := exec.Command(bin)
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = slave, slave, slave
-	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
+	// A terminal the CLI draws its question on, whatever TERM this program
+	// was started with: a service may have none, or "dumb".
+	env := []string{"TERM=xterm-256color"}
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "TERM=") {
+			env = append(env, kv)
+		}
+	}
+	cmd.Env = env
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}
 	if err := cmd.Start(); err != nil {
 		return fail(fmt.Errorf("start %s: %w", bin, err))
@@ -97,10 +106,10 @@ func (t *ptyTerminal) End() error {
 	close(t.done)
 	defer t.master.Close()
 	pid := t.cmd.Process.Pid
+	// Once the CLI has been waited for, its id may belong to another
+	// process, so nothing is signalled by it after that.
 	select {
 	case <-t.exited:
-		// The CLI has gone; anything it left behind in its session goes too.
-		_ = syscall.Kill(-pid, syscall.SIGKILL)
 		return nil
 	default:
 	}
@@ -111,6 +120,9 @@ func (t *ptyTerminal) End() error {
 	case <-time.After(2 * time.Second):
 	}
 	_ = syscall.Kill(-pid, syscall.SIGKILL)
-	<-t.exited
+	select {
+	case <-t.exited:
+	case <-time.After(2 * time.Second):
+	}
 	return nil
 }

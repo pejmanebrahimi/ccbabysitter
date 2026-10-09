@@ -213,3 +213,34 @@ func TestAcceptTrustWhenTheCLIExitsFirst(t *testing.T) {
 		t.Fatalf("err %v", err)
 	}
 }
+
+// A screen that keeps redrawing never goes quiet, and the wait for the
+// question to settle still ends.
+func TestAcceptTrustWithAScreenThatNeverSettles(t *testing.T) {
+	f := newFakeTerminal(trustScreen(true), nil)
+	stop := make(chan struct{})
+	defer close(stop)
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			case <-time.After(5 * time.Millisecond):
+				select {
+				case f.out <- []byte("\x1b[?25l"):
+				default:
+				}
+			}
+		}
+	}()
+	done := make(chan error, 1)
+	go func() { done <- acceptTrust(context.Background(), f, quick) }()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("acceptTrust waited forever for a quiet screen")
+	}
+}

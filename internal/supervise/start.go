@@ -53,6 +53,7 @@ func (s *Supervisor) Start(dir string, trust bool, via Via) Result {
 	}
 	out, runErr := s.deps.Runner.Run(ctx, plan.dir, hosts.NewBackgroundArgs()...)
 	short, ok := claude.ParseBackgrounded(out)
+	short = strings.ToLower(short)
 	if !ok {
 		reason := why(out, runErr)
 		s.logInfo(plan.dir, "the new session did not start: "+reason+via.Suffix())
@@ -107,7 +108,10 @@ func (s *Supervisor) planStart(dir string, trust bool, plan *startPlan) Result {
 		return Result{Message: dir + " holds your home folder. Choose a project folder."}
 	}
 	plan.dir = dir
-	if trusted, known := s.trustNow().Trusted(dir); known && !trusted {
+	// A folder is taken as trusted only when Claude Code's settings say so.
+	// When they cannot be read, as before Claude Code has ever run here, it
+	// is not.
+	if trusted, _ := s.trustNow().Trusted(dir); !trusted {
 		if !trust {
 			return Result{Message: TrustQuestion(dir), NeedsTrust: true}
 		}

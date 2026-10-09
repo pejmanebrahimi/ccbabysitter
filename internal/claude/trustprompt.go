@@ -117,12 +117,17 @@ func acceptTrust(ctx context.Context, term trustTerminal, t trustTimings) error 
 	var screen strings.Builder
 	// read takes in the screen until the question shows, when untilAsked,
 	// or until it has been quiet for d, so a screen that arrives in pieces
-	// is read whole before anything is decided from it.
+	// is read whole before anything is decided from it. A screen that keeps
+	// redrawing is read for four times d at most.
 	read := func(d time.Duration, untilAsked bool) error {
 		timer := time.NewTimer(d)
 		defer timer.Stop()
+		limit := time.NewTimer(4 * d)
+		defer limit.Stop()
 		for {
 			select {
+			case <-limit.C:
+				return nil
 			case b, ok := <-term.Output():
 				if !ok {
 					return io.EOF
