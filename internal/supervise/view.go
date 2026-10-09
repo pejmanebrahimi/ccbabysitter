@@ -243,7 +243,7 @@ func (s *Supervisor) sessionView(live []claude.Session) SessionView {
 	out := SessionView{
 		ID: sn.ID, ShortID: sn.ShortID, PID: sn.PID, ProcStart: sn.ProcStart, Cwd: sn.Cwd, Name: name, AlsoCalled: also,
 		Host: sn.Host, Entrypoint: sn.Entrypoint,
-		Status: sn.Status, Stats: s.stats[sn.ID], Tree: treeView(s.trees[sn.PID]),
+		Status: sn.Status, Stats: s.stats[sn.ID], Tree: treeView(s.trees[sn.PID], sn.StartedAt, s.deps.Now()),
 		Live:            make([]claude.Host, 0, len(ranked)),
 		Actionable:      sn.Host != claude.HostOther,
 		ScheduledTask:   s.stats[sn.ID].ScheduledTask,
@@ -293,7 +293,7 @@ func (s *Supervisor) watchView(w state.Watch) WatchView {
 		out.Status = primary.Status
 		out.PID = primary.PID
 		out.ProcStart = primary.ProcStart
-		out.Tree = treeView(s.trees[primary.PID])
+		out.Tree = treeView(s.trees[primary.PID], primary.StartedAt, s.deps.Now())
 		if !out.RCOn {
 			out.RCHint = RCHint(primary.Host, primary.ShortID)
 		}
@@ -428,11 +428,16 @@ func nested(sn claude.Session, snap observe.Snapshot, trees map[int]procs.TreeSt
 }
 
 // treeView renders a process tree for the page, never leaving a nil slice
-// behind for it to guard against.
-func treeView(t procs.TreeStats) TreeView {
+// behind for it to guard against. Its uptime counts from startedAt, when
+// the session started in the process, if that is later than the process's
+// own start and not after now.
+func treeView(t procs.TreeStats, startedAt, now time.Time) TreeView {
 	children := t.Children
 	if children == nil {
 		children = []string{}
+	}
+	if since := now.Sub(startedAt); !startedAt.IsZero() && since >= 0 && since < t.Uptime {
+		t.Uptime = since
 	}
 	return TreeView{
 		CPUPercent:    t.CPUPercent,

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -34,6 +35,10 @@ type Session struct {
 	// BridgeSessionID is the session's Remote Control bridge id, empty
 	// while Remote Control is off.
 	BridgeSessionID string
+	// StartedAt is when the session started in this process, zero when the
+	// file does not say. A background process is started ahead of time and
+	// given to a session later, so it can be well after the process's start.
+	StartedAt time.Time
 }
 
 type sessionFile struct {
@@ -47,6 +52,7 @@ type sessionFile struct {
 	JobID           string          `json:"jobId"`
 	Status          string          `json:"status"`
 	BridgeSessionID string          `json:"bridgeSessionId"`
+	StartedAt       json.RawMessage `json:"startedAt"`
 }
 
 const (
@@ -91,7 +97,19 @@ func ParseSessionFile(data []byte) (Session, error) {
 		RemoteControl:   f.BridgeSessionID != "",
 		Status:          f.Status,
 		BridgeSessionID: f.BridgeSessionID,
+		StartedAt:       decodeMillis(f.StartedAt),
 	}, nil
+}
+
+// decodeMillis reads a time written as milliseconds since 1970, and gives
+// the zero time for anything else, so a file with an odd value is still
+// read for the rest.
+func decodeMillis(raw json.RawMessage) time.Time {
+	var ms int64
+	if json.Unmarshal(raw, &ms) != nil || ms <= 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(ms)
 }
 
 // shortIDOf picks the eight character id a session is known by on a command

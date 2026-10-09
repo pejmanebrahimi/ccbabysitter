@@ -1,6 +1,7 @@
 package claude
 
 import (
+	"time"
 	"strings"
 	"testing"
 )
@@ -171,6 +172,31 @@ func TestClassifyHost(t *testing.T) {
 	for in, want := range cases {
 		if got := ClassifyHost(in[0], in[1]); got != want {
 			t.Errorf("ClassifyHost(%q,%q)=%q want %q", in[0], in[1], got, want)
+		}
+	}
+}
+
+// startedAt is when the session started in its process, in milliseconds.
+// A background process is started ahead of time and given to a session
+// later, so it can be much later than the process's own start.
+func TestParseSessionFileStartedAt(t *testing.T) {
+	with := `{"pid":121,"sessionId":"22222222-2222-4333-8444-555555555502","cwd":"/w","procStart":"1","kind":"bg","startedAt":1791554370322}`
+	s, err := ParseSessionFile([]byte(with))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.StartedAt.Equal(time.UnixMilli(1791554370322)) {
+		t.Fatalf("StartedAt %v", s.StartedAt)
+	}
+	for _, in := range []string{bgFile,
+		`{"pid":121,"sessionId":"22222222-2222-4333-8444-555555555502","cwd":"/w","procStart":"1","startedAt":"soon"}`,
+		`{"pid":121,"sessionId":"22222222-2222-4333-8444-555555555502","cwd":"/w","procStart":"1","startedAt":-5}`} {
+		s, err := ParseSessionFile([]byte(in))
+		if err != nil {
+			t.Fatalf("%s: %v", in, err)
+		}
+		if !s.StartedAt.IsZero() {
+			t.Fatalf("%s: StartedAt %v, want none", in, s.StartedAt)
 		}
 	}
 }
