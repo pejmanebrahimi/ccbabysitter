@@ -178,6 +178,9 @@ func TestDocsEditLinksPointAtThePage(t *testing.T) {
 		want := "https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/" + f
 		if src, ok := generatedFrom[f]; ok {
 			want = "https://github.com/pejmanebrahimi/ccbabysitter/edit/main/" + src
+			if _, err := os.Stat(filepath.Join("..", filepath.FromSlash(src))); err != nil {
+				t.Errorf("%s: its parts come from %s, which is not there", f, src)
+			}
 		}
 		if _, ok := generatedFrom[f]; ok != strings.Contains(s, "<!-- generated:") {
 			t.Errorf("%s: has generated parts %v, but generatedFrom lists it %v", f, !ok, ok)

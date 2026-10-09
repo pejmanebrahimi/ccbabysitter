@@ -57,8 +57,8 @@ func TestPluginManifests(t *testing.T) {
 
 // updateReference rewrites the plugin's generated references, the command
 // reference from the help pages and how-it-works.md from the README:
-// go test ./cmd/ccbabysitter -run 'TestPluginReference|TestPluginHowItWorks' -update-reference
-var updateReference = flag.Bool("update-reference", false, "rewrite plugin/skills/babysit/references")
+// go test ./cmd/ccbabysitter -run 'TestPluginReference|TestPluginHowItWorks|TestDocsCommandReference' -update-reference
+var updateReference = flag.Bool("update-reference", false, "rewrite plugin/skills/babysit/references and the docs' command reference")
 
 // referencesDir is where the skill's references live, beside SKILL.md.
 var referencesDir = filepath.Join(pluginDir, "skills", "babysit", "references")

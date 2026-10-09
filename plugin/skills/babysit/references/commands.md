@@ -63,7 +63,7 @@ Flags:
                      command runs, so leave --url out for your own running copy
 
 Text, two lines:
-  CC Babysitter 0.4.0 is running at http://127.0.0.1:47391/?token=KEY
+  CC Babysitter X.Y.Z is running at http://127.0.0.1:47391/?token=KEY
   Sessions: 5, babysat: 2. Keeping the computer awake: yes
 Keeping the computer awake says yes, no, or not supported on this system. Where
 closing the lid would put the computer to sleep, yes adds: while its lid is open.

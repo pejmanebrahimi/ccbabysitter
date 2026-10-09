@@ -83,23 +83,35 @@ var allowedURL = []string{
 	"http://127.0.0.1",
 }
 
+// portThenRest matches what may follow an allowed host: a port, digits
+// or PORT as the docs write it in examples, then the end or a path, query
+// or fragment.
+var portThenRest = regexp.MustCompile(`^:(?:[0-9]+|PORT)(?:$|[/#?])`)
+
+// allowedAddress reports whether u is one of the allowed addresses: it
+// must end where the allowed one ends, or go on into a port, path, query
+// or fragment, never into another host or name. An allowed address that
+// ends in a slash is already a path prefix.
+func allowedAddress(u string) bool {
+	for _, a := range allowedURL {
+		if !strings.HasPrefix(u, a) {
+			continue
+		}
+		rest := u[len(a):]
+		if rest == "" || strings.HasSuffix(a, "/") || strings.ContainsRune("/#?", rune(rest[0])) || portThenRest.MatchString(rest) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestNoThirdPartyHosts(t *testing.T) {
 	for _, f := range siteFiles(t) {
 		if binary(f) || strings.HasSuffix(f, "OFL.txt") {
 			continue
 		}
 		for _, u := range absURL.FindAllString(readSite(t, f), -1) {
-			ok := false
-			for _, a := range allowedURL {
-				// The address must end where the allowed one ends, or go on
-				// into a port, path, query or fragment: not into another host or
-				// name. An allowed address that ends in a slash is already a path
-				// prefix.
-				if strings.HasPrefix(u, a) && (len(u) == len(a) || strings.HasSuffix(a, "/") || strings.ContainsRune(":/#?", rune(u[len(a)]))) {
-					ok = true
-				}
-			}
-			if !ok {
+			if !allowedAddress(u) {
 				t.Errorf("%s: %s is not an allowed address", f, u)
 			}
 		}
@@ -682,5 +694,34 @@ func TestInstallTabs(t *testing.T) {
 	text := regexp.MustCompile(`\.cmd \.text \{[^}]*\}`).FindString(css)
 	if !strings.Contains(text, "white-space: normal") || !strings.Contains(text, "overflow-wrap: anywhere") || strings.Contains(text, "overflow-x") {
 		t.Errorf("a long command does not wrap: %q", text)
+	}
+}
+
+// An allowed address may go on into a port, a path, a query or a
+// fragment, and never into another host, as with a longer name or a
+// user before an @.
+func TestAllowedAddress(t *testing.T) {
+	for _, c := range []struct {
+		u  string
+		ok bool
+	}{
+		{"https://ccbabysitter.dev", true},
+		{"https://ccbabysitter.dev/docs/", true},
+		{"https://ccbabysitter.dev#top", true},
+		{"http://127.0.0.1:47391/?token=KEY", true},
+		{"http://127.0.0.1:PORT", true},
+		{"http://127.0.0.1:PORT/?token=KEY", true},
+		{"https://github.com/pejmanebrahimi/ccbabysitter/issues", true},
+		{"https://ccbabysitter.dev.evil.com", false},
+		{"http://127.0.0.1.evil.com", false},
+		{"https://ccbabysitter.dev:443@evil.com/x", false},
+		{"http://127.0.0.1:8080@evil.com", false},
+		{"https://schema.org:@evil.com", false},
+		{"http://127.0.0.1:80x", false},
+		{"https://github.com/pejmanebrahimi/ccbabysitter-evil", false},
+	} {
+		if got := allowedAddress(c.u); got != c.ok {
+			t.Errorf("allowedAddress(%q) = %v, want %v", c.u, got, c.ok)
+		}
 	}
 }

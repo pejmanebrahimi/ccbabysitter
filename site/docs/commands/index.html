@@ -80,7 +80,7 @@
 
 <!-- generated:commands -->
     <h2 id="all">All commands</h2>
-    <pre class="out">CC Babysitter keeps Claude Code sessions alive and reachable.
+    <pre class="out" tabindex="0">CC Babysitter keeps Claude Code sessions alive and reachable.
 
 Run it:
   ccbabysitter                 start CC Babysitter. It runs in the background and starts at login
@@ -120,7 +120,7 @@ Examples:
 </pre>
 
     <h2 id="status">status</h2>
-    <pre class="out">ccbabysitter status
+    <pre class="out" tabindex="0">ccbabysitter status
 
 Tells whether CC Babysitter is running, at what address, how many sessions it
 sees, how many are babysat, and whether it keeps the computer awake. The address
@@ -138,7 +138,7 @@ Flags:
                      command runs, so leave --url out for your own running copy
 
 Text, two lines:
-  CC Babysitter 0.4.0 is running at http://127.0.0.1:47391/?token=KEY
+  CC Babysitter X.Y.Z is running at http://127.0.0.1:47391/?token=KEY
   Sessions: 5, babysat: 2. Keeping the computer awake: yes
 Keeping the computer awake says yes, no, or not supported on this system. Where
 closing the lid would put the computer to sleep, yes adds: while its lid is open.
@@ -164,7 +164,7 @@ Example:
 </pre>
 
     <h2 id="list">list</h2>
-    <pre class="out">ccbabysitter list
+    <pre class="out" tabindex="0">ccbabysitter list
 
 Lists every Claude Code session on this machine, babysat or not, running or not.
 Sessions that are not babysat come first, then the babysat ones. Runs of a Claude
@@ -217,7 +217,7 @@ Example:
 </pre>
 
     <h2 id="show">show</h2>
-    <pre class="out">ccbabysitter show S
+    <pre class="out" tabindex="0">ccbabysitter show S
 
 Shows one session in full, one Label: value line each. Lines for things that
 are not set are left out, except App, Running, Remote Control, Babysat and Tokens.
@@ -270,7 +270,7 @@ Example:
 </pre>
 
     <h2 id="babysit">babysit</h2>
-    <pre class="out">ccbabysitter babysit S [--start-at-login]
+    <pre class="out" tabindex="0">ccbabysitter babysit S [--start-at-login]
 
 Keeps S alive. If the app it runs in dies, it comes back in the background and
 stays reachable. This is the page&#39;s Babysit button. A run of a Claude Desktop
@@ -313,7 +313,7 @@ Example:
 </pre>
 
     <h2 id="unbabysit">unbabysit</h2>
-    <pre class="out">ccbabysitter unbabysit S
+    <pre class="out" tabindex="0">ccbabysitter unbabysit S
 
 Stops babysitting S. The session keeps running where it is. This is the page&#39;s
 Unbabysit button.
@@ -353,7 +353,7 @@ Example:
 </pre>
 
     <h2 id="retry">retry</h2>
-    <pre class="out">ccbabysitter retry S
+    <pre class="out" tabindex="0">ccbabysitter retry S
 
 Tries again on a babysat session that is stuck, as the page&#39;s Try again button
 does. Use it when list or show says its state is stuck.
@@ -393,7 +393,7 @@ Example:
 </pre>
 
     <h2 id="stop">stop</h2>
-    <pre class="out">ccbabysitter stop S --yes
+    <pre class="out" tabindex="0">ccbabysitter stop S --yes
 
 Stops the background copy of S. The conversation is kept, and can be resumed.
 Without --yes it changes nothing: it says what it would stop and exits with 2.
@@ -441,7 +441,7 @@ Example:
 </pre>
 
     <h2 id="activity">activity</h2>
-    <pre class="out">ccbabysitter activity [S] [-n N]
+    <pre class="out" tabindex="0">ccbabysitter activity [S] [-n N]
 
 Shows what CC Babysitter did and why, newest first. With S, only the entries
 about that session. It looks through the newest 500 entries, so an older entry
@@ -486,7 +486,7 @@ Example:
 </pre>
 
     <h2 id="settings">settings</h2>
-    <pre class="out">ccbabysitter settings [NAME VALUE]
+    <pre class="out" tabindex="0">ccbabysitter settings [NAME VALUE]
 
 Shows the settings, or changes one. These are the page&#39;s settings.
   autostart      on or off     start CC Babysitter when you log in, or at boot on a server
@@ -528,7 +528,7 @@ Example:
 </pre>
 
     <h2 id="open">open</h2>
-    <pre class="out">ccbabysitter open
+    <pre class="out" tabindex="0">ccbabysitter open
 
 Opens the running copy&#39;s page in your default browser, with a one-time address,
 as starting CC Babysitter does. Nothing it prints carries the page&#39;s key, so it is
@@ -566,7 +566,7 @@ Example:
 </pre>
 
     <h2 id="quit">quit</h2>
-    <pre class="out">ccbabysitter quit
+    <pre class="out" tabindex="0">ccbabysitter quit
 
 Quits the running copy of CC Babysitter, as the page&#39;s Quit button does. Babysat
 sessions keep running where they are, but nothing brings them back if their app
@@ -603,7 +603,7 @@ Example:
 </pre>
 
     <h2 id="install">install</h2>
-    <pre class="out">ccbabysitter install
+    <pre class="out" tabindex="0">ccbabysitter install
 
 On Linux, sets CC Babysitter up as a systemd user service that starts at boot and
 keeps running after you log out, and starts it, whether or not the machine has a
@@ -616,7 +616,7 @@ Example:
 </pre>
 
     <h2 id="uninstall">uninstall</h2>
-    <pre class="out">ccbabysitter uninstall [--yes] [--keep-files]
+    <pre class="out" tabindex="0">ccbabysitter uninstall [--yes] [--keep-files]
 
 Removes CC Babysitter from this computer. It says what goes and asks Continue? [y/N]
 first, and anything but y changes nothing. Then it removes start at login, asks a
@@ -645,7 +645,7 @@ Examples:
 </pre>
 
     <h2 id="reset">reset</h2>
-    <pre class="out">ccbabysitter reset
+    <pre class="out" tabindex="0">ccbabysitter reset
 
 Deletes the state folder, which holds the settings, the babysat sessions and the
 activity log. It names the folder and asks Continue? [y/N] first, and anything but y
@@ -656,7 +656,7 @@ Example:
 </pre>
 
     <h2 id="version">version</h2>
-    <pre class="out">ccbabysitter version [--json]
+    <pre class="out" tabindex="0">ccbabysitter version [--json]
 
 Prints the name and the version, and exits with 0. With --json, prints
 {&#34;schema&#34;:1,&#34;name&#34;:&#34;CC Babysitter&#34;,&#34;version&#34;:&#34;...&#34;,&#34;headless&#34;:false} instead, where
@@ -675,7 +675,7 @@ Example:
 </pre>
 
     <h2 id="help">help</h2>
-    <pre class="out">ccbabysitter help [COMMAND]
+    <pre class="out" tabindex="0">ccbabysitter help [COMMAND]
 
 Without a command, prints the list of everything ccbabysitter does. With one, prints
 that command&#39;s page: what it does, its flags, its output and its exit codes.

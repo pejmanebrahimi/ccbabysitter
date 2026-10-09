@@ -20,17 +20,19 @@ var generated = regexp.MustCompile(`(?s)(<!-- generated:([a-z]+) -->\n)(.*?)(\s*
 
 // commandsParts are the generated parts of the command reference: the list
 // under On this page, and a section for the usage and for each command.
+// Each help page is a block that scrolls sideways on a narrow screen, and
+// takes the focus so a keyboard can scroll it too.
 func commandsParts() map[string]string {
 	var toc, body strings.Builder
 	var usage strings.Builder
 	printUsage(&usage)
 	toc.WriteString(`        <li><a href="#all">All commands</a></li>` + "\n")
 	body.WriteString(`    <h2 id="all">All commands</h2>` + "\n")
-	body.WriteString(`    <pre class="out">` + html.EscapeString(usage.String()) + "</pre>\n")
+	body.WriteString(`    <pre class="out" tabindex="0">` + html.EscapeString(usage.String()) + "</pre>\n")
 	for _, name := range referenceCommands {
 		toc.WriteString(`        <li><a href="#` + name + `">` + name + "</a></li>\n")
 		body.WriteString("\n    <h2 id=\"" + name + "\">" + name + "</h2>\n")
-		body.WriteString(`    <pre class="out">` + html.EscapeString(helpPages[name]) + "</pre>\n")
+		body.WriteString(`    <pre class="out" tabindex="0">` + html.EscapeString(helpPages[name]) + "</pre>\n")
 	}
 	return map[string]string{"toc": strings.TrimRight(toc.String(), "\n"), "commands": strings.TrimRight(body.String(), "\n")}
 }
@@ -46,10 +48,12 @@ func TestDocsCommandReference(t *testing.T) {
 	want := generated.ReplaceAllStringFunc(string(b), func(m string) string {
 		g := generated.FindStringSubmatch(m)
 		seen[g[2]] = true
-		if p, ok := parts[g[2]]; ok {
-			return g[1] + p + g[4]
+		p, ok := parts[g[2]]
+		if !ok {
+			t.Errorf("%s has a generated part %q that nothing makes", commandsPage, g[2])
+			return m
 		}
-		return m
+		return g[1] + p + g[4]
 	})
 	for name := range parts {
 		if !seen[name] {
