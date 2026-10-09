@@ -36,6 +36,13 @@ func newStartFixture(t *testing.T, headless bool, respond func(args []string) (s
 	if err := os.Mkdir(sf.project, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// The project's real path, as Claude Code records trust under it; a
+	// temporary folder can sit behind a link, as on macOS.
+	real, err := filepath.EvalSymlinks(sf.project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sf.project = real
 	sf.f.d.Env = func() hosts.Env {
 		return hosts.Env{Platform: "linux", CLIFound: true, CLIPresent: true, Headless: headless}
 	}
@@ -224,5 +231,126 @@ func TestStartedSessionIsBabysat(t *testing.T) {
 	sf.s.reconcileForTest(sf.f.d.Obs.Current())
 	if _, ok := sf.s.watchForTest(id); !ok {
 		t.Fatal("the session started was not babysat")
+	}
+}
+
+// A folder reached through a symbolic link is started, trusted and checked
+// under its real path, which is where Claude Code records the trust.
+func TestStartResolvesSymbolicLinks(t *testing.T) {
+	sf := newStartFixture(t, true, func([]string) (string, error) {
+		return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api", nil
+	})
+	real, err := filepath.EvalSymlinks(sf.project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "app")
+	if err := os.Symlink(sf.project, link); err != nil {
+		t.Fatal(err)
+	}
+	if res := sf.s.Start(link, true, ViaPage); !res.OK {
+		t.Fatalf("%+v", res)
+	}
+	if strings.Join(sf.accept, " ") != real || strings.Join(sf.f.r.CwdList(), " ") != real {
+		t.Fatalf("trusted %q and started in %q, want %q", sf.accept, sf.f.r.CwdList(), real)
+	}
+}
+
+// The root folder and every folder above the home folder are refused:
+// trusting one would make Claude Code trust every project below it. So is
+// a link to the home folder.
+func TestStartRefusesFoldersAboveHome(t *testing.T) {
+	sf := newStartFixture(t, true, nil)
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	home := filepath.Join(base, "home", "dev")
+	if err := os.MkdirAll(home, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(base, "to-home")
+	if err := os.Symlink(home, link); err != nil {
+		t.Fatal(err)
+	}
+	sf.f.d.Home = home
+	sf.s = New(*sf.f.d)
+	for _, dir := range []string{"/", filepath.Join(base, "home"), base} {
+		res := sf.s.Start(dir, true, ViaPage)
+		if res.OK || res.Message != dir+" holds your home folder. Choose a project folder." {
+			t.Errorf("%s: %+v", dir, res)
+		}
+	}
+	if res := sf.s.Start(link, true, ViaPage); res.OK || !strings.Contains(res.Message, "home folder") {
+		t.Errorf("a link to home: %+v", res)
+	}
+	if len(sf.accept) != 0 || len(sf.f.r.CallList()) != 0 {
+		t.Fatalf("accepted %v, ran %v", sf.accept, sf.f.r.CallList())
+	}
+}
+
+// The trust step takes seconds, and the loop keeps answering meanwhile.
+func TestStartDoesNotHoldTheLoop(t *testing.T) {
+	sf := newStartFixture(t, true, func([]string) (string, error) {
+		return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api", nil
+	})
+	entered, release := make(chan struct{}), make(chan struct{})
+	sf.acceptDoes = func(dir string) error {
+		close(entered)
+		<-release
+		sf.trust(t, dir)
+		return nil
+	}
+	s, _, cancel := newSup(t, sf.f)
+	defer cancel()
+	done := make(chan Result, 1)
+	go func() { done <- s.Start(sf.project, true, ViaPage) }()
+	<-entered
+	answered := make(chan Result, 1)
+	go func() { answered <- s.Unbabysit("1a2b3c4d-0000-4000-8000-00000000ffff", ViaPage) }()
+	select {
+	case <-answered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("the loop did not answer while the folder was being trusted")
+	}
+	close(release)
+	if res := <-done; !res.OK {
+		t.Fatalf("%+v", res)
+	}
+}
+
+// A trust that did not work and a start that did not happen are written to
+// Activity too.
+func TestStartFailuresAreInActivity(t *testing.T) {
+	sf := newStartFixture(t, true, func([]string) (string, error) { return "", errors.New("exit status 1") })
+	sf.acceptDoes = func(string) error { return claude.ErrTrustNoYes }
+	sf.s.Start(sf.project, true, ViaPage)
+	sf.trust(t, sf.project)
+	sf.s.Start(sf.project, false, ViaPage)
+	got := strings.Join(logMessages(sf.f.d.Log), "\n")
+	for _, want := range []string{"could not trust the folder", "the new session did not start"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Activity has no %q:\n%s", want, got)
+		}
+	}
+}
+
+// A session that was started but never shows up is not waited for
+// forever.
+func TestAStartedSessionThatNeverShowsUpIsForgotten(t *testing.T) {
+	now := time.Now()
+	sf := newStartFixture(t, true, func([]string) (string, error) {
+		return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api", nil
+	})
+	sf.f.d.Now = func() time.Time { return now }
+	sf.trust(t, sf.project)
+	sf.s = New(*sf.f.d)
+	if res := sf.s.Start(sf.project, false, ViaPage); !res.OK {
+		t.Fatalf("%+v", res)
+	}
+	now = now.Add(startedWait + time.Second)
+	sf.s.reconcileForTest(observe.Snapshot{At: now})
+	if len(sf.s.started) != 0 {
+		t.Fatalf("still waiting for %v", sf.s.started)
 	}
 }

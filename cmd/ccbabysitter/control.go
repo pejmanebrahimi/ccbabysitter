@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -309,7 +310,7 @@ func runControl(name string, args []string, env controlEnv) int {
 
 	// start needs no session: it names a folder for a new one.
 	if name == "start" {
-		res, err := c.Start(ctx, a.pos[0], a.trust)
+		res, err := c.Start(ctx, fullPath(a.pos[0]), a.trust)
 		if err != nil {
 			return env.failErr(a.json, false, "", err)
 		}
@@ -795,4 +796,22 @@ func (env controlEnv) printSettings(asJSON bool, st state.Settings) int {
 	fmt.Fprintf(env.stdout, "autostart: %s\nauto-babysit: %s\nopen-browser: %s\ntheme: %s\n",
 		onOff(st.Autostart), onOff(st.AutoBabysit), onOff(st.AutoOpenBrowser), st.Theme)
 	return 0
+}
+
+// fullPath is dir as a full path on this machine: one starting with ~ is
+// taken from the home folder, and one relative to here from this folder.
+// start runs on the same machine as the copy it asks, so here means the
+// same thing to both.
+func fullPath(dir string) string {
+	if dir == "~" || strings.HasPrefix(dir, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			dir = filepath.Join(home, strings.TrimPrefix(dir, "~"))
+		}
+	}
+	if !filepath.IsAbs(dir) {
+		if abs, err := filepath.Abs(dir); err == nil {
+			dir = abs
+		}
+	}
+	return dir
 }

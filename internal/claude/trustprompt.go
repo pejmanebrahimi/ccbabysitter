@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -57,7 +58,10 @@ func readTrustScreen(screen string) (asked, onYes bool) {
 	if i < 0 {
 		return true, false
 	}
-	return true, strings.HasPrefix(s[i+len(selected):], "yes,itrustthisfolder")
+	// The options may be numbered: the mark, then "2.", then the words.
+	rest := strings.TrimLeft(s[i+len(selected):], "0123456789")
+	rest = strings.TrimPrefix(rest, ".")
+	return true, strings.HasPrefix(rest, "yes,itrustthisfolder")
 }
 
 // trustTerminal is the CLI running on a pseudo-terminal: what is typed
@@ -95,6 +99,9 @@ func AcceptTrust(ctx context.Context, bin, dir string) error {
 	if bin == "" {
 		bin = FindCLI()
 	}
+	if _, err := exec.LookPath(bin); err != nil {
+		return errors.New("Claude Code's command was not found")
+	}
 	term, err := startTrustTerminal(ctx, bin, dir)
 	if err != nil {
 		return err
@@ -108,7 +115,10 @@ func AcceptTrust(ctx context.Context, bin, dir string) error {
 // and presses Enter only once the mark is on Yes.
 func acceptTrust(ctx context.Context, term trustTerminal, t trustTimings) error {
 	var screen strings.Builder
-	read := func(d time.Duration) error {
+	// read takes in the screen until the question shows, when untilAsked,
+	// or until it has been quiet for d, so a screen that arrives in pieces
+	// is read whole before anything is decided from it.
+	read := func(d time.Duration, untilAsked bool) error {
 		timer := time.NewTimer(d)
 		defer timer.Stop()
 		for {
@@ -118,8 +128,12 @@ func acceptTrust(ctx context.Context, term trustTerminal, t trustTimings) error 
 					return io.EOF
 				}
 				screen.Write(b)
-				if asked, _ := readTrustScreen(screen.String()); asked && d == t.ask {
-					return nil
+				if untilAsked {
+					if asked, _ := readTrustScreen(screen.String()); asked {
+						return nil
+					}
+				} else {
+					timer.Reset(d)
 				}
 			case <-timer.C:
 				return nil
@@ -128,7 +142,7 @@ func acceptTrust(ctx context.Context, term trustTerminal, t trustTimings) error 
 			}
 		}
 	}
-	if err := read(t.ask); err != nil && err != io.EOF {
+	if err := read(t.ask, true); err != nil && err != io.EOF {
 		return err
 	}
 	asked, onYes := readTrustScreen(screen.String())
@@ -136,7 +150,7 @@ func acceptTrust(ctx context.Context, term trustTerminal, t trustTimings) error 
 		return ErrTrustNotAsked
 	}
 	// Let the question finish drawing before the first key.
-	if err := read(t.settle); err != nil && err != io.EOF {
+	if err := read(t.settle, false); err != nil && err != io.EOF {
 		return err
 	}
 	for tries := 0; ; tries++ {
@@ -149,14 +163,14 @@ func acceptTrust(ctx context.Context, term trustTerminal, t trustTimings) error 
 		if _, err := io.WriteString(term, keyDown); err != nil {
 			return ErrTrustNoYes
 		}
-		if err := read(t.settle); err != nil && err != io.EOF {
+		if err := read(t.settle, false); err != nil && err != io.EOF {
 			return err
 		}
 	}
 	if _, err := io.WriteString(term, keyEnter); err != nil {
 		return err
 	}
-	if err := read(t.after); err != nil && err != io.EOF {
+	if err := read(t.after, false); err != nil && err != io.EOF {
 		return err
 	}
 	return nil

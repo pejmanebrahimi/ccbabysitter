@@ -20,6 +20,9 @@ type ptyTerminal struct {
 	cmd    *exec.Cmd
 	out    chan []byte
 	exited chan struct{}
+	// done closes when End starts, so the reader stops handing on the
+	// screen nobody reads any more and returns.
+	done chan struct{}
 }
 
 // startPTY opens a pseudo-terminal, starts bin on it in dir as the leader
@@ -56,14 +59,18 @@ func startPTY(ctx context.Context, bin, dir string) (trustTerminal, error) {
 	if err := cmd.Start(); err != nil {
 		return fail(fmt.Errorf("start %s: %w", bin, err))
 	}
-	t := &ptyTerminal{master: master, cmd: cmd, out: make(chan []byte, 64), exited: make(chan struct{})}
+	t := &ptyTerminal{master: master, cmd: cmd, out: make(chan []byte, 64), exited: make(chan struct{}), done: make(chan struct{})}
 	go func() {
 		defer close(t.out)
 		buf := make([]byte, 32<<10)
 		for {
 			n, err := master.Read(buf)
 			if n > 0 {
-				t.out <- append([]byte(nil), buf[:n]...)
+				select {
+				case t.out <- append([]byte(nil), buf[:n]...):
+				case <-t.done:
+					return
+				}
 			}
 			if err != nil {
 				return
@@ -83,16 +90,20 @@ func (t *ptyTerminal) Output() <-chan []byte { return t.out }
 
 // End ends the CLI this program started, and anything it started in its
 // session, asking first and forcing after two seconds, then waits for it.
+// It is called once.
 // The process is the one cmd started and is known by its own handle, never
 // looked up by name.
 func (t *ptyTerminal) End() error {
+	close(t.done)
 	defer t.master.Close()
+	pid := t.cmd.Process.Pid
 	select {
 	case <-t.exited:
+		// The CLI has gone; anything it left behind in its session goes too.
+		_ = syscall.Kill(-pid, syscall.SIGKILL)
 		return nil
 	default:
 	}
-	pid := t.cmd.Process.Pid
 	_ = syscall.Kill(-pid, syscall.SIGTERM)
 	select {
 	case <-t.exited:

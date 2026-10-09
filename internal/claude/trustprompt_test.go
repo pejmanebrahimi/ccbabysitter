@@ -41,6 +41,8 @@ func TestReadTrustScreen(t *testing.T) {
 		{"asked, on Yes", trustScreen(true), true, true},
 		{"a redraw after Down", trustScreen(false) + "\x1b[3A\x1b[2K" + trustScreen(true), true, true},
 		{"a redraw back to No", trustScreen(true) + trustScreen(false), true, false},
+		{"numbered options, on No", "Yes, I trust this folder\r\nNo, exit\r\n\u276f 1. No, exit\r\n  2. Yes, I trust this folder\r\n", true, false},
+		{"numbered options, on Yes", "No, exit\r\n  1. No, exit\r\n\u276f 2. Yes, I trust this folder\r\n", true, true},
 		{"another question", "Do you want to continue?\r\n\u276f 1. Yes\r\n  2. No\r\n", false, false},
 	} {
 		asked, onYes := readTrustScreen(c.screen)
@@ -176,5 +178,38 @@ func TestAcceptTrustStopsWithTheContext(t *testing.T) {
 	cancel()
 	if err := acceptTrust(ctx, f, trustTimings{ask: time.Minute, settle: time.Millisecond, after: time.Millisecond}); err == nil {
 		t.Fatal("no error after the context ended")
+	}
+}
+
+// The screen arrives in pieces, and a piece can end in the middle of the
+// mark before the chosen option.
+func TestAcceptTrustReadsAScreenInPieces(t *testing.T) {
+	yes := trustScreen(true)
+	cut := strings.Index(yes, "\u276f") + 1
+	var f *fakeTerminal
+	f = newFakeTerminal(trustScreen(false), func(key string) string {
+		if key == keyDown {
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				f.out <- []byte(yes[cut:])
+			}()
+			return yes[:cut]
+		}
+		return ""
+	})
+	if err := acceptTrust(context.Background(), f, quick); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.keys(); got != "down enter" {
+		t.Errorf("keys %q", got)
+	}
+}
+
+// A CLI that exits before asking has asked nothing.
+func TestAcceptTrustWhenTheCLIExitsFirst(t *testing.T) {
+	f := newFakeTerminal("Error: not logged in\r\n", nil)
+	close(f.out)
+	if err := acceptTrust(context.Background(), f, quick); !errors.Is(err, ErrTrustNotAsked) {
+		t.Fatalf("err %v", err)
 	}
 }

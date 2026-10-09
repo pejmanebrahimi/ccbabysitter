@@ -238,6 +238,17 @@ func TestStartCommand(t *testing.T) {
 	if code != 1 || !strings.Contains(out, `"needsTrust":true`) {
 		t.Fatalf("start --json = %d, %q", code, out)
 	}
+	// A folder written relative to here, or from the home folder, is sent
+	// as a full path, since start runs on the same machine.
+	e.calls = nil
+	runCmd(t, env, "start", "projects/shop-api")
+	runCmd(t, env, "start", "~/shop-api")
+	here, _ := os.Getwd()
+	home, _ := os.UserHomeDir()
+	want = "start " + filepath.Join(here, "projects/shop-api") + " trust=false cli|start " + filepath.Join(home, "shop-api") + " trust=false cli"
+	if got := strings.Join(e.calls, "|"); got != want {
+		t.Fatalf("calls %q, want %q", got, want)
+	}
 	for _, args := range [][]string{{"start"}, {"start", "/a", "/b"}} {
 		if code, _, _ := runCmd(t, env, args...); code != 2 {
 			t.Errorf("%q = %d, want 2", args, code)

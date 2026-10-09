@@ -638,8 +638,13 @@ func (s *Supervisor) autoBabysit(snap observe.Snapshot) bool {
 			changed = true
 		}
 	}
+	for short, at := range s.started {
+		if s.deps.Now().Sub(at) > startedWait {
+			delete(s.started, short)
+		}
+	}
 	for _, sn := range snap.Sessions {
-		if s.started[sn.ShortID] && sn.Host == claude.HostBackground {
+		if _, ok := s.started[sn.ShortID]; ok && sn.Host == claude.HostBackground {
 			delete(s.started, sn.ShortID)
 			if s.find(sn.ID) == nil {
 				s.st.Watches = append(s.st.Watches, newWatch(sn, s.deps.Now()))

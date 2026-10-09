@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
 	"ccbabysitter.dev/ccbabysitter/internal/hosts"
@@ -14,6 +15,14 @@ import (
 // StartRefusedWithDisplay is the answer to starting a session on a machine
 // with a display, where people start sessions in their own apps.
 const StartRefusedWithDisplay = "Starting a session from here is for a machine with no display. Start it in your terminal or Claude app."
+
+// startedWait is how long a session Start started is waited for, to be
+// babysat when it shows up, before it is no longer looked for.
+const startedWait = 2 * time.Minute
+
+// startTimeout bounds the slow part of a start: answering the CLI's trust
+// question and starting the background session.
+const startTimeout = 2 * time.Minute
 
 // TrustQuestion asks whether to trust dir, in the claude CLI's own terms,
 // before this program answers the CLI's question for the person.
@@ -26,11 +35,47 @@ func TrustQuestion(dir string) string {
 // claude CLI does not trust dir yet, it answers with NeedsTrust unless
 // trust is set, the person's yes, and then it answers the CLI's own
 // question whether to trust the folder before starting.
+//
+// The checks and the bookkeeping run on the loop. Answering the question
+// and starting the session take seconds, so they run here, on the
+// caller's goroutine, and the loop goes on babysitting meanwhile.
 func (s *Supervisor) Start(dir string, trust bool, via Via) Result {
-	return s.ask(func(ctx context.Context) Result { return s.start(ctx, dir, trust, via) })
+	var plan startPlan
+	if res := s.ask(func(context.Context) Result { return s.planStart(dir, trust, &plan) }); !res.OK {
+		return res
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), startTimeout)
+	defer cancel()
+	if plan.trust {
+		if res, ok := s.trustFolder(ctx, plan.dir, via); !ok {
+			return res
+		}
+	}
+	out, runErr := s.deps.Runner.Run(ctx, plan.dir, hosts.NewBackgroundArgs()...)
+	short, ok := claude.ParseBackgrounded(out)
+	if !ok {
+		reason := why(out, runErr)
+		s.logInfo(plan.dir, "the new session did not start: "+reason+via.Suffix())
+		return Result{Message: "The session did not start: " + reason + ". Start it by hand: " + hosts.NewBackgroundCommandIn(plan.dir)}
+	}
+	return s.ask(func(context.Context) Result {
+		s.started[short] = s.deps.Now()
+		s.logInfo(plan.dir, "started background session "+short+" with Remote Control"+via.Suffix())
+		return Result{OK: true, ShortID: short,
+			Message: "Started a new session in " + plan.dir + " as background session " + short + ", with Remote Control. It is babysat."}
+	})
 }
 
-func (s *Supervisor) start(ctx context.Context, dir string, trust bool, via Via) Result {
+// startPlan is what the checks decided: the folder, by its real path, and
+// whether the CLI's trust question has to be answered first.
+type startPlan struct {
+	dir   string
+	trust bool
+}
+
+// planStart checks dir and the CLI's trust, and fills plan when the start
+// can go ahead. Every refusal says why.
+func (s *Supervisor) planStart(dir string, trust bool, plan *startPlan) Result {
 	if !s.env.Headless {
 		return Result{Message: StartRefusedWithDisplay}
 	}
@@ -48,28 +93,39 @@ func (s *Supervisor) start(ctx context.Context, dir string, trust bool, via Via)
 		return Result{Message: "There is no folder at " + dir + "."}
 	case !info.IsDir():
 		return Result{Message: dir + " is a file, not a folder."}
-	case s.deps.Home != "" && dir == filepath.Clean(s.deps.Home):
-		return Result{Message: "Claude Code does not start background sessions in the home folder. Choose a project folder."}
 	}
-
+	// Claude Code records trust under a folder's real path, so a folder
+	// reached through a link is checked, trusted and started by its own.
+	if real, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = real
+	}
+	home := realPath(s.deps.Home)
+	switch {
+	case home != "" && dir == home:
+		return Result{Message: "Claude Code does not start background sessions in the home folder. Choose a project folder."}
+	case dir == "/" || (home != "" && strings.HasPrefix(home, dir+"/")):
+		return Result{Message: dir + " holds your home folder. Choose a project folder."}
+	}
+	plan.dir = dir
 	if trusted, known := s.trustNow().Trusted(dir); known && !trusted {
 		if !trust {
 			return Result{Message: TrustQuestion(dir), NeedsTrust: true}
 		}
-		if res, ok := s.trustFolder(ctx, dir, via); !ok {
-			return res
-		}
+		plan.trust = true
 	}
+	return Result{OK: true}
+}
 
-	out, runErr := s.deps.Runner.Run(ctx, dir, hosts.NewBackgroundArgs()...)
-	short, ok := claude.ParseBackgrounded(out)
-	if !ok {
-		return Result{Message: "The session did not start: " + why(out, runErr) + ". Start it by hand: " + hosts.NewBackgroundCommandIn(dir)}
+// realPath is p by its real path, or p cleaned when that cannot be told,
+// and "" for "".
+func realPath(p string) string {
+	if p == "" {
+		return ""
 	}
-	s.started[short] = true
-	s.logInfo(dir, "started background session "+short+" with Remote Control"+via.Suffix())
-	return Result{OK: true, ShortID: short,
-		Message: "Started a new session in " + dir + " as background session " + short + ", with Remote Control. It is babysat."}
+	if real, err := filepath.EvalSymlinks(p); err == nil {
+		return real
+	}
+	return filepath.Clean(p)
 }
 
 // trustFolder answers the claude CLI's question whether to trust dir with
@@ -77,18 +133,22 @@ func (s *Supervisor) start(ctx context.Context, dir string, trust bool, via Via)
 // When either part does not work it gives the one-time command to run.
 func (s *Supervisor) trustFolder(ctx context.Context, dir string, via Via) (Result, bool) {
 	byHand := " Run `" + hosts.TrustCommandIn(dir) + "` on this machine once, answer Yes, then exit, and try again."
+	fail := func(reason string) (Result, bool) {
+		s.logInfo(dir, "could not trust the folder for Claude Code: "+reason+via.Suffix())
+		return Result{Message: "Could not trust the folder: " + reason + "." + byHand}, false
+	}
 	if s.deps.AcceptTrust == nil {
-		return Result{Message: "Claude Code's question whether to trust the folder cannot be answered here." + byHand}, false
+		return fail("Claude Code's question cannot be answered on this system")
 	}
 	if err := s.deps.AcceptTrust(ctx, dir); err != nil {
 		reason := err.Error()
 		if errors.Is(err, claude.ErrTrustNotAsked) || errors.Is(err, claude.ErrTrustNoYes) {
 			reason = strings.TrimSuffix(reason, ".")
 		}
-		return Result{Message: "Could not trust the folder: " + reason + "." + byHand}, false
+		return fail(reason)
 	}
 	if trusted, known := s.trustNow().Trusted(dir); !known || !trusted {
-		return Result{Message: "Claude Code was answered Yes but does not show the folder as trusted." + byHand}, false
+		return fail("Claude Code was answered Yes but does not show the folder as trusted")
 	}
 	s.logInfo(dir, "trusted the folder for Claude Code, as asked"+via.Suffix())
 	return Result{}, true
