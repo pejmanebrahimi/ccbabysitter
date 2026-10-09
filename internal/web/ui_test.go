@@ -1677,10 +1677,6 @@ func TestNotRunningRowsCarryTheirCommand(t *testing.T) {
 	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
 		t.Fatalf("got %q, want %q", got, want)
 	}
-	// The card says the wait the engine uses.
-	if !strings.Contains(app, "for "+strconv.Itoa(int(supervise.FrozenAfter/time.Minute))+" minutes") {
-		t.Fatalf("app.js does not say %v", supervise.FrozenAfter)
-	}
 }
 
 // A refusal that names a command to run by hand is the only place that
@@ -2119,5 +2115,9 @@ func TestTheCardSaysNotResponding(t *testing.T) {
 	}
 	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
 		t.Fatalf("got %q, want %q", got, want)
+	}
+	// The card says the wait the engine uses.
+	if !strings.Contains(app, "for "+strconv.Itoa(int(supervise.FrozenAfter/time.Minute))+" minutes") {
+		t.Fatalf("app.js does not say %v", supervise.FrozenAfter)
 	}
 }
