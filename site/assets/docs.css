@@ -18,16 +18,16 @@ html:has(.dtop) { scrollbar-gutter: stable; }
 
 /* search, in the header, with its results under it */
 .search { position: relative; flex: 0 1 260px; min-width: 0; margin-left: auto; }
-.search + .theme { margin-left: 0; }
+.search:not([hidden]) + .theme { margin-left: 0; }
 .search input { box-sizing: border-box; width: 100%; height: 34px; padding: 0 10px; font: inherit; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; }
 .search input:focus-visible { outline: 2px solid var(--prompt); outline-offset: 1px; }
 .results { position: absolute; top: calc(100% + 6px); right: 0; z-index: 25; box-sizing: border-box; width: min(440px, calc(100vw - 32px)); max-height: 70vh; overflow-y: auto; margin: 0; padding: 6px; list-style: none; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .14); }
-.results a { display: block; padding: 8px 10px; border-radius: 6px; color: var(--ink); text-decoration: none; }
+.results a { display: block; padding: 8px 10px; border-radius: 6px; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
 .results a:hover, .results a:focus-visible { background: var(--ground); outline: 2px solid var(--prompt); outline-offset: -2px; }
 .results .where { display: block; font-size: 14px; }
 .results .where small { color: var(--grey); font-size: 13px; }
 .results .snip { display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--grey); }
-.results .none { padding: 8px 10px; font-size: 14px; color: var(--grey); }
+.results .none { padding: 8px 10px; font-size: 14px; color: var(--grey); overflow-wrap: anywhere; }
 
 .docs { display: grid; grid-template-columns: 210px minmax(0, 1fr) 190px; grid-template-areas: "side main toc"; column-gap: 48px; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
 
@@ -138,6 +138,8 @@ details[open] > .fold .caret { transform: rotate(180deg); }
      readers only, and the search results span the screen under it. */
   .brand .name { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
   .search { position: static; flex: 1 1 auto; }
+  /* 16px keeps a phone from zooming the page into the box. */
+  .search input { font-size: 16px; }
   .results { left: 16px; right: 16px; width: auto; }
   /* Without the script both folds stay open, one above the other, in the
      page's flow. */

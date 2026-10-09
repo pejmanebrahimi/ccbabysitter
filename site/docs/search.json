@@ -2,7 +2,7 @@
  {
   "url": "/docs/",
   "page": "CC Babysitter docs",
-  "text": "CC Babysitter keeps Claude Code sessions alive and reachable. If you're new to it, start with the tutorial. Tutorial Babysit your first session Install CC Babysitter, babysit a session, close its terminal on purpose and pick the session up from your phone. It takes about ten minutes. How-to guide Run it on a server Keep sessions alive on a Linux server you reach over SSH, through SSH drops and reboots. How-to guide Start at login Check, turn on or turn off starting CC Babysitter when you log in, so babysat sessions come back after a restart. How-to guide Use it from Claude Code Install the plugin, then babysit a session, check on it or open the page by asking in your own words. How-to guide Stop or remove it Stop babysitting a session, quit CC Babysitter for now, stop it starting at login, or remove it completely. Reference Commands Every command, with its flags, output, JSON and exit codes. More pages are coming. Until then, the README on GitHub (opens in a new tab) covers the rest, such as the settings."
+  "text": "CC Babysitter keeps Claude Code sessions alive and reachable. If you're new to it, start with the tutorial. Babysit your first session Install CC Babysitter, babysit a session, close its terminal on purpose and pick the session up from your phone. It takes about ten minutes. Run it on a server Keep sessions alive on a Linux server you reach over SSH, through SSH drops and reboots. Start at login Check, turn on or turn off starting CC Babysitter when you log in, so babysat sessions come back after a restart. Use it from Claude Code Install the plugin, then babysit a session, check on it or open the page by asking in your own words. Stop or remove it Stop babysitting a session, quit CC Babysitter for now, stop it starting at login, or remove it completely. Commands Every command, with its flags, output, JSON and exit codes. More pages are coming. Until then, the README on GitHub covers the rest, such as the settings."
  },
  {
   "url": "/docs/claude-code-plugin/",
@@ -19,7 +19,7 @@
   "url": "/docs/claude-code-plugin/#ask",
   "page": "Use CC Babysitter from Claude Code",
   "section": "Ask in your own words",
-  "text": "Say what you want, in any language. For example: \"babysit this session\", or /ccbabysitter:babysit \"babysit the api session\", or /ccbabysitter:babysit api \"is this session babysat?\" \"stop babysitting it\" \"open the babysitter page\" \"why was my session restarted last night?\" Answers about how CC Babysitter works come from its help and README, which are part of the plugin. For a name that fits more than one session, you get a list of them to choose from. The plugin never runs a command whose output holds the page's key, so the key never ends up in your chat. To show the page, it runs ccbabysitter open , which opens it in your browser."
+  "text": "Say what you want, in any language. For example: \"babysit this session\", or /ccbabysitter:babysit \"babysit the api session\", or /ccbabysitter:babysit api \"is this session babysat?\" \"stop babysitting it\" \"open the babysitter page\" \"why was my session restarted last night?\" Answers about how CC Babysitter works come from its help and README, which are part of the plugin. For a name that fits more than one session, you get a list of them to choose from. The plugin never runs a command whose output holds the page's key, so the key never ends up in your chat. To show the page, it runs ccbabysitter open, which opens it in your browser."
  },
  {
   "url": "/docs/claude-code-plugin/#not-running",
@@ -161,7 +161,7 @@
   "url": "/docs/first-session/#before-you-start",
   "page": "Babysit your first session",
   "section": "Before you start",
-  "text": "You need: A Mac, a Windows PC or a Linux desktop. A server you reach over SSH works too, with its own steps . Claude Code 2.1.275 or later, logged in. claude --version tells you which version you have. The Claude app on your phone, signed in to the same account."
+  "text": "You need: A Mac, a Windows PC or a Linux desktop. A server you reach over SSH works too, with its own steps. Claude Code 2.1.275 or later, logged in. claude --version tells you which version you have. The Claude app on your phone, signed in to the same account."
  },
  {
   "url": "/docs/first-session/#install",
@@ -173,7 +173,7 @@
   "url": "/docs/first-session/#start",
   "page": "Babysit your first session",
   "section": "Start it",
-  "text": "Run CC Babysitter: ccbabysitter CC Babysitter starts in the background and opens its page in your browser, then gives you the terminal back. From now on it also starts by itself when you log in. On a Mac, a notice may say Background Items Added: that's CC Babysitter's login item. The page lists every Claude Code session on this computer, whatever app it runs in. Sessions you babysit go at the top, under Babysat , which is empty for now. The page's address includes a key that only your account can read. If you close the tab, ccbabysitter open opens it again."
+  "text": "Run CC Babysitter: ccbabysitter CC Babysitter starts in the background and opens its page in your browser, then gives you the terminal back. From now on it also starts by itself when you log in. On a Mac, a notice may say Background Items Added: that's CC Babysitter's login item. The page lists every Claude Code session on this computer, whatever app it runs in. Sessions you babysit go at the top, under Babysat, which is empty for now. The page's address includes a key that only your account can read. If you close the tab, ccbabysitter open opens it again."
  },
  {
   "url": "/docs/first-session/#session",
@@ -185,13 +185,13 @@
   "url": "/docs/first-session/#babysit",
   "page": "Babysit your first session",
   "section": "Babysit it",
-  "text": "Press Babysit on the session's row. The dialog says what babysitting does. CC Babysitter keeps the computer awake, and if the terminal closes, the session carries on in the background with Remote Control. The Babysit dialog, on the demo page. Press Babysit in the dialog. The session moves to the Babysat list, and its card says Watching in a terminal window . On a laptop, keep the lid open: keeping the computer awake doesn't stop a closed lid from putting it to sleep."
+  "text": "Press Babysit on the session's row. The dialog says what babysitting does. CC Babysitter keeps the computer awake, and if the terminal closes, the session carries on in the background with Remote Control. The Babysit dialog, on the demo page. Press Babysit in the dialog. The session moves to the Babysat list, and its card says Watching in a terminal window. On a laptop, keep the lid open: keeping the computer awake doesn't stop a closed lid from putting it to sleep."
  },
  {
   "url": "/docs/first-session/#close",
   "page": "Babysit your first session",
   "section": "Close the terminal",
-  "text": "Now the test. Close the terminal window the session runs in, the way an app update or a crash would. Within a few seconds the card changes. If CC Babysitter started less than 90 seconds ago, it first waits out those 90 seconds, so apps that restore their own sessions go first. The card's panel now says Kept alive while you were away , with the time the terminal closed and a trail from Terminal to Background. The session is running again in the background, with Remote Control on. A card after its terminal closed, on the demo page. The Activity panel, from the button at the top of the page, says what CC Babysitter did and why."
+  "text": "Now the test. Close the terminal window the session runs in, the way an app update or a crash would. Within a few seconds the card changes. If CC Babysitter started less than 90 seconds ago, it first waits out those 90 seconds, so apps that restore their own sessions go first. The card's panel now says Kept alive while you were away, with the time the terminal closed and a trail from Terminal to Background. The session is running again in the background, with Remote Control on. A card after its terminal closed, on the demo page. The Activity panel, from the button at the top of the page, says what CC Babysitter did and why."
  },
  {
   "url": "/docs/first-session/#phone",
@@ -203,13 +203,13 @@
   "url": "/docs/first-session/#back",
   "page": "Babysit your first session",
   "section": "Carry on at the computer",
-  "text": "When you're back at the computer, press Open in Terminal on the card. It opens a terminal window on the session where it runs. On Windows and Linux the button says Open in Windows Terminal or Open in a terminal. The session stays in the background, still babysat and with Remote Control on, and closing that window doesn't stop it. Where CC Babysitter can't open a terminal, the button is Copy attach command instead, and the card shows the command. Paste it in any terminal to reach the session the same way. To make it an ordinary terminal session again, choose End background copy from the card's menu, under the arrow beside the button, and confirm. You get a command that resumes the session in any terminal. Ending the copy also ends the babysitting, and the session moves to Not running on the page. Once you resume it, it shows under Running again, with Remote Control off until you type /rc . Press Babysit if you want it kept alive again. A babysat session that still runs in its own terminal has an Unbabysit button instead. It stops the babysitting and leaves the session running where it is."
+  "text": "When you're back at the computer, press Open in Terminal on the card. It opens a terminal window on the session where it runs. On Windows and Linux the button says Open in Windows Terminal or Open in a terminal. The session stays in the background, still babysat and with Remote Control on, and closing that window doesn't stop it. Where CC Babysitter can't open a terminal, the button is Copy attach command instead, and the card shows the command. Paste it in any terminal to reach the session the same way. To make it an ordinary terminal session again, choose End background copy from the card's menu, under the arrow beside the button, and confirm. You get a command that resumes the session in any terminal. Ending the copy also ends the babysitting, and the session moves to Not running on the page. Once you resume it, it shows under Running again, with Remote Control off until you type /rc. Press Babysit if you want it kept alive again. A babysat session that still runs in its own terminal has an Unbabysit button instead. It stops the babysitting and leaves the session running where it is."
  },
  {
   "url": "/docs/first-session/#next",
   "page": "Babysit your first session",
   "section": "What's next",
-  "text": "Run CC Babysitter on a server, where sessions survive SSH drops and reboots: Run it on a server . Let Claude Code babysit the session it runs in: use it from Claude Code (opens in a new tab) . See every command with ccbabysitter --help , and everything about one with ccbabysitter help and its name."
+  "text": "Run CC Babysitter on a server, where sessions survive SSH drops and reboots: Run it on a server. Let Claude Code babysit the session it runs in: use it from Claude Code . See every command with ccbabysitter --help, and everything about one with ccbabysitter help and its name."
  },
  {
   "url": "/docs/server/",
@@ -232,13 +232,13 @@
   "url": "/docs/server/#page",
   "page": "Run CC Babysitter on a server",
   "section": "Open the page from your laptop",
-  "text": "The page only listens on the server itself, so you reach it through SSH. On your laptop, run the command the script printed. It looks like this, with your own user and server, and the port may differ: ssh -L 47391:127.0.0.1:47391 you@your-server While that connection is open, open the address the script printed, which starts with 127.0.0.1 and ends with the page's key, in your browser. The window stays an ordinary shell on the server. To see the ssh command again, run ccbabysitter open on the server, and for the address, ccbabysitter status . On a cloud server, the printed command can contain the server's private address. Use the address you normally SSH to instead."
+  "text": "The page only listens on the server itself, so you reach it through SSH. On your laptop, run the command the script printed. It looks like this, with your own user and server, and the port may differ: ssh -L 47391:127.0.0.1:47391 you@your-server While that connection is open, open the address the script printed, which starts with 127.0.0.1 and ends with the page's key, in your browser. The window stays an ordinary shell on the server. To see the ssh command again, run ccbabysitter open on the server, and for the address, ccbabysitter status. On a cloud server, the printed command can contain the server's private address. Use the address you normally SSH to instead."
  },
  {
   "url": "/docs/server/#session",
   "page": "Run CC Babysitter on a server",
   "section": "Start a session",
-  "text": "On the page, press New session , type the full path of a project folder on the server, and press Start . CC Babysitter starts Claude Code there in the background, with Remote Control, and babysits it. From the server's shell, the same is: ccbabysitter start ~/project Claude Code runs only in a folder it trusts. The first time you use a folder, the page shows Claude Code's question about it, and Trust and start answers Yes for you. The command says so instead and starts nothing; run it again with --trust . Claude Code records the trust itself. Your home folder can't be used, so choose a project folder. If Claude Code on the server isn't logged in, both say so and start nothing. You can also start a session yourself, in a project folder on the server: claude --bg --remote-control CC Babysitter babysits it as soon as it starts. If you'd rather choose each time for sessions you start this way, switch off Babysit every new background session in Settings, or run ccbabysitter settings auto-babysit off . Then press Babysit on the sessions you want kept alive, including any that were already running when you installed CC Babysitter."
+  "text": "On the page, press New session, type the full path of a project folder on the server, and press Start. CC Babysitter starts Claude Code there in the background, with Remote Control, and babysits it. From the server's shell, the same is: ccbabysitter start ~/project Claude Code runs only in a folder it trusts. The first time you use a folder, the page shows Claude Code's question about it, and Trust and start answers Yes for you. The command says so instead and starts nothing; run it again with --trust. Claude Code records the trust itself. Your home folder can't be used, so choose a project folder. If Claude Code on the server isn't logged in, both say so and start nothing. You can also start a session yourself, in a project folder on the server: claude --bg --remote-control CC Babysitter babysits it as soon as it starts. If you'd rather choose each time for sessions you start this way, switch off Babysit every new background session in Settings, or run ccbabysitter settings auto-babysit off. Then press Babysit on the sessions you want kept alive, including any that were already running when you installed CC Babysitter."
  },
  {
   "url": "/docs/server/#away",
@@ -250,7 +250,7 @@
   "url": "/docs/server/#done",
   "page": "Run CC Babysitter on a server",
   "section": "When you're done",
-  "text": "Unbabysit stops the babysitting and leaves the session running as an ordinary background session. To end it, press Stop background copy . If CC Babysitter brought it back after a restart, choose End background copy from the card's menu instead. Either way the conversation is kept, and its row under Not running has the command to resume it. From a shell on the server, the same two are ccbabysitter unbabysit and ccbabysitter stop with the session's id."
+  "text": "Unbabysit stops the babysitting and leaves the session running as an ordinary background session. To end it, press Stop background copy. If CC Babysitter brought it back after a restart, choose End background copy from the card's menu instead. Either way the conversation is kept, and its row under Not running has the command to resume it. From a shell on the server, the same two are ccbabysitter unbabysit and ccbabysitter stop with the session's id."
  },
  {
   "url": "/docs/start-at-login/",
@@ -267,19 +267,19 @@
   "url": "/docs/start-at-login/#check",
   "page": "Start CC Babysitter at login",
   "section": "Check whether it's on",
-  "text": "On a desktop, open Settings on the page. The box Start CC Babysitter when I log in shows whether it's on. On a server, or from any terminal, this shows the same setting, as autostart . It asks the running copy, so CC Babysitter must be running: ccbabysitter settings On a desktop, while it's off, the Babysit dialog also offers it, as Start CC Babysitter at login so this survives a restart ."
+  "text": "On a desktop, open Settings on the page. The box Start CC Babysitter when I log in shows whether it's on. On a server, or from any terminal, this shows the same setting, as autostart. It asks the running copy, so CC Babysitter must be running: ccbabysitter settings On a desktop, while it's off, the Babysit dialog also offers it, as Start CC Babysitter at login so this survives a restart."
  },
  {
   "url": "/docs/start-at-login/#switch",
   "page": "Start CC Babysitter at login",
   "section": "Turn it on or off",
-  "text": "On a desktop, tick or untick the box in Settings. Anywhere, you can run: ccbabysitter settings autostart on Use off instead of on to turn it off. Turning it off doesn't stop CC Babysitter. On macOS it keeps running until you quit it or log out, and on Linux and Windows until you quit it or restart. If CC Babysitter has quit, start it with ccbabysitter first, then change the setting. Or run ccbabysitter uninstall --keep-files , which removes start at login and keeps the program and its settings."
+  "text": "On a desktop, tick or untick the box in Settings. Anywhere, you can run: ccbabysitter settings autostart on Use off instead of on to turn it off. Turning it off doesn't stop CC Babysitter. On macOS it keeps running until you quit it or log out, and on Linux and Windows until you quit it or restart. If CC Babysitter has quit, start it with ccbabysitter first, then change the setting. Or run ccbabysitter uninstall --keep-files, which removes start at login and keeps the program and its settings."
  },
  {
   "url": "/docs/start-at-login/#systems",
   "page": "Start CC Babysitter at login",
   "section": "What it uses on each system",
-  "text": "On macOS, it's a login item. macOS may show a notice saying Background Items Added, and lists CC Babysitter in System Settings under General, then Login Items. If you switch it off there under Allow in the Background, macOS doesn't start it at all, and ccbabysitter tells you so. Switch it back on there, or run ccbabysitter --foreground to run it in a terminal. On Linux, it's a systemd service of your user. On a desktop it starts with your desktop session. On a server it starts at boot and keeps running after you log out. On Windows, it's the value CCBabysitter under HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run . It starts CC Babysitter's windowless program when you log in, with no console window. A copy installed with go install has no windowless program, so it can't start at login and runs in the terminal. A Mac you reach only over SSH, with nobody logged in at its screen, has nowhere to start a login item. There, ccbabysitter runs in the terminal instead."
+  "text": "On macOS, it's a login item. macOS may show a notice saying Background Items Added, and lists CC Babysitter in System Settings under General, then Login Items. If you switch it off there under Allow in the Background, macOS doesn't start it at all, and ccbabysitter tells you so. Switch it back on there, or run ccbabysitter --foreground to run it in a terminal. On Linux, it's a systemd service of your user. On a desktop it starts with your desktop session. On a server it starts at boot and keeps running after you log out. On Windows, it's the value CCBabysitter under HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run. It starts CC Babysitter's windowless program when you log in, with no console window. A copy installed with go install has no windowless program, so it can't start at login and runs in the terminal. A Mac you reach only over SSH, with nobody logged in at its screen, has nowhere to start a login item. There, ccbabysitter runs in the terminal instead."
  },
  {
   "url": "/docs/start-at-login/#move",
@@ -296,13 +296,13 @@
   "url": "/docs/uninstall/#unbabysit",
   "page": "Stop babysitting or remove CC Babysitter",
   "section": "Stop babysitting one session",
-  "text": "On the page, press Unbabysit on the session's card. The session keeps running in its app, and CC Babysitter no longer brings it back if that app closes. From a terminal, give the session's name or short id: ccbabysitter unbabysit api On a computer with a display, a session that CC Babysitter brought back in the background has no Unbabysit button. Stopping its background copy ends the babysitting instead. For a session from Claude Desktop or VS Code, that is the card's Back to Desktop or Back to VS Code button. For one from a terminal, choose End background copy from the menu under the arrow beside the card's main button. From a terminal, the same is: ccbabysitter stop api --yes On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has Try again and Stop watching ; Stop watching is the one that ends the babysitting."
+  "text": "On the page, press Unbabysit on the session's card. The session keeps running in its app, and CC Babysitter no longer brings it back if that app closes. From a terminal, give the session's name or short id: ccbabysitter unbabysit api On a computer with a display, a session that CC Babysitter brought back in the background has no Unbabysit button. Stopping its background copy ends the babysitting instead. For a session from Claude Desktop or VS Code, that is the card's Back to Desktop or Back to VS Code button. For one from a terminal, choose End background copy from the menu under the arrow beside the card's main button. From a terminal, the same is: ccbabysitter stop api --yes On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has Try again and Stop watching; Stop watching is the one that ends the babysitting."
  },
  {
   "url": "/docs/uninstall/#quit",
   "page": "Stop babysitting or remove CC Babysitter",
   "section": "Quit CC Babysitter for now",
-  "text": "Open Settings on the page and press Quit CC Babysitter , then Quit . Or run: ccbabysitter quit Babysat sessions keep running, but nothing brings them back if their app closes, and the computer may sleep. Run ccbabysitter to start it again. If start at login is on, it also starts again the next time you log in, or at boot on a server."
+  "text": "Open Settings on the page and press Quit CC Babysitter, then Quit. Or run: ccbabysitter quit Babysat sessions keep running, but nothing brings them back if their app closes, and the computer may sleep. Run ccbabysitter to start it again. If start at login is on, it also starts again the next time you log in, or at boot on a server."
  },
  {
   "url": "/docs/uninstall/#keep-files",
@@ -314,6 +314,6 @@
   "url": "/docs/uninstall/#remove",
   "page": "Stop babysitting or remove CC Babysitter",
   "section": "Remove it completely",
-  "text": "Run: ccbabysitter uninstall It lists what it will remove and asks first. Then it removes everything CC Babysitter put on the computer: start at login; a copy still running, which it asks to quit; its state folder, with the settings, the babysat sessions and the activity log; the program itself. On macOS and Linux that is one file, and its folder stays. On Windows it is the folder %LOCALAPPDATA%\\Programs\\CCBabysitter , which also comes out of your Path, and Windows deletes it a moment after the command ends. On Linux, it also turns lingering off, but only if CC Babysitter turned it on. If another ccbabysitter is still on your PATH, such as one from go install , it names it at the end for you to delete. In a script with no terminal to ask in, add --yes to skip the question. If you added the Claude Code plugin, remove it in Claude Code with /plugin uninstall ccbabysitter . To keep the program but start over from empty settings, quit CC Babysitter and run ccbabysitter reset . It shows which state folder it will delete and asks first."
+  "text": "Run: ccbabysitter uninstall It lists what it will remove and asks first. Then it removes everything CC Babysitter put on the computer: start at login; a copy still running, which it asks to quit; its state folder, with the settings, the babysat sessions and the activity log; the program itself. On macOS and Linux that is one file, and its folder stays. On Windows it is the folder %LOCALAPPDATA%\\Programs\\CCBabysitter, which also comes out of your Path, and Windows deletes it a moment after the command ends. On Linux, it also turns lingering off, but only if CC Babysitter turned it on. If another ccbabysitter is still on your PATH, such as one from go install, it names it at the end for you to delete. In a script with no terminal to ask in, add --yes to skip the question. If you added the Claude Code plugin, remove it in Claude Code with /plugin uninstall ccbabysitter. To keep the program but start over from empty settings, quit CC Babysitter and run ccbabysitter reset. It shows which state folder it will delete and asks first."
  }
 ]

@@ -19,7 +19,7 @@ To try the page without touching any real session, run `go run ./cmd/ccbabysitte
 
 The writing of the README and the website is checked with [Vale](https://vale.sh), as CI does. Install it (`brew install vale`, or a release from its GitHub page), then run `vale README.md site` from the top of the tree. Error-level findings fail the check, and warnings and suggestions are advice. `.vale.ini` says which rules apply and why some are turned down, and the Go tests run Vale too when it is installed. The styles in `.vale/styles` are copied verbatim from their releases, and are the one exception to plain ASCII. A linter is only a floor: also read a changed page aloud, and check that it does one job.
 
-The docs search reads `site/docs/search.json`, made from the docs pages. If you change a docs page, run `go test ./site -run TestDocsSearchIndex -update-search` and commit it. Until you do, a test fails.
+The docs search reads `site/docs/search.json`, made from the docs pages. If you change a docs page, or the help text the command reference is made from, run `go test ./site -run TestDocsSearchIndex -update-search` and commit it. Until you do, a test fails.
 
 The docs show screenshots of the page, taken from the demo. If you change `internal/web/ui` or `internal/web/demo.go`, run `node scripts/docs-shots.mjs` and commit the new pictures in `site/docs/shots`. Until you do, a test fails. It needs Go, Node.js 22 or later and Google Chrome or Chromium, and `CHROME` names the browser when it is not in its usual place.
 
