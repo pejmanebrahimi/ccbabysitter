@@ -2,7 +2,7 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
-## Unreleased
+## 0.9.0 (2026-10-10)
 
 - New: on a machine with no display, New session on the page and `ccbabysitter start PATH` start a babysat background session with Remote Control in a project folder. When Claude Code does not trust the folder yet, the page asks first and `start` wants `--trust`. Then CC Babysitter answers Claude Code's own question whether to trust the folder, and Claude Code records the trust itself (#87).
 - Fixed: a session's model no longer shows as `<synthetic>` after it is resumed. Claude Code marks messages it writes itself that way, and the model shown is now the last one a model wrote (#98).
