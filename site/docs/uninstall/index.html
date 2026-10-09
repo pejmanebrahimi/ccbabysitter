@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stop babysitting or remove CC Babysitter - CC Babysitter docs</title>
+<meta name="description" content="Stop babysitting a session, quit CC Babysitter for now, stop it starting at login, or remove everything it put on your computer.">
+<link rel="canonical" href="https://ccbabysitter.dev/docs/uninstall/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/docs.css">
+<script src="/assets/theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="dtop">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">CC Babysitter</a>
+  <a class="crumb" href="/docs/">Docs</a>
+  <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
+    <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
+  </button>
+</header>
+<div class="docs">
+  <details class="sidebox" open>
+    <summary class="fold"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="9" height="1"/><rect x="0" y="4" width="9" height="1"/><rect x="0" y="7" width="9" height="1"/></svg>Menu</summary>
+    <nav class="side" id="docs-nav" aria-label="Docs">
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+      </ul>
+      <p class="group" id="nav-tutorials">Tutorials</p>
+      <ul aria-labelledby="nav-tutorials">
+        <li><a href="/docs/first-session/">Babysit your first session</a></li>
+      </ul>
+      <p class="group" id="nav-how-to">How-to guides</p>
+      <ul aria-labelledby="nav-how-to">
+        <li><a href="/docs/server/">Run it on a server</a></li>
+        <li><a href="/docs/start-at-login/">Start at login</a></li>
+        <li><a href="/docs/claude-code-plugin/">Use it from Claude Code</a></li>
+        <li><a href="/docs/uninstall/" aria-current="page">Stop or remove it</a></li>
+      </ul>
+    </nav>
+  </details>
+  <details class="toc" open>
+    <summary class="fold">On this page<svg class="caret" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/></svg></summary>
+    <nav class="toc-list" aria-label="On this page">
+      <ul>
+        <li><a href="#unbabysit">Stop babysitting one session</a></li>
+        <li><a href="#quit">Quit CC Babysitter for now</a></li>
+        <li><a href="#keep-files">Stop it and keep its files</a></li>
+        <li><a href="#remove">Remove it completely</a></li>
+      </ul>
+    </nav>
+  </details>
+  <main class="doc" id="content">
+    <p class="kind">How-to guide</p>
+    <h1>Stop babysitting or remove CC Babysitter</h1>
+    <p class="lede">You can stop babysitting one session, quit CC Babysitter until you need it again, or remove it from the computer. Unbabysitting, quitting and uninstalling leave your sessions running where they are.</p>
+
+    <h2 id="unbabysit">Stop babysitting one session</h2>
+    <p>On the page, press <strong>Unbabysit</strong> on the session's card. The session keeps running in its app, and CC Babysitter no longer brings it back if that app closes. From a terminal, give the session's name or short id:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter unbabysit api</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>On a computer with a display, a session that CC Babysitter brought back in the background has no Unbabysit button. Stopping its background copy ends the babysitting instead. For a session from Claude Desktop or VS Code, that is the card's <strong>Back to Desktop</strong> or <strong>Back to VS Code</strong> button. For one from a terminal, choose <strong>End background copy</strong> from the menu under the arrow beside the card's main button. From a terminal, the same is:</p>
+    <!-- vale off -->
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter stop api --yes</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <!-- vale on -->
+    <p>On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has <strong>Try again</strong> and <strong>Stop watching</strong>; Stop watching is the one that ends the babysitting.</p>
+
+    <h2 id="quit">Quit CC Babysitter for now</h2>
+    <p>Open <strong>Settings</strong> on the page and press <strong>Quit CC Babysitter</strong>, then <strong>Quit</strong>. Or run:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter quit</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>Babysat sessions keep running, but nothing brings them back if their app closes, and the computer may sleep. Run <code>ccbabysitter</code> to start it again. If start at login is on, it also starts again the next time you log in, or at boot on a server.</p>
+
+    <h2 id="keep-files">Stop it and keep its files</h2>
+    <p>To stop the background copy and keep it from starting at login, while keeping the program and its settings, run:</p>
+    <!-- vale off -->
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter uninstall --keep-files</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <!-- vale on -->
+    <p>It asks nothing. On Linux it also turns lingering off, if CC Babysitter turned it on. A later plain <code>ccbabysitter</code> starts it again and turns start at login back on, as on a computer that never had it.</p>
+
+    <h2 id="remove">Remove it completely</h2>
+    <p>Run:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter uninstall</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>It lists what it will remove and asks first. Then it removes everything CC Babysitter put on the computer:</p>
+    <ul>
+      <li>start at login;</li>
+      <li>a copy still running, which it asks to quit;</li>
+      <li>its state folder, with the settings, the babysat sessions and the activity log;</li>
+      <li>the program itself. On macOS and Linux that is one file, and its folder stays. On Windows it is the folder <code>%LOCALAPPDATA%\Programs\CCBabysitter</code>, which also comes out of your Path, and Windows deletes it a moment after the command ends.</li>
+    </ul>
+    <p>On Linux, it also turns lingering off, but only if CC Babysitter turned it on. If another <code>ccbabysitter</code> is still on your PATH, such as one from <code>go install</code>, it names it at the end for you to delete. In a script with no terminal to ask in, add <code>--yes</code> to skip the question.</p>
+    <p>If you added the Claude Code plugin, remove it in Claude Code with <code>/plugin uninstall ccbabysitter</code>.</p>
+    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>To keep the program but start over from empty settings, quit CC Babysitter and run <code>ccbabysitter reset</code>. It shows which state folder it will delete and asks first.</p></div>
+
+    <nav class="pager" aria-label="Previous and next">
+      <a class="prev" href="/docs/claude-code-plugin/"><small>Previous</small>Use it from Claude Code</a>
+    </nav>
+    <p class="edit-line"><a class="edit" href="https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/docs/uninstall/index.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub<span class="sr"> (opens in a new tab)</span></a></p>
+  </main>
+</div>
+<footer class="foot">{{VERSION}} &middot; Preview &middot; <a href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT<span class="sr"> (opens in a new tab)</span></a> &middot; Not affiliated with Anthropic</footer>
+<script src="/assets/site.js"></script>
+<script src="/assets/docs.js"></script>
+</body>
+</html>
