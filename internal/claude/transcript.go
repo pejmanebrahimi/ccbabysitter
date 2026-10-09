@@ -261,12 +261,18 @@ func ScheduledRun(path string) (run, ok bool) {
 	}
 }
 
+// syntheticModel is the model Claude Code writes on messages it makes
+// itself rather than a model's, such as the reply it adds when a resumed
+// conversation ended in the middle of a turn.
+const syntheticModel = "<synthetic>"
+
 // applyAssistant folds one assistant record's model and usage into the
-// running totals. Usage is only added the first time a given message id is
-// seen; a record with no id (never observed in practice, but not assumed
-// impossible) is added every time.
+// running totals. The model is the last one a model wrote, so a message
+// Claude Code made itself does not change it. Usage is only added the first
+// time a given message id is seen; a record with no id (never observed in
+// practice, but not assumed impossible) is added every time.
 func (r *StatsReader) applyAssistant(rec *transcriptRecord) {
-	if rec.Message.Model != "" {
+	if rec.Message.Model != "" && rec.Message.Model != syntheticModel {
 		r.stats.Model = rec.Message.Model
 	}
 	if id := rec.Message.ID; id != "" {
