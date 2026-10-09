@@ -1,0 +1,319 @@
+[
+ {
+  "url": "/docs/",
+  "page": "CC Babysitter docs",
+  "text": "CC Babysitter keeps Claude Code sessions alive and reachable. If you're new to it, start with the tutorial. Tutorial Babysit your first session Install CC Babysitter, babysit a session, close its terminal on purpose and pick the session up from your phone. It takes about ten minutes. How-to guide Run it on a server Keep sessions alive on a Linux server you reach over SSH, through SSH drops and reboots. How-to guide Start at login Check, turn on or turn off starting CC Babysitter when you log in, so babysat sessions come back after a restart. How-to guide Use it from Claude Code Install the plugin, then babysit a session, check on it or open the page by asking in your own words. How-to guide Stop or remove it Stop babysitting a session, quit CC Babysitter for now, stop it starting at login, or remove it completely. Reference Commands Every command, with its flags, output, JSON and exit codes. More pages are coming. Until then, the README on GitHub (opens in a new tab) covers the rest, such as the settings."
+ },
+ {
+  "url": "/docs/claude-code-plugin/",
+  "page": "Use CC Babysitter from Claude Code",
+  "text": "With the CC Babysitter plugin, you can babysit the session you're in by asking for it, without leaving Claude Code. The plugin works in Claude Code only, on the computer CC Babysitter runs on. It drives CC Babysitter's own commands, so everything it does also shows on the page and in its Activity panel."
+ },
+ {
+  "url": "/docs/claude-code-plugin/#install",
+  "page": "Use CC Babysitter from Claude Code",
+  "section": "Install the plugin",
+  "text": "In Claude Code, run: /plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter CC Babysitter itself doesn't need to be installed first. If it isn't, the plugin gives you the one command that installs and starts it when you first ask it to do something."
+ },
+ {
+  "url": "/docs/claude-code-plugin/#ask",
+  "page": "Use CC Babysitter from Claude Code",
+  "section": "Ask in your own words",
+  "text": "Say what you want, in any language. For example: \"babysit this session\", or /ccbabysitter:babysit \"babysit the api session\", or /ccbabysitter:babysit api \"is this session babysat?\" \"stop babysitting it\" \"open the babysitter page\" \"why was my session restarted last night?\" Answers about how CC Babysitter works come from its help and README, which are part of the plugin. For a name that fits more than one session, you get a list of them to choose from. The plugin never runs a command whose output holds the page's key, so the key never ends up in your chat. To show the page, it runs ccbabysitter open , which opens it in your browser."
+ },
+ {
+  "url": "/docs/claude-code-plugin/#not-running",
+  "page": "Use CC Babysitter from Claude Code",
+  "section": "When CC Babysitter isn't running",
+  "text": "If CC Babysitter isn't installed or isn't running, the plugin says so. It gives you the command to run in your terminal app. It never runs that command itself, since its output would bring the page's key into the chat. Run it, then tell the plugin you're done, and it carries on with what you asked."
+ },
+ {
+  "url": "/docs/claude-code-plugin/#asks-first",
+  "page": "Use CC Babysitter from Claude Code",
+  "section": "What it asks before doing",
+  "text": "Babysitting, unbabysitting, trying a stuck session again, and opening the page happen right away. So do the commands that only read, such as listing sessions or reading the activity log. The first time in a conversation, it may also offer to open the page. It asks you on a card before it stops a background copy, changes a setting or quits CC Babysitter. It also asks before it sets CC Babysitter up as a service on Linux, or stops it and turns off start at login. It never resets CC Babysitter or removes it completely: for those it explains what they delete and gives you the command to run yourself."
+ },
+ {
+  "url": "/docs/claude-code-plugin/#remove",
+  "page": "Use CC Babysitter from Claude Code",
+  "section": "Remove the plugin",
+  "text": "In Claude Code, run: /plugin uninstall ccbabysitter This removes only the plugin. CC Babysitter keeps running, and keeps babysitting the sessions you chose."
+ },
+ {
+  "url": "/docs/commands/",
+  "page": "Commands",
+  "text": "Every ccbabysitter command, as the program's own help prints it. ccbabysitter help COMMAND shows the same page for the version you have installed. The commands from status to quit control the copy that is running, through the same local connection as the page. They work for people and AI agents alike, and with --json they print one JSON document."
+ },
+ {
+  "url": "/docs/commands/#all",
+  "page": "Commands",
+  "section": "All commands",
+  "text": "CC Babysitter keeps Claude Code sessions alive and reachable. Run it: ccbabysitter start CC Babysitter. It runs in the background and starts at login ccbabysitter --foreground run in this terminal until Ctrl+C ccbabysitter --no-open start it without opening the page ccbabysitter --demo scripted sessions, touches nothing real ccbabysitter --port N with --foreground, prefer this port for the page, 47391 by default, else a random free port ccbabysitter install on Linux, set it up to start at boot and keep running after logout ccbabysitter uninstall remove CC Babysitter from this computer, after asking ccbabysitter reset delete the state folder after confirmation ccbabysitter version print the name and version Control the running copy, for people and AI agents alike: ccbabysitter status is it running, where, and what it is doing ccbabysitter list every Claude Code session on this machine ccbabysitter show S one session in full ccbabysitter babysit S keep S alive: if its app dies, it comes back in the background ccbabysitter unbabysit S stop babysitting S, which keeps running where it is ccbabysitter retry S try again on a babysat session that is stuck ccbabysitter stop S --yes stop the background copy of S and keep the conversation ccbabysitter start PATH on a machine with no display, start a babysat session in PATH ccbabysitter activity [S] what CC Babysitter did and why, newest first ccbabysitter settings show the settings, or change one with: settings NAME VALUE ccbabysitter open open the page in your browser, printing no key ccbabysitter quit quit CC Babysitter. Babysat sessions keep running where they are ccbabysitter help COMMAND everything about one command S is a session id, a short id, a name, or self. A full id always wins. A session that runs or is babysat wins over one that is not running. A word that fits two sessions, as a short id or a name, is refused. self is the session this command runs in. Add --json for one JSON document on stdout. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. Examples: ccbabysitter babysit self ccbabysitter list --json ccbabysitter stop 3f2a9c1e --yes"
+ },
+ {
+  "url": "/docs/commands/#status",
+  "page": "Commands",
+  "section": "status",
+  "text": "ccbabysitter status Tells whether CC Babysitter is running, at what address, how many sessions it sees, how many are babysat, and whether it keeps the computer awake. The address includes the page's key, so it opens the page in a browser as it is. Flags: --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text, two lines: CC Babysitter X.Y.Z is running at http://127.0.0.1:47391/?token=KEY Sessions: 5, babysat: 2. Keeping the computer awake: yes Keeping the computer awake says yes, no, or not supported on this system. Where closing the lid would put the computer to sleep, yes adds: while its lid is open. With --json: {\"schema\":1,\"running\":true,\"version\":\"...\",\"url\":\"...\",\"headless\":false, \"sessions\":5,\"babysat\":2,\"keepAwake\":{\"held\":true,\"supported\":true}}. When it is not running, the sentence says so on stderr, the exit code is 3 and stdout is {\"schema\":1,\"running\":false} with --json. That is the answer, not an error. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter status ccbabysitter status --json"
+ },
+ {
+  "url": "/docs/commands/#list",
+  "page": "Commands",
+  "section": "list",
+  "text": "ccbabysitter list Lists every Claude Code session on this machine, babysat or not, running or not. Sessions that are not babysat come first, then the babysat ones. Runs of a Claude Desktop scheduled task follow, under their own heading, since they are never babysat: Desktop starts the task again on its schedule. Last come the page's Not running conversations from the last two weeks, under their own heading. show gives the commands that start one again: Attach for a background session that was stopped, which is the one the page offers, and Resume. Flags: --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text: a header, then one line per session, columns separated by two spaces: ID short id, 8 characters NAME the session's name, or - when it has none APP where it runs: terminal, background, desktop, vscode or other, - when nowhere RC Remote Control, on or off BABYSAT no, or watching, in background, starting, stuck or not responding TOKENS everything used so far, as 12k or 4.5M UPTIME as 45s, 12m, 3h 5m or 2d 4h, - when it is not running FOLDER the folder it works in Scheduled task runs follow, after an empty line when other sessions come first, under the line \"Scheduled task runs, never babysat:\", with the same columns, then the conversations that are not running, under the line \"Not running:\". With no sessions running it says: No Claude Code sessions are running. With --json: {\"schema\":1,\"sessions\":[...]}, an empty array when there are none. A scheduled task's run is in the same array, with scheduledTask true, and so is a conversation that is not running, with notRunning true. Each session has the fields shown by ccbabysitter help show, and the same names. In JSON, state is watching, background, starting or stuck, and is left out when the session is not babysat. The text says in background for background. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter list ccbabysitter list --json"
+ },
+ {
+  "url": "/docs/commands/#show",
+  "page": "Commands",
+  "section": "show",
+  "text": "ccbabysitter show S Shows one session in full, one Label: value line each. Lines for things that are not set are left out, except App, Running, Remote Control, Babysat and Tokens. A conversation that is not running has no Tokens line, and Handed back to names the app it went back to in the last day, desktop, vscode or terminal. babysit and stop refuse it with exit code 1, and babysit says how to start it again. S is a session id, a short id, a name, or self. A full id always wins. A session that runs or is babysat wins over a conversation that is not running. A word that fits two sessions, as a short id or a name, is refused, with exit code 4. self is always the session this command runs in. See ccbabysitter list. Flags: --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text lines, in this order: Id, Short id, Name, Also called, Folder, App, Also running in, Running, Scheduled task, Remote Control, Status, Babysat, State, Not responding, Tokens, Model, Last activity, Uptime, Open with Remote Control, Attach, Attach over ssh, Resume, To switch Remote Control on, Warning. Tokens is like: in 1.2k, out 3.4k, cache 50k. App is none when it runs nowhere. State is watching, in background, starting or stuck. Not responding is there for a babysat session in a terminal or an app that has been busy waiting on the model for 20 minutes with no output and no CPU use, and list shows it in the BABYSAT column. Scheduled task is yes for a run of a Claude Desktop scheduled task, and left out otherwise. With --json: {\"schema\":1,\"session\":{...}}. These fields are always there: id, shortId, name, folder, app, apps, running, remoteControl, status, babysat, tokens {input, output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask. Empty ones are \"\" or [], and app is \"\" when it runs nowhere. These are left out when not set: alsoCalled, pid, state, notResponding (true), notRunning (true), handedBackTo, model, lastActivity as RFC 3339 in UTC, remoteUrl, attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added. In JSON, state is watching, background, starting or stuck. The text says in background for background, so filter on background when using --json. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter show self ccbabysitter show api --json"
+ },
+ {
+  "url": "/docs/commands/#babysit",
+  "page": "Commands",
+  "section": "babysit",
+  "text": "ccbabysitter babysit S [--start-at-login] Keeps S alive. If the app it runs in dies, it comes back in the background and stays reachable. This is the page's Babysit button. A run of a Claude Desktop scheduled task is refused: Desktop starts the task again on its schedule. S is a session id, a short id, a name, or self. A full id always wins. A session that runs or is babysat wins over a conversation that is not running. A word that fits two sessions, as a short id or a name, is refused, with exit code 4. self is always the session this command runs in. See ccbabysitter list. Flags: --start-at-login also start CC Babysitter when you log in, as the page's box does --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1. With --json: {\"schema\":1,\"ok\":true,\"message\":\"...\",\"session\":\"SHORT ID\"}. ok is false when it was refused, with exit code 1 and the reason in message. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter babysit self ccbabysitter babysit api --start-at-login"
+ },
+ {
+  "url": "/docs/commands/#unbabysit",
+  "page": "Commands",
+  "section": "unbabysit",
+  "text": "ccbabysitter unbabysit S Stops babysitting S. The session keeps running where it is. This is the page's Unbabysit button. S is a session id, a short id, a name, or self. A full id always wins. A session that runs or is babysat wins over a conversation that is not running. A word that fits two sessions, as a short id or a name, is refused, with exit code 4. self is always the session this command runs in. See ccbabysitter list. Flags: --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1. With --json: {\"schema\":1,\"ok\":true,\"message\":\"...\",\"session\":\"SHORT ID\"}. ok is false when it was refused, with exit code 1 and the reason in message. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter unbabysit api"
+ },
+ {
+  "url": "/docs/commands/#retry",
+  "page": "Commands",
+  "section": "retry",
+  "text": "ccbabysitter retry S Tries again on a babysat session that is stuck, as the page's Try again button does. Use it when list or show says its state is stuck. On a session that is not stuck there is nothing to try again: it says so and exits with 1. On a session stuck because its background copy kept freezing, it also stops that copy with claude stop, while it is still the same copy and still frozen, so it is started again. S is a session id, a short id, a name, or self. A full id always wins. A session that runs or is babysat wins over a conversation that is not running. A word that fits two sessions, as a short id or a name, is refused, with exit code 4. self is always the session this command runs in. See ccbabysitter list. Flags: --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1. With --json: {\"schema\":1,\"ok\":true,\"message\":\"...\",\"session\":\"SHORT ID\"}. ok is false when it was refused, with exit code 1 and the reason in message. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter retry nightly"
+ },
+ {
+  "url": "/docs/commands/#stop",
+  "page": "Commands",
+  "section": "stop",
+  "text": "ccbabysitter stop S --yes Stops the background copy of S. The conversation is kept, and can be resumed. Without --yes it changes nothing: it says what it would stop and exits with 2. Only a session with a background copy can be stopped. canStop in show --json says whether S has one. Otherwise stop is refused, with exit code 1. While the copy runs, Claude Desktop shows \"Claude Code crashed\" for a session that came from it, because only one copy of a session runs at a time. After stop, Try again in Desktop picks the session up where it left off. On the page, stop is Back to Desktop or Back to VS Code for a session from those apps, and End background copy for one from a terminal, which shows the command to resume it. S is a session id, a short id, a name, or self. A full id always wins. A session that runs or is babysat wins over a conversation that is not running. A word that fits two sessions, as a short id or a name, is refused, with exit code 4. self is always the session this command runs in. See ccbabysitter list. Flags: --yes confirm. Without it nothing is stopped --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1. With --json: {\"schema\":1,\"ok\":true,\"message\":\"...\",\"session\":\"SHORT ID\"}. ok is false when it was refused, with exit code 1 and the reason in message. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter stop 3f2a9c1e --yes"
+ },
+ {
+  "url": "/docs/commands/#start",
+  "page": "Commands",
+  "section": "start",
+  "text": "ccbabysitter start PATH [--trust] Starts a new background session with Remote Control in the folder PATH, on a machine with no display, as the page's New session does, and babysits it. A PATH that does not start with / is taken from this folder, or from the home folder when it starts with ~/. The home folder itself, / and the folders above home are refused. Claude Code runs on its own only in a folder it trusts. When it does not trust PATH yet, start says so and starts nothing. With --trust, start answers Claude Code's own question whether to trust the folder with Yes, then starts the session. Claude Code records the trust itself. Answering that question works on Linux; elsewhere start gives the one-time command to run instead. When Claude Code is not logged in, a session could reach neither the model nor Remote Control, so start says so and starts nothing. Flags: --trust trust PATH for Claude Code first, when it does not yet --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1. With --json: {\"schema\":1,\"ok\":true,\"message\":\"...\",\"session\":\"SHORT ID\"}. ok is false when it was refused, with exit code 1 and the reason in message, and needsTrust is true when Claude Code does not trust PATH and --trust was not given. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter start /srv/shop-api --trust"
+ },
+ {
+  "url": "/docs/commands/#activity",
+  "page": "Commands",
+  "section": "activity",
+  "text": "ccbabysitter activity [S] [-n N] Shows what CC Babysitter did and why, newest first. With S, only the entries about that session, which can also be a conversation that is not running. It looks through the newest 500 entries, so an older entry about S is not found. S is a session id, a short id, a name, or self. A full id always wins. A session that runs or is babysat wins over a conversation that is not running. A word that fits two sessions, as a short id or a name, is refused, with exit code 4. self is always the session this command runs in. See ccbabysitter list. Flags: -n N show at most N entries, 20 by default, 500 at most --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text, one line each: 2026-10-02 14:05:09 SESSION MESSAGE The time is local, SESSION is - for entries about no session in particular, and (automatic: REASON) follows the message when CC Babysitter acted by itself. With --json: {\"schema\":1,\"entries\":[{\"time\":\"RFC 3339\",\"level\":\"...\",\"session\":\"...\", \"automatic\":false,\"reason\":\"...\",\"message\":\"...\"}]}, an empty array when there are none. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter activity ccbabysitter activity worker -n 5"
+ },
+ {
+  "url": "/docs/commands/#settings",
+  "page": "Commands",
+  "section": "settings",
+  "text": "ccbabysitter settings [NAME VALUE] Shows the settings, or changes one. These are the page's settings. autostart on or off start CC Babysitter when you log in, or at boot on a server auto-babysit on or off babysit every new background session on a server open-browser on or off open the page when you run ccbabysitter theme auto, dark or light Flags: --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text, one line each: autostart: on, auto-babysit: on, open-browser: on, theme: auto. Changing one prints the answer, or Saved., and exits with 0, or with 1 when refused. With --json: {\"schema\":1,\"settings\":{\"autostart\":false,\"autoBabysit\":true, \"openBrowser\":true,\"theme\":\"auto\"}}. A change answers like the actions do: {\"schema\":1,\"ok\":true,\"message\":\"...\"}. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter settings ccbabysitter settings theme dark"
+ },
+ {
+  "url": "/docs/commands/#open",
+  "page": "Commands",
+  "section": "open",
+  "text": "ccbabysitter open Opens the running copy's page in your default browser, with a one-time address, as starting CC Babysitter does. Nothing it prints carries the page's key, so it is safe to run from an AI agent. On a machine with no display it opens nothing and says how to connect from another computer. It never starts CC Babysitter. Flags: --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1. With --json: {\"schema\":1,\"ok\":true,\"message\":\"...\"}. ok is false when the browser could not be opened, with exit code 1. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter open"
+ },
+ {
+  "url": "/docs/commands/#quit",
+  "page": "Commands",
+  "section": "quit",
+  "text": "ccbabysitter quit Quits the running copy of CC Babysitter, as the page's Quit button does. Babysat sessions keep running where they are, but nothing brings them back if their app dies, and the computer may sleep, until you run ccbabysitter again. Flags: --json print one JSON document on stdout instead of text --url URL talk to the copy at this page address instead of the saved one: http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or http://127.0.0.1:PORT without a key, which is only for your own running copy: the key saved on this machine goes only to the address that copy saved. To talk to another copy, such as a demo, pass the full address it printed, with ?token=. A key given here can be seen by other accounts while the command runs, so leave --url out for your own running copy Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1. With --json: {\"schema\":1,\"ok\":true,\"message\":\"...\"}. ok is false when it was refused, with exit code 1 and the reason in message. Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one. On an error with --json, stdout is {\"schema\":1,\"ok\":false,\"error\":\"...\",\"code\":\"...\"} where code is not-running, usage, not-found, ambiguous, not-in-session, no-key, no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did not answer in time, and the action may still finish. A control command never starts CC Babysitter. Start it with ccbabysitter. Example: ccbabysitter quit"
+ },
+ {
+  "url": "/docs/commands/#install",
+  "page": "Commands",
+  "section": "install",
+  "text": "ccbabysitter install On Linux, sets CC Babysitter up as a systemd user service that starts at boot and keeps running after you log out, and starts it, whether or not the machine has a display. Running ccbabysitter on a Linux server does the same. On macOS and Windows it says that install is for Linux and exits with 2: there a plain ccbabysitter starts CC Babysitter in the background. Example: ccbabysitter install"
+ },
+ {
+  "url": "/docs/commands/#uninstall",
+  "page": "Commands",
+  "section": "uninstall",
+  "text": "ccbabysitter uninstall [--yes] [--keep-files] Removes CC Babysitter from this computer. It says what goes and asks Continue? [y/N] first, and anything but y changes nothing. Then it removes start at login, asks a copy still running to quit, and deletes the state folder and the program. Start at login is the systemd user service on Linux, where lingering is turned off only when CC Babysitter turned it on, the LaunchAgent on macOS and the Run value on Windows. On macOS and Linux the program is one file, and its folder stays. On Windows the install script's folder, %LOCALAPPDATA%\\Programs\\CCBabysitter, comes out of the user Path and is deleted a moment after the command ends. A program anywhere else loses only its own files, and the folder stays, also on PATH. A ccbabysitter that is a link loses the link, and one run with go run leaves Go's cache alone. Another ccbabysitter still on PATH is named at the end. Babysat sessions keep running where they are. It stops, with exit code 1, when start at login cannot be removed or a copy is still running after it was asked to quit. Flags: --yes ask nothing. Without it, and without a terminal to ask in, nothing changes and the exit code is 2 --keep-files only stop the background copy and remove start at login, asking nothing. A later plain ccbabysitter turns it on again, as on a machine that never had CC Babysitter Examples: ccbabysitter uninstall ccbabysitter uninstall --keep-files"
+ },
+ {
+  "url": "/docs/commands/#reset",
+  "page": "Commands",
+  "section": "reset",
+  "text": "ccbabysitter reset Deletes the state folder, which holds the settings, the babysat sessions and the activity log. It names the folder and asks Continue? [y/N] first, and anything but y changes nothing. It refuses, with exit code 1, while CC Babysitter is running. Example: ccbabysitter reset"
+ },
+ {
+  "url": "/docs/commands/#version",
+  "page": "Commands",
+  "section": "version",
+  "text": "ccbabysitter version [--json] Prints the name and the version, and exits with 0. With --json, prints {\"schema\":1,\"name\":\"CC Babysitter\",\"version\":\"...\",\"headless\":false} instead, where headless is true on a machine with no display. It works whether or not CC Babysitter is running. Any other word after version is a usage error, exit code 2. To report a problem, email hello@ccbabysitter.dev or open an issue at https://github.com/pejmanebrahimi/ccbabysitter/issues/new/choose, with this output. Report a security problem privately instead, as SECURITY.md says, at https://github.com/pejmanebrahimi/ccbabysitter/security/advisories/new. The page's About panel has the same, with the version details to copy. Example: ccbabysitter version ccbabysitter version --json"
+ },
+ {
+  "url": "/docs/commands/#help",
+  "page": "Commands",
+  "section": "help",
+  "text": "ccbabysitter help [COMMAND] Without a command, prints the list of everything ccbabysitter does. With one, prints that command's page: what it does, its flags, its output and its exit codes. ccbabysitter --help and ccbabysitter -h are the same as help. Exit codes: 0 done, 2 no such command. Example: ccbabysitter help babysit"
+ },
+ {
+  "url": "/docs/first-session/",
+  "page": "Babysit your first session",
+  "text": "In this tutorial you install CC Babysitter, babysit a Claude Code session, close its terminal on purpose, and pick the session up from your phone. It takes about ten minutes."
+ },
+ {
+  "url": "/docs/first-session/#before-you-start",
+  "page": "Babysit your first session",
+  "section": "Before you start",
+  "text": "You need: A Mac, a Windows PC or a Linux desktop. A server you reach over SSH works too, with its own steps . Claude Code 2.1.275 or later, logged in. claude --version tells you which version you have. The Claude app on your phone, signed in to the same account."
+ },
+ {
+  "url": "/docs/first-session/#install",
+  "page": "Babysit your first session",
+  "section": "Install CC Babysitter",
+  "text": "Open a terminal and run the command for your system. On a Mac or Linux: curl -fsSL https://ccbabysitter.dev/install.sh | sh On Windows, in PowerShell: irm https://ccbabysitter.dev/install.ps1 | iex The script downloads the program for your computer, checks it against the release's checksums and installs it for your account only, without administrator rights. If it says its folder isn't on your PATH, add the line it gives you and open a new terminal."
+ },
+ {
+  "url": "/docs/first-session/#start",
+  "page": "Babysit your first session",
+  "section": "Start it",
+  "text": "Run CC Babysitter: ccbabysitter CC Babysitter starts in the background and opens its page in your browser, then gives you the terminal back. From now on it also starts by itself when you log in. On a Mac, a notice may say Background Items Added: that's CC Babysitter's login item. The page lists every Claude Code session on this computer, whatever app it runs in. Sessions you babysit go at the top, under Babysat , which is empty for now. The page's address includes a key that only your account can read. If you close the tab, ccbabysitter open opens it again."
+ },
+ {
+  "url": "/docs/first-session/#session",
+  "page": "Babysit your first session",
+  "section": "Start a session",
+  "text": "Open a new terminal window, go to one of your project folders and start Claude Code: claude Ask it something small, such as what's in the folder. A session needs at least one message before there's anything to bring back. Then switch on Remote Control, so you can reach the session from your phone: /rc Back on the page, the session shows up under Running within a few seconds."
+ },
+ {
+  "url": "/docs/first-session/#babysit",
+  "page": "Babysit your first session",
+  "section": "Babysit it",
+  "text": "Press Babysit on the session's row. The dialog says what babysitting does. CC Babysitter keeps the computer awake, and if the terminal closes, the session carries on in the background with Remote Control. The Babysit dialog, on the demo page. Press Babysit in the dialog. The session moves to the Babysat list, and its card says Watching in a terminal window . On a laptop, keep the lid open: keeping the computer awake doesn't stop a closed lid from putting it to sleep."
+ },
+ {
+  "url": "/docs/first-session/#close",
+  "page": "Babysit your first session",
+  "section": "Close the terminal",
+  "text": "Now the test. Close the terminal window the session runs in, the way an app update or a crash would. Within a few seconds the card changes. If CC Babysitter started less than 90 seconds ago, it first waits out those 90 seconds, so apps that restore their own sessions go first. The card's panel now says Kept alive while you were away , with the time the terminal closed and a trail from Terminal to Background. The session is running again in the background, with Remote Control on. A card after its terminal closed, on the demo page. The Activity panel, from the button at the top of the page, says what CC Babysitter did and why."
+ },
+ {
+  "url": "/docs/first-session/#phone",
+  "page": "Babysit your first session",
+  "section": "Reach it from your phone",
+  "text": "Open the Claude app on your phone and find the session among your Claude Code sessions. The conversation is all there. Send it a message, and Claude answers from your computer. On the computer, Open on claude.ai in the card's menu opens the same session in your browser."
+ },
+ {
+  "url": "/docs/first-session/#back",
+  "page": "Babysit your first session",
+  "section": "Carry on at the computer",
+  "text": "When you're back at the computer, press Open in Terminal on the card. It opens a terminal window on the session where it runs. On Windows and Linux the button says Open in Windows Terminal or Open in a terminal. The session stays in the background, still babysat and with Remote Control on, and closing that window doesn't stop it. Where CC Babysitter can't open a terminal, the button is Copy attach command instead, and the card shows the command. Paste it in any terminal to reach the session the same way. To make it an ordinary terminal session again, choose End background copy from the card's menu, under the arrow beside the button, and confirm. You get a command that resumes the session in any terminal. Ending the copy also ends the babysitting, and the session moves to Not running on the page. Once you resume it, it shows under Running again, with Remote Control off until you type /rc . Press Babysit if you want it kept alive again. A babysat session that still runs in its own terminal has an Unbabysit button instead. It stops the babysitting and leaves the session running where it is."
+ },
+ {
+  "url": "/docs/first-session/#next",
+  "page": "Babysit your first session",
+  "section": "What's next",
+  "text": "Run CC Babysitter on a server, where sessions survive SSH drops and reboots: Run it on a server . Let Claude Code babysit the session it runs in: use it from Claude Code (opens in a new tab) . See every command with ccbabysitter --help , and everything about one with ccbabysitter help and its name."
+ },
+ {
+  "url": "/docs/server/",
+  "page": "Run CC Babysitter on a server",
+  "text": "On a Linux server you reach over SSH, CC Babysitter keeps Claude Code sessions running when SSH drops. It starts them again after a reboot or if they stop. You reach them from your phone or from any terminal."
+ },
+ {
+  "url": "/docs/server/#before-you-start",
+  "page": "Run CC Babysitter on a server",
+  "section": "Before you start",
+  "text": "A Linux server you reach over SSH, where your login has a systemd user manager: systemctl --user status answers. Claude Code 2.1.275 or later on the server, logged in with your claude.ai account, which Remote Control needs."
+ },
+ {
+  "url": "/docs/server/#install",
+  "page": "Run CC Babysitter on a server",
+  "section": "Install it",
+  "text": "Over SSH, run: curl -fsSL https://ccbabysitter.dev/install.sh | sh On a machine with no display, the script also sets CC Babysitter up as a service of your user. It starts at boot and keeps running after you log out. At the end, the script prints a command to reach the page from your laptop. If it says loginctl enable-linger failed, run the sudo command it prints, so the service keeps running after you log out. If it only prints \"Start it with\", your login has no systemd user manager, and CC Babysitter can't run as a service there."
+ },
+ {
+  "url": "/docs/server/#page",
+  "page": "Run CC Babysitter on a server",
+  "section": "Open the page from your laptop",
+  "text": "The page only listens on the server itself, so you reach it through SSH. On your laptop, run the command the script printed. It looks like this, with your own user and server, and the port may differ: ssh -L 47391:127.0.0.1:47391 you@your-server While that connection is open, open the address the script printed, which starts with 127.0.0.1 and ends with the page's key, in your browser. The window stays an ordinary shell on the server. To see the ssh command again, run ccbabysitter open on the server, and for the address, ccbabysitter status . On a cloud server, the printed command can contain the server's private address. Use the address you normally SSH to instead."
+ },
+ {
+  "url": "/docs/server/#session",
+  "page": "Run CC Babysitter on a server",
+  "section": "Start a session",
+  "text": "On the page, press New session , type the full path of a project folder on the server, and press Start . CC Babysitter starts Claude Code there in the background, with Remote Control, and babysits it. From the server's shell, the same is: ccbabysitter start ~/project Claude Code runs only in a folder it trusts. The first time you use a folder, the page shows Claude Code's question about it, and Trust and start answers Yes for you. The command says so instead and starts nothing; run it again with --trust . Claude Code records the trust itself. Your home folder can't be used, so choose a project folder. If Claude Code on the server isn't logged in, both say so and start nothing. You can also start a session yourself, in a project folder on the server: claude --bg --remote-control CC Babysitter babysits it as soon as it starts. If you'd rather choose each time for sessions you start this way, switch off Babysit every new background session in Settings, or run ccbabysitter settings auto-babysit off . Then press Babysit on the sessions you want kept alive, including any that were already running when you installed CC Babysitter."
+ },
+ {
+  "url": "/docs/server/#away",
+  "page": "Run CC Babysitter on a server",
+  "section": "Leave and come back",
+  "text": "Close SSH. The session keeps running, and if the server restarts, CC Babysitter starts it again in the background. To reach it, open the Claude app on your phone and find it among your Claude Code sessions. To work in it from a terminal, its card on the page has two commands with Copy buttons: Attach is claude attach with the session's short id, to run in an SSH shell on the server. From elsewhere is the same command run over SSH, to paste into a terminal on your laptop. Closing that terminal only detaches it. The session keeps running."
+ },
+ {
+  "url": "/docs/server/#done",
+  "page": "Run CC Babysitter on a server",
+  "section": "When you're done",
+  "text": "Unbabysit stops the babysitting and leaves the session running as an ordinary background session. To end it, press Stop background copy . If CC Babysitter brought it back after a restart, choose End background copy from the card's menu instead. Either way the conversation is kept, and its row under Not running has the command to resume it. From a shell on the server, the same two are ccbabysitter unbabysit and ccbabysitter stop with the session's id."
+ },
+ {
+  "url": "/docs/start-at-login/",
+  "page": "Start CC Babysitter at login",
+  "text": "CC Babysitter brings babysat sessions back only while it runs. Starting it at login means a restart of the computer doesn't end that."
+ },
+ {
+  "url": "/docs/start-at-login/#restart",
+  "page": "Start CC Babysitter at login",
+  "section": "After a restart",
+  "text": "When the computer restarts, every app closes, CC Babysitter too. When it starts again at login, it brings your babysat sessions back in the background, as it would after any app closed. Otherwise they stay closed until you run ccbabysitter again. The first time ccbabysitter starts CC Babysitter in the background, it turns start at login on, and again after an upgrade from an earlier version. On Linux, ccbabysitter install always turns it on. Otherwise it leaves the choice to you."
+ },
+ {
+  "url": "/docs/start-at-login/#check",
+  "page": "Start CC Babysitter at login",
+  "section": "Check whether it's on",
+  "text": "On a desktop, open Settings on the page. The box Start CC Babysitter when I log in shows whether it's on. On a server, or from any terminal, this shows the same setting, as autostart . It asks the running copy, so CC Babysitter must be running: ccbabysitter settings On a desktop, while it's off, the Babysit dialog also offers it, as Start CC Babysitter at login so this survives a restart ."
+ },
+ {
+  "url": "/docs/start-at-login/#switch",
+  "page": "Start CC Babysitter at login",
+  "section": "Turn it on or off",
+  "text": "On a desktop, tick or untick the box in Settings. Anywhere, you can run: ccbabysitter settings autostart on Use off instead of on to turn it off. Turning it off doesn't stop CC Babysitter. On macOS it keeps running until you quit it or log out, and on Linux and Windows until you quit it or restart. If CC Babysitter has quit, start it with ccbabysitter first, then change the setting. Or run ccbabysitter uninstall --keep-files , which removes start at login and keeps the program and its settings."
+ },
+ {
+  "url": "/docs/start-at-login/#systems",
+  "page": "Start CC Babysitter at login",
+  "section": "What it uses on each system",
+  "text": "On macOS, it's a login item. macOS may show a notice saying Background Items Added, and lists CC Babysitter in System Settings under General, then Login Items. If you switch it off there under Allow in the Background, macOS doesn't start it at all, and ccbabysitter tells you so. Switch it back on there, or run ccbabysitter --foreground to run it in a terminal. On Linux, it's a systemd service of your user. On a desktop it starts with your desktop session. On a server it starts at boot and keeps running after you log out. On Windows, it's the value CCBabysitter under HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run . It starts CC Babysitter's windowless program when you log in, with no console window. A copy installed with go install has no windowless program, so it can't start at login and runs in the terminal. A Mac you reach only over SSH, with nobody logged in at its screen, has nowhere to start a login item. There, ccbabysitter runs in the terminal instead."
+ },
+ {
+  "url": "/docs/start-at-login/#move",
+  "page": "Start CC Babysitter at login",
+  "section": "Keep the program where it is",
+  "text": "Start at login runs the program from where it was when you turned it on. Keep it where the install script put it, or in another folder where it will stay. If you move it, run ccbabysitter from its new place once, and it updates the login entry."
+ },
+ {
+  "url": "/docs/uninstall/",
+  "page": "Stop babysitting or remove CC Babysitter",
+  "text": "You can stop babysitting one session, quit CC Babysitter until you need it again, or remove it from the computer. Unbabysitting, quitting and uninstalling leave your sessions running where they are."
+ },
+ {
+  "url": "/docs/uninstall/#unbabysit",
+  "page": "Stop babysitting or remove CC Babysitter",
+  "section": "Stop babysitting one session",
+  "text": "On the page, press Unbabysit on the session's card. The session keeps running in its app, and CC Babysitter no longer brings it back if that app closes. From a terminal, give the session's name or short id: ccbabysitter unbabysit api On a computer with a display, a session that CC Babysitter brought back in the background has no Unbabysit button. Stopping its background copy ends the babysitting instead. For a session from Claude Desktop or VS Code, that is the card's Back to Desktop or Back to VS Code button. For one from a terminal, choose End background copy from the menu under the arrow beside the card's main button. From a terminal, the same is: ccbabysitter stop api --yes On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has Try again and Stop watching ; Stop watching is the one that ends the babysitting."
+ },
+ {
+  "url": "/docs/uninstall/#quit",
+  "page": "Stop babysitting or remove CC Babysitter",
+  "section": "Quit CC Babysitter for now",
+  "text": "Open Settings on the page and press Quit CC Babysitter , then Quit . Or run: ccbabysitter quit Babysat sessions keep running, but nothing brings them back if their app closes, and the computer may sleep. Run ccbabysitter to start it again. If start at login is on, it also starts again the next time you log in, or at boot on a server."
+ },
+ {
+  "url": "/docs/uninstall/#keep-files",
+  "page": "Stop babysitting or remove CC Babysitter",
+  "section": "Stop it and keep its files",
+  "text": "To stop the background copy and keep it from starting at login, while keeping the program and its settings, run: ccbabysitter uninstall --keep-files It asks nothing. On Linux it also turns lingering off, if CC Babysitter turned it on. A later plain ccbabysitter starts it again and turns start at login back on, as on a computer that never had it."
+ },
+ {
+  "url": "/docs/uninstall/#remove",
+  "page": "Stop babysitting or remove CC Babysitter",
+  "section": "Remove it completely",
+  "text": "Run: ccbabysitter uninstall It lists what it will remove and asks first. Then it removes everything CC Babysitter put on the computer: start at login; a copy still running, which it asks to quit; its state folder, with the settings, the babysat sessions and the activity log; the program itself. On macOS and Linux that is one file, and its folder stays. On Windows it is the folder %LOCALAPPDATA%\\Programs\\CCBabysitter , which also comes out of your Path, and Windows deletes it a moment after the command ends. On Linux, it also turns lingering off, but only if CC Babysitter turned it on. If another ccbabysitter is still on your PATH, such as one from go install , it names it at the end for you to delete. In a script with no terminal to ask in, add --yes to skip the question. If you added the Claude Code plugin, remove it in Claude Code with /plugin uninstall ccbabysitter . To keep the program but start over from empty settings, quit CC Babysitter and run ccbabysitter reset . It shows which state folder it will delete and asks first."
+ }
+]

@@ -15,8 +15,147 @@
     return at;
   }
 
-  window.ccbDocs = { sectionAt: sectionAt };
+  // search finds the entries of the docs' search index that hold every
+  // word of query, best first, at most max of them. A word in a section's
+  // title counts most, then in the page's title, more for the page itself
+  // than for its sections, then in the text. Each result carries a snippet
+  // of its text from just before the first word found.
+  function search(index, query, max) {
+    var words = (String(query).toLowerCase().match(/[a-z0-9][a-z0-9.'_-]*/g) || []).filter(function (w, i, all) {
+      return all.indexOf(w) === i;
+    });
+    if (!words.length) return [];
+    var found = [];
+    index.forEach(function (e, order) {
+      var section = (e.section || "").toLowerCase(), page = e.page.toLowerCase(), text = e.text.toLowerCase();
+      var score = 0;
+      for (var i = 0; i < words.length; i++) {
+        var w = words[i], hit = 0;
+        if (section.indexOf(w) >= 0) hit += 4;
+        if (page.indexOf(w) >= 0) hit += e.section ? 1 : 3;
+        if (text.indexOf(w) >= 0) hit += 1;
+        if (!hit) return;
+        score += hit;
+      }
+      found.push({ e: e, score: score, order: order, at: text.indexOf(words[0]) });
+    });
+    found.sort(function (a, b) { return b.score - a.score || a.order - b.order; });
+    return found.slice(0, max).map(function (f) {
+      return { url: f.e.url, page: f.e.page, section: f.e.section || "", snippet: snippet(f.e.text, f.at) };
+    });
+  }
+
+  // snippet is about 160 characters of text from a little before at, cut
+  // at spaces, with ... where it was cut.
+  function snippet(text, at) {
+    var start = 0;
+    if (at > 60) {
+      start = text.indexOf(" ", at - 60) + 1;
+      if (start <= 0 || start > at) start = at;
+    }
+    var end = text.length;
+    if (end - start > 160) {
+      end = text.lastIndexOf(" ", start + 160);
+      if (end <= start) end = start + 160;
+    }
+    return (start > 0 ? "... " : "") + text.slice(start, end) + (end < text.length ? " ..." : "");
+  }
+
+  window.ccbDocs = { sectionAt: sectionAt, search: search };
+
+  // wireSearch makes the header's search box work: without the script, or
+  // without fetch, it stays hidden. The index is read the first time the
+  // box is used. Results are links: Arrow Down moves into them and between
+  // them, Enter in the box follows the first, and Escape closes the list.
+  function wireSearch(form) {
+    if (!form || !window.fetch) return;
+    var input = form.querySelector("input"), list = form.querySelector(".results");
+    var index = null, loading = null;
+    form.hidden = false;
+    function load() {
+      if (!loading) {
+        loading = window.fetch("/docs/search.json" + version).then(function (r) { return r.json(); })
+          .then(function (data) { index = data; return data; })
+          .catch(function () { loading = null; return null; });
+      }
+      return loading;
+    }
+    function close() {
+      list.hidden = true;
+      input.setAttribute("aria-expanded", "false");
+    }
+    function render() {
+      var q = input.value;
+      if (!q.trim()) { list.replaceChildren(); close(); return; }
+      load().then(function (data) {
+        if (!data || input.value !== q) return;
+        var found = search(data, q, 8);
+        list.replaceChildren();
+        if (!found.length) {
+          var none = document.createElement("li");
+          none.className = "none";
+          none.textContent = "Nothing found for " + q.trim();
+          list.appendChild(none);
+        }
+        found.forEach(function (r) {
+          var li = document.createElement("li"), a = document.createElement("a");
+          var where = document.createElement("span"), snip = document.createElement("span");
+          a.href = r.url;
+          where.className = "where";
+          where.textContent = r.section || r.page;
+          if (r.section) {
+            var page = document.createElement("small");
+            page.textContent = " in " + r.page;
+            where.appendChild(page);
+          }
+          snip.className = "snip";
+          snip.textContent = r.snippet;
+          a.appendChild(where);
+          a.appendChild(snip);
+          li.appendChild(a);
+          list.appendChild(li);
+        });
+        list.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+      });
+    }
+    input.addEventListener("focus", load);
+    input.addEventListener("input", render);
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var first = list.querySelector("a");
+      if (first && !list.hidden) window.location.href = first.href;
+    });
+    form.addEventListener("keydown", function (ev) {
+      var links = Array.prototype.slice.call(list.querySelectorAll("a"));
+      var at = links.indexOf(document.activeElement);
+      if (ev.key === "Escape" && !list.hidden) {
+        ev.preventDefault();
+        close();
+        input.focus();
+      } else if (ev.key === "ArrowDown" && links.length && !list.hidden) {
+        ev.preventDefault();
+        links[Math.min(at + 1, links.length - 1)].focus();
+      } else if (ev.key === "ArrowUp" && at >= 0) {
+        ev.preventDefault();
+        if (at === 0) input.focus(); else links[at - 1].focus();
+      }
+    });
+    document.addEventListener("click", function (ev) {
+      if (!form.contains(ev.target)) close();
+    });
+    form.addEventListener("focusout", function (ev) {
+      if (!form.contains(ev.relatedTarget)) close();
+    });
+    input.addEventListener("focus", function () { if (list.children.length) { list.hidden = false; input.setAttribute("aria-expanded", "true"); } });
+  }
   if (typeof document === "undefined" || !document.querySelector) return;
+
+  // The index is the one deployed with this script: the same ?v= the
+  // page loaded it with, so a cached older one is never mixed in.
+  var me = document.currentScript;
+  var version = me && me.src.indexOf("?") >= 0 ? me.src.slice(me.src.indexOf("?")) : "";
+  wireSearch(document.querySelector(".search"));
 
   // The script is here, so on a phone the folds may open over the page:
   // without it docs.css keeps them in the page's flow.
