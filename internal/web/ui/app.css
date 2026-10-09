@@ -300,9 +300,10 @@ a.b { display: inline-block; text-decoration: none; }
 .split .b.icon { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: none; padding-left: 11px; padding-right: 11px; }
 .split .b.primary.icon { border-left: 1px solid rgba(0, 0, 0, .18); }
 .split.alone .b:first-child { border-radius: 8px; }
-/* The way on: back to the app the session came from, and a menu with the
-   ways that leave it running as it is, under the button and as wide as the
-   column at least. Each item is a tall target, easy to tap. */
+/* The way on: the card's main way, such as back to the app the session
+   came from or attaching to it, and a menu with the others, under the
+   button and as wide as the column at least. Each item is a tall target,
+   easy to tap. */
 .wayon { position: relative; }
 .caret { display: inline-block; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); vertical-align: 3px; }
 .ways {
