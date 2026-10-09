@@ -5,6 +5,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 ## Unreleased
 
 - Changed: on the In background card of a session that came from a terminal, the main button attaches to the background copy, which keeps running with Remote Control on: Open in Terminal where CC Babysitter can open a terminal, and Copy attach command where it cannot, such as on a server. End background copy, which ends the copy and gives the command to resume the session in any terminal, moves to the card's menu (#79).
+- Fixed: the In background card's main button could shrink to the width of its label for a moment when its menu opened, then fill its column again (#78).
 
 ## 0.7.0 (2026-10-08)
 

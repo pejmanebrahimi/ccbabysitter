@@ -757,6 +757,13 @@ func TestTheBackgroundCard(t *testing.T) {
 		}
 	}
 	css := readUI(t, "ui/app.css")
+	// The stack of an In background card's ways never wraps, so its one line
+	// is as wide as the column and the split button fills it from the first
+	// layout on, rather than shrinking to its label until the line is
+	// stretched.
+	if stack := regexp.MustCompile(`\.acts\.stack \{[^}]*\}`).FindString(css); !strings.Contains(stack, "flex-wrap: nowrap") {
+		t.Errorf("the In background card's stack may wrap: %q", stack)
+	}
 	for _, want := range []string{".rescue {", ".journey .arrow {", ".acts.stack {", ".wayon {", ".ways {", ".ways .way {", ".caret {", ".split.alone .b:first-child {", ".b .ext {",
 		"z-index: 36;", ".split .b { min-height: 44px; }", ".split .b.icon { min-width: 44px; }"} {
 		if !strings.Contains(css, want) {
