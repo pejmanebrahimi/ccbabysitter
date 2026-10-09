@@ -116,3 +116,66 @@ func TestStateOf(t *testing.T) {
 		}
 	}
 }
+
+// quietFor looks at a session every 30 seconds for d, with fingerprint fp
+// and CPU time cpu throughout, starting from l at t.
+func quietFor(l Liveness, fp string, cpu float64, t time.Time, d time.Duration) (Liveness, time.Time) {
+	for end := t.Add(d); t.Before(end); {
+		t = t.Add(30 * time.Second)
+		l = l.Next(fp, cpu, t)
+	}
+	return l, t
+}
+
+// A busy session waiting on the model whose signals all stay the same for
+// FrozenAfter is frozen. Any change starts the quiet time again: a new
+// status, a write to a transcript, a process starting or ending in its
+// tree, or CPU used beyond what an idle process uses.
+func TestFrozen(t *testing.T) {
+	t0 := time.Date(2026, 10, 9, 13, 0, 0, 0, time.UTC)
+	l := Liveness{}.Next("busy|a", 100, t0)
+	l, now := quietFor(l, "busy|a", 100+FrozenCPUSlack/2, t0, FrozenAfter-time.Minute)
+	if Frozen(l, "busy", true, now) {
+		t.Fatal("frozen before FrozenAfter")
+	}
+	l, now = quietFor(l, "busy|a", 100+FrozenCPUSlack/2, now, time.Minute)
+	if !Frozen(l, "busy", true, now) {
+		t.Fatal("busy, waiting on the model and unchanged for FrozenAfter is frozen")
+	}
+	if Frozen(l, "idle", true, now) || Frozen(l, "waiting", true, now) {
+		t.Fatal("only a busy session can be frozen")
+	}
+	if Frozen(l, "busy", false, now) {
+		t.Fatal("a session running a tool, waiting to retry or past its turn is not frozen")
+	}
+	for name, next := range map[string]Liveness{
+		"its fingerprint changed": l.Next("busy|b", 100+FrozenCPUSlack/2, now.Add(30*time.Second)),
+		"it used CPU":             l.Next("busy|a", 100+FrozenCPUSlack+1, now.Add(30*time.Second)),
+		"a process in it ended":   l.Next("busy|a", 50, now.Add(30*time.Second)),
+		"the computer slept":      l.Next("busy|a", 100+FrozenCPUSlack/2, now.Add(MaxLookGap+time.Second)),
+	} {
+		if Frozen(next, "busy", true, next.Since) {
+			t.Errorf("%s, yet frozen", name)
+		}
+	}
+	if Frozen(Liveness{}, "busy", true, t0) {
+		t.Fatal("a session never seen is not frozen")
+	}
+}
+
+// Three freezes within FreezeWindow pause the watch rather than start it
+// again and again.
+func TestShouldPauseForFreezes(t *testing.T) {
+	now := time.Date(2026, 10, 9, 13, 0, 0, 0, time.UTC)
+	two := []time.Time{now.Add(-90 * time.Minute), now.Add(-30 * time.Minute)}
+	if ShouldPauseForFreezes(two, now) {
+		t.Fatal("two freezes do not pause")
+	}
+	if !ShouldPauseForFreezes(append(two, now), now) {
+		t.Fatal("three within the window pause")
+	}
+	old := []time.Time{now.Add(-FreezeWindow - time.Minute), now.Add(-30 * time.Minute), now}
+	if ShouldPauseForFreezes(old, now) {
+		t.Fatal("a freeze outside the window does not count")
+	}
+}

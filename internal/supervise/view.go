@@ -105,10 +105,14 @@ type WatchView struct {
 	SSHAttachCmd string `json:"sshAttachCmd,omitempty"`
 	// Status is what the session says about itself, busy or idle, in the
 	// host it is actually running in; it is empty when it is not running.
-	Status string       `json:"status"`
-	Stats  claude.Stats `json:"stats"`
-	Tree   TreeView     `json:"tree"`
-	PID    int          `json:"pid"`
+	Status string `json:"status"`
+	// NotResponding says the session has been busy for FrozenAfter with
+	// nothing changing, and is left as it is because it runs in a terminal
+	// or an app.
+	NotResponding bool         `json:"notResponding,omitempty"`
+	Stats         claude.Stats `json:"stats"`
+	Tree          TreeView     `json:"tree"`
+	PID           int          `json:"pid"`
 	// ProcStart is the start time the session's file recorded for PID, as
 	// written there, and empty when the session runs nowhere. A command
 	// running inside the session uses it to tell its own session's process
@@ -268,12 +272,14 @@ func (s *Supervisor) watchView(w state.Watch) WatchView {
 	// every piece of what it publishes, so that handing it out cannot let
 	// anyone reach back into the state the loop is still using.
 	w.Failures = append([]time.Time{}, w.Failures...)
+	w.Freezes = append([]time.Time(nil), w.Freezes...)
 	out := WatchView{Watch: w, State: StateOf(w, live), Live: []claude.Host{}}
 	if out.State != StateInBackground {
 		out.FallbackWarning = s.fallbackWarning(w.Cwd, w.OriginHost)
 	}
 	out.CanStop = s.canStop(&w, live)
 	out.CanUnbabysit = CanUnbabysit(out.State, s.env.Headless)
+	out.NotResponding = s.notResponding[w.SessionID]
 	for _, sn := range live {
 		out.Live = append(out.Live, sn.Host)
 		if sn.Host == claude.HostBackground {

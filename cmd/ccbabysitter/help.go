@@ -37,7 +37,8 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter help COMMAND    everything about one command
 
 S is a session id, a short id, a name, or self.
-A full id always wins. A word that fits two sessions, as a short id or a name, is refused.
+A full id always wins. A session that runs or is babysat wins over one that is not
+running. A word that fits two sessions, as a short id or a name, is refused.
 self is the session this command runs in.
 Add --json for one JSON document on stdout. Exit codes: 0 done, 1 refused,
 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one.
@@ -65,7 +66,8 @@ func printCommandHelp(w io.Writer, name string) bool {
 
 // The parts the control commands' pages share.
 const (
-	helpSession = `S is a session id, a short id, a name, or self. A full id always wins. A word
+	helpSession = `S is a session id, a short id, a name, or self. A full id always wins. A
+session that runs or is babysat wins over a conversation that is not running. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
 always the session this command runs in. See ccbabysitter list.
 `
@@ -136,24 +138,29 @@ stdout is {"schema":1,"running":false} with --json. That is the answer, not an e
 		"ccbabysitter list",
 		`Lists every Claude Code session on this machine, babysat or not, running or not.
 Sessions that are not babysat come first, then the babysat ones. Runs of a Claude
-Desktop scheduled task come last, under their own heading, since they are never
-babysat: Desktop starts the task again on its schedule.`,
+Desktop scheduled task follow, under their own heading, since they are never
+babysat: Desktop starts the task again on its schedule. Last come the page's Not
+running conversations from the last two weeks, under their own heading. show gives
+the commands that start one again: Attach for a background session that was
+stopped, which is the one the page offers, and Resume.`,
 		"",
 		`Text: a header, then one line per session, columns separated by two spaces:
   ID       short id, 8 characters
   NAME     the session's name, or - when it has none
   APP      where it runs: terminal, background, desktop, vscode or other, - when nowhere
   RC       Remote Control, on or off
-  BABYSAT  no, or watching, in background, starting or stuck
+  BABYSAT  no, or watching, in background, starting, stuck or not responding
   TOKENS   everything used so far, as 12k or 4.5M
   UPTIME   as 45s, 12m, 3h 5m or 2d 4h, - when it is not running
   FOLDER   the folder it works in
 Scheduled task runs follow, after an empty line when other sessions come first,
-under the line "Scheduled task runs, never babysat:", with the same columns.
-With no sessions it says: No Claude Code sessions are running.
+under the line "Scheduled task runs, never babysat:", with the same columns, then the
+conversations that are not running, under the line "Not running:". With no sessions
+running it says: No Claude Code sessions are running.
 
 With --json: {"schema":1,"sessions":[...]}, an empty array when there are none.
-A scheduled task's run is in the same array, with scheduledTask true.
+A scheduled task's run is in the same array, with scheduledTask true, and so is a
+conversation that is not running, with notRunning true.
 Each session has the fields shown by ccbabysitter help show, and the same names.
 In JSON, state is watching, background, starting or stuck, and is left out when the
 session is not babysat. The text says in background for background.`,
@@ -164,22 +171,28 @@ session is not babysat. The text says in background for background.`,
 	"show": controlPage(
 		"ccbabysitter show S",
 		`Shows one session in full, one Label: value line each. Lines for things that
-are not set are left out, except App, Running, Remote Control, Babysat and Tokens.`,
+are not set are left out, except App, Running, Remote Control, Babysat and Tokens.
+A conversation that is not running has no Tokens line, and Handed back to names the
+app it went back to in the last day, desktop, vscode or terminal. babysit and stop
+refuse it with exit code 1, and babysit says how to start it again.`,
 		"",
 		`Text lines, in this order: Id, Short id, Name, Also called, Folder, App, Also running
-in, Running, Scheduled task, Remote Control, Status, Babysat, State, Tokens, Model,
-Last activity, Uptime, Open with Remote Control, Attach, Attach over ssh, Resume, To
-switch Remote Control on, Warning. Tokens is like: in 1.2k, out 3.4k, cache 50k. App
-is none when it runs nowhere. State is watching, in background, starting or stuck.
-Scheduled task is yes for a run of a Claude Desktop scheduled task, and left out
-otherwise.
+in, Running, Scheduled task, Remote Control, Status, Babysat, State, Not responding,
+Tokens, Model, Last activity, Uptime, Open with Remote Control, Attach, Attach over
+ssh, Resume, To switch Remote Control on, Warning. Tokens is like: in 1.2k, out 3.4k,
+cache 50k. App is none when it runs nowhere. State is watching, in background,
+starting or stuck. Not responding is there for a babysat session in a terminal or an
+app that has been busy waiting on the model for 20 minutes with no output and no CPU
+use, and list shows it in the BABYSAT column. Scheduled task
+is yes for a run of a Claude Desktop scheduled task, and left out otherwise.
 
 With --json: {"schema":1,"session":{...}}. These fields are always there: id, shortId,
 name, folder, app, apps, running, remoteControl, status, babysat, tokens {input,
 output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask.
 Empty ones are "" or [], and app is "" when it runs nowhere. These are left out when
-not set: alsoCalled, pid, state, model, lastActivity as RFC 3339 in UTC, remoteUrl,
-attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added.
+not set: alsoCalled, pid, state, notResponding (true), notRunning (true),
+handedBackTo, model, lastActivity as RFC 3339 in UTC, remoteUrl, attachCmd,
+sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added.
 In JSON, state is watching, background, starting or stuck. The text says in
 background for background, so filter on background when using --json.`,
 		`  ccbabysitter show self
@@ -214,7 +227,11 @@ Unbabysit button.`,
 	"retry": controlPage(
 		"ccbabysitter retry S",
 		`Tries again on a babysat session that is stuck, as the page's Try again button
-does. Use it when list or show says its state is stuck.`,
+does. Use it when list or show says its state is stuck. On a session that is not
+stuck there is nothing to try again: it says so and exits with 1. On a session
+stuck because its background copy kept freezing, it also stops that copy with
+claude stop, while it is still the same copy and still frozen, so it is started
+again.`,
 		"",
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
 
@@ -244,8 +261,8 @@ background copy for one from a terminal, which shows the command to resume it.`,
 	"activity": controlPage(
 		"ccbabysitter activity [S] [-n N]",
 		`Shows what CC Babysitter did and why, newest first. With S, only the entries
-about that session. It looks through the newest 500 entries, so an older entry
-about S is not found.`,
+about that session, which can also be a conversation that is not running. It looks
+through the newest 500 entries, so an older entry about S is not found.`,
 		`  -n N               show at most N entries, 20 by default, 500 at most
 `,
 		`Text, one line each: 2026-10-02 14:05:09  SESSION  MESSAGE

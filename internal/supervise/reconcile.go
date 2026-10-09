@@ -96,6 +96,7 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 
 	changed = s.autoBabysit(snap) || changed
 	s.sampleStats(snap)
+	changed = s.checkFrozen(ctx, snap) || changed
 	s.forgetHandBacks(snap)
 	s.askForPast(snap)
 	s.askForTrust()
@@ -483,6 +484,7 @@ func (s *Supervisor) rejoin(w state.Watch, snap observe.Snapshot) bool {
 			continue
 		}
 		cur.PromiseState = "inplace"
+		delete(s.frozeStopped, w.SessionID)
 		cur.BackgroundSince = time.Time{}
 		cur.BackgroundCause = ""
 		cur.OriginHost = sn.Host

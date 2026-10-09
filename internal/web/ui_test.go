@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
 	"ccbabysitter.dev/ccbabysitter/internal/supervise"
@@ -1676,6 +1677,10 @@ func TestNotRunningRowsCarryTheirCommand(t *testing.T) {
 	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
 		t.Fatalf("got %q, want %q", got, want)
 	}
+	// The card says the wait the engine uses.
+	if !strings.Contains(app, "for "+strconv.Itoa(int(supervise.FrozenAfter/time.Minute))+" minutes") {
+		t.Fatalf("app.js does not say %v", supervise.FrozenAfter)
+	}
 }
 
 // A refusal that names a command to run by hand is the only place that
@@ -2094,5 +2099,25 @@ func TestTheLoginRefusalIsThePagesNote(t *testing.T) {
 	note := strings.ReplaceAll(strings.ReplaceAll(supervise.StartNotLoggedIn, "`claude`", `<code class="mono">claude</code>`), "\n", "")
 	if !strings.Contains(index, `<p class="info warn" id="login-note" hidden>`+note+`</p>`) {
 		t.Fatalf("the page's note is not %q", supervise.StartNotLoggedIn)
+	}
+}
+
+// A babysat session found frozen in an app says so on its card, in place
+// of where it is watched.
+func TestTheCardSaysNotResponding(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	script := "(function () {\n" +
+		`var HOST_PHRASE = { terminal: "a terminal window" }; var state = {};` + "\n" +
+		jsFunction(t, app, "phrase") + jsFunction(t, app, "stateLines") +
+		`console.log(JSON.stringify(stateLines({ state: "watching", host: "terminal", notResponding: true })));` + "\n" +
+		`console.log(JSON.stringify(stateLines({ state: "watching", host: "terminal" })));` + "\n" +
+		"})();\n"
+	got := runNode(t, script)
+	want := []string{
+		`["Not responding in a terminal window: busy waiting on the model for 20 minutes"]`,
+		`["Watching in a terminal window"]`,
+	}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("got %q, want %q", got, want)
 	}
 }

@@ -95,6 +95,10 @@ type Watch struct {
 	// its first rescue gave in Activity. It is kept and cleared with
 	// BackgroundSince, and empty when not known.
 	BackgroundCause string `json:"backgroundCause,omitempty"`
+	// Freezes are the times the watch's background session was found
+	// frozen and stopped to be started again, kept while they count
+	// towards pausing it.
+	Freezes []time.Time `json:"freezes,omitempty"`
 }
 
 // State is the entire contents of state.json. A file written by another

@@ -445,3 +445,15 @@ func TestDemoRefusesToBabysitAScheduledTaskRun(t *testing.T) {
 		t.Fatalf("%+v", res)
 	}
 }
+
+// The demo refuses Try again on a session that is not stuck, as the real
+// engine does.
+func TestDemoRetryRefusesASessionThatIsNotStuck(t *testing.T) {
+	d, _ := newTestDemo(t)
+	if res := d.Babysit(demoTerminalID, false, supervise.ViaPage); !res.OK {
+		t.Fatalf("%+v", res)
+	}
+	if res := d.ResumeWatch(demoTerminalID, supervise.ViaPage); res.OK || !strings.Contains(res.Message, "is not stuck: it is being watched where it runs.") {
+		t.Fatalf("%+v", res)
+	}
+}

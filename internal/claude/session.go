@@ -39,6 +39,9 @@ type Session struct {
 	// file does not say. A background process is started ahead of time and
 	// given to a session later, so it can be well after the process's start.
 	StartedAt time.Time
+	// StatusUpdatedAt is when Claude Code last set Status, zero when the
+	// file does not say.
+	StatusUpdatedAt time.Time
 }
 
 type sessionFile struct {
@@ -53,6 +56,7 @@ type sessionFile struct {
 	Status          string          `json:"status"`
 	BridgeSessionID string          `json:"bridgeSessionId"`
 	StartedAt       json.RawMessage `json:"startedAt"`
+	StatusUpdatedAt json.RawMessage `json:"statusUpdatedAt"`
 }
 
 const (
@@ -98,6 +102,7 @@ func ParseSessionFile(data []byte) (Session, error) {
 		Status:          f.Status,
 		BridgeSessionID: f.BridgeSessionID,
 		StartedAt:       decodeMillis(f.StartedAt),
+		StatusUpdatedAt: decodeMillis(f.StatusUpdatedAt),
 	}, nil
 }
 
