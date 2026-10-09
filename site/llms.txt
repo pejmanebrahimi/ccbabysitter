@@ -25,5 +25,6 @@
 - [Use it from Claude Code](https://ccbabysitter.dev/docs/claude-code-plugin/): install the Claude Code plugin and babysit a session by asking for it
 - [Stop or remove it](https://ccbabysitter.dev/docs/uninstall/): stop babysitting a session, quit, stop it starting at login, or uninstall
 - [Commands](https://ccbabysitter.dev/docs/commands/): every command, with its flags, output, JSON and exit codes
+- [How it works](https://ccbabysitter.dev/docs/how-it-works/): what CC Babysitter does for a babysat session, its hard rules, and start at login on each system
 - [README](https://github.com/pejmanebrahimi/ccbabysitter): settings and everything the docs do not cover yet
 - [Releases](https://github.com/pejmanebrahimi/ccbabysitter/releases)

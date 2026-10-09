@@ -55,10 +55,11 @@ func TestPluginManifests(t *testing.T) {
 	}
 }
 
-// updateReference rewrites the plugin's generated references, the command
-// reference from the help pages and how-it-works.md from the README:
-// go test ./cmd/ccbabysitter -run 'TestPluginReference|TestPluginHowItWorks|TestDocsCommandReference' -update-reference
-var updateReference = flag.Bool("update-reference", false, "rewrite plugin/skills/babysit/references and the docs' command reference")
+// updateReference rewrites the files made from others: the plugin's and
+// the docs' command references from the help pages, and the plugin's
+// how-it-works.md and the docs' How it works page from the README:
+// go test ./cmd/ccbabysitter -update-reference
+var updateReference = flag.Bool("update-reference", false, "rewrite the plugin's references and the docs pages made from the help pages and the README")
 
 // referencesDir is where the skill's references live, beside SKILL.md.
 var referencesDir = filepath.Join(pluginDir, "skills", "babysit", "references")
@@ -77,7 +78,8 @@ func checkGenerated(t *testing.T, path, want, test string) {
 	}
 	got, err := os.ReadFile(path)
 	if err != nil || string(got) != want {
-		t.Fatalf("%s is out of date; run: go test ./cmd/ccbabysitter -run %s -update-reference", filepath.Base(path), test)
+		rel, _ := filepath.Rel(repoRoot, path)
+		t.Fatalf("%s is out of date; run: go test ./cmd/ccbabysitter -run %s -update-reference", filepath.ToSlash(rel), test)
 	}
 }
 
@@ -118,11 +120,7 @@ func TestPluginHowItWorks(t *testing.T) {
 	// Vale's on and off comments are for the writing check, not for the
 	// skill, so they are left out of its copy.
 	readme := regexp.MustCompile(`(?m)^<!-- vale (on|off) -->\n\n?`).ReplaceAllString(string(data), "")
-	sections := map[string]string{}
-	for _, part := range strings.Split("\n"+readme, "\n## ")[1:] {
-		title, body, _ := strings.Cut(part, "\n")
-		sections[title] = strings.TrimSpace(body)
-	}
+	sections := sectionsOf(readme)
 	var b strings.Builder
 	b.WriteString("# How CC Babysitter works\n\nGenerated from README.md at the top of the CC Babysitter repository; do not edit by hand.\n")
 	for _, title := range howItWorksSections {
