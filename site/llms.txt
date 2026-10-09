@@ -26,5 +26,6 @@
 - [Stop or remove it](https://ccbabysitter.dev/docs/uninstall/): stop babysitting a session, quit, stop it starting at login, or uninstall
 - [Commands](https://ccbabysitter.dev/docs/commands/): every command, with its flags, output, JSON and exit codes
 - [How it works](https://ccbabysitter.dev/docs/how-it-works/): what CC Babysitter does for a babysat session, its hard rules, and start at login on each system
+- [Troubleshooting](https://ccbabysitter.dev/docs/troubleshooting/): what each warning and Activity message means, and what to do
 - [README](https://github.com/pejmanebrahimi/ccbabysitter): building from source and everything else
 - [Releases](https://github.com/pejmanebrahimi/ccbabysitter/releases)

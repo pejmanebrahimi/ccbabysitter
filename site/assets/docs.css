@@ -66,6 +66,10 @@ html:has(.dtop) { scrollbar-gutter: stable; }
 /* The README's bold, which leads a rule on a page made from it: the font
    has one weight, so it stands out by colour, not a made-up bold. */
 .doc b { font-weight: 400; color: var(--prompt); }
+/* the messages a troubleshooting entry answers, which wrap */
+.doc .msgs { padding-left: 0; list-style: none; }
+.doc .msgs li { margin: 4px 0; }
+.doc .msgs code { white-space: normal; overflow-wrap: anywhere; }
 
 /* a command: the home page's copy line, with its cursor while pointed at */
 .doc .cmd { margin: 4px 0 18px; }
