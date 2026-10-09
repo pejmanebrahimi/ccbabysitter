@@ -1,9 +1,9 @@
 package claude
 
 import (
-	"time"
 	"strings"
 	"testing"
+	"time"
 )
 
 const desktopFile = `{"pid":120,"sessionId":"11111111-2222-4333-8444-555555555501","cwd":"C:\\Users\\dev\\ws","procStart":"134000000000000000","version":"2.1.266","kind":"interactive","entrypoint":"claude-desktop","name":"demo-a1","bridgeSessionId":"session_TESTBRIDGE01"}`

@@ -16,11 +16,13 @@ import (
 // rather than the raw process tree type so every field carries the name
 // the page reads it under.
 type TreeView struct {
-	CPUPercent    float64  `json:"cpuPercent"`
-	RSSBytes      uint64   `json:"rssBytes"`
-	Children      []string `json:"children"`
-	UptimeSeconds int64    `json:"uptimeSeconds"`
-	Processes     int      `json:"processes"`
+	CPUPercent float64  `json:"cpuPercent"`
+	RSSBytes   uint64   `json:"rssBytes"`
+	Children   []string `json:"children"`
+	// UptimeSeconds counts from when the session started in its process,
+	// or from the process's own start when its session file does not say.
+	UptimeSeconds int64 `json:"uptimeSeconds"`
+	Processes     int   `json:"processes"`
 }
 
 // SessionView is one live session that is not being babysat.
