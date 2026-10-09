@@ -22,5 +22,6 @@
 - [Babysit your first session](https://ccbabysitter.dev/docs/first-session/): a tutorial, from install to reaching the session from a phone
 - [Run it on a server](https://ccbabysitter.dev/docs/server/): a how-to guide for a Linux server reached over SSH
 - [Start at login](https://ccbabysitter.dev/docs/start-at-login/): check, turn on or turn off starting CC Babysitter at login
+- [Use it from Claude Code](https://ccbabysitter.dev/docs/claude-code-plugin/): install the Claude Code plugin and babysit a session by asking for it
 - [README](https://github.com/pejmanebrahimi/ccbabysitter): settings, uninstalling, and everything the docs do not cover yet
 - [Releases](https://github.com/pejmanebrahimi/ccbabysitter/releases)

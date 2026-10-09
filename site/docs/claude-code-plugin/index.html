@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Use CC Babysitter from Claude Code - CC Babysitter docs</title>
+<meta name="description" content="Install the CC Babysitter plugin in Claude Code, then babysit a session, check it or open the page by asking in your own words.">
+<link rel="canonical" href="https://ccbabysitter.dev/docs/claude-code-plugin/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/docs.css">
+<script src="/assets/theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="dtop">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">CC Babysitter</a>
+  <a class="crumb" href="/docs/">Docs</a>
+  <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
+    <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
+  </button>
+</header>
+<div class="docs">
+  <details class="sidebox" open>
+    <summary class="fold"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="9" height="1"/><rect x="0" y="4" width="9" height="1"/><rect x="0" y="7" width="9" height="1"/></svg>Menu</summary>
+    <nav class="side" id="docs-nav" aria-label="Docs">
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+      </ul>
+      <p class="group" id="nav-tutorials">Tutorials</p>
+      <ul aria-labelledby="nav-tutorials">
+        <li><a href="/docs/first-session/">Babysit your first session</a></li>
+      </ul>
+      <p class="group" id="nav-how-to">How-to guides</p>
+      <ul aria-labelledby="nav-how-to">
+        <li><a href="/docs/server/">Run it on a server</a></li>
+        <li><a href="/docs/start-at-login/">Start at login</a></li>
+        <li><a href="/docs/claude-code-plugin/" aria-current="page">Use it from Claude Code</a></li>
+      </ul>
+    </nav>
+  </details>
+  <details class="toc" open>
+    <summary class="fold">On this page<svg class="caret" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/></svg></summary>
+    <nav class="toc-list" aria-label="On this page">
+      <ul>
+        <li><a href="#install">Install the plugin</a></li>
+        <li><a href="#ask">Ask in your own words</a></li>
+        <li><a href="#not-running">When CC Babysitter isn't running</a></li>
+        <li><a href="#asks-first">What it asks before doing</a></li>
+        <li><a href="#remove">Remove the plugin</a></li>
+      </ul>
+    </nav>
+  </details>
+  <main class="doc" id="content">
+    <p class="kind">How-to guide</p>
+    <h1>Use CC Babysitter from Claude Code</h1>
+    <p class="lede">With the CC Babysitter plugin, you can babysit the session you're in by asking for it, without leaving Claude Code.</p>
+    <p>The plugin works in Claude Code only, on the computer CC Babysitter runs on. It drives CC Babysitter's own commands, so everything it does also shows on the page and in its Activity panel.</p>
+
+    <h2 id="install">Install the plugin</h2>
+    <p>In Claude Code, run:</p>
+    <!-- vale off -->
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>&gt;</span> <span data-cmd>/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <!-- vale on -->
+    <p>CC Babysitter itself doesn't need to be installed first. If it isn't, the plugin gives you the one command that installs and starts it when you first ask it to do something.</p>
+
+    <h2 id="ask">Ask in your own words</h2>
+    <p>Say what you want, in any language. For example:</p>
+    <ul>
+      <li>"babysit this session", or <code>/ccbabysitter:babysit</code></li>
+      <li>"babysit the api session", or <code>/ccbabysitter:babysit api</code></li>
+      <li>"is this session babysat?"</li>
+      <li>"stop babysitting it"</li>
+      <li>"open the babysitter page"</li>
+      <li>"why was my session restarted last night?"</li>
+    </ul>
+    <p>Answers about how CC Babysitter works come from its help and README, which are part of the plugin. For a name that fits more than one session, you get a list of them to choose from.</p>
+    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>The plugin never runs a command whose output holds the page's key, so the key never ends up in your chat. To show the page, it runs <code>ccbabysitter open</code>, which opens it in your browser.</p></div>
+
+    <h2 id="not-running">When CC Babysitter isn't running</h2>
+    <p>If CC Babysitter isn't installed or isn't running, the plugin says so. It gives you the command to run in your terminal app. It never runs that command itself, since its output would bring the page's key into the chat. Run it, then tell the plugin you're done, and it carries on with what you asked.</p>
+
+    <h2 id="asks-first">What it asks before doing</h2>
+    <p>Babysitting, unbabysitting, trying a stuck session again, and opening the page happen right away. So do the commands that only read, such as listing sessions or reading the activity log. The first time in a conversation, it may also offer to open the page.</p>
+    <p>It asks you on a card before it stops a background copy, changes a setting or quits CC Babysitter. It also asks before it sets CC Babysitter up as a service on Linux, or stops it and turns off start at login. It never resets CC Babysitter or removes it completely: for those it explains what they delete and gives you the command to run yourself.</p>
+
+    <h2 id="remove">Remove the plugin</h2>
+    <p>In Claude Code, run:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>&gt;</span> <span data-cmd>/plugin uninstall ccbabysitter</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>This removes only the plugin. CC Babysitter keeps running, and keeps babysitting the sessions you chose.</p>
+
+    <nav class="pager" aria-label="Previous and next">
+      <a class="prev" href="/docs/start-at-login/"><small>Previous</small>Start at login</a>
+    </nav>
+    <p class="edit-line"><a class="edit" href="https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/docs/claude-code-plugin/index.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub<span class="sr"> (opens in a new tab)</span></a></p>
+  </main>
+</div>
+<footer class="foot">{{VERSION}} &middot; Preview &middot; <a href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT<span class="sr"> (opens in a new tab)</span></a> &middot; Not affiliated with Anthropic</footer>
+<script src="/assets/site.js"></script>
+<script src="/assets/docs.js"></script>
+</body>
+</html>
