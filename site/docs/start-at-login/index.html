@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Start CC Babysitter at login - CC Babysitter docs</title>
+<meta name="description" content="Check, turn on or turn off starting CC Babysitter at login, so babysat sessions come back after a restart, on macOS, Linux and Windows.">
+<link rel="canonical" href="https://ccbabysitter.dev/docs/start-at-login/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/docs.css">
+<script src="/assets/theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="dtop">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">CC Babysitter</a>
+  <a class="crumb" href="/docs/">Docs</a>
+  <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
+    <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
+  </button>
+</header>
+<div class="docs">
+  <details class="sidebox" open>
+    <summary class="fold"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="9" height="1"/><rect x="0" y="4" width="9" height="1"/><rect x="0" y="7" width="9" height="1"/></svg>Menu</summary>
+    <nav class="side" id="docs-nav" aria-label="Docs">
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+      </ul>
+      <p class="group" id="nav-tutorials">Tutorials</p>
+      <ul aria-labelledby="nav-tutorials">
+        <li><a href="/docs/first-session/">Babysit your first session</a></li>
+      </ul>
+      <p class="group" id="nav-how-to">How-to guides</p>
+      <ul aria-labelledby="nav-how-to">
+        <li><a href="/docs/server/">Run it on a server</a></li>
+        <li><a href="/docs/start-at-login/" aria-current="page">Start at login</a></li>
+      </ul>
+    </nav>
+  </details>
+  <details class="toc" open>
+    <summary class="fold">On this page<svg class="caret" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/></svg></summary>
+    <nav class="toc-list" aria-label="On this page">
+      <ul>
+        <li><a href="#why">Why it matters</a></li>
+        <li><a href="#check">Check whether it's on</a></li>
+        <li><a href="#switch">Turn it on or off</a></li>
+        <li><a href="#systems">What it uses on each system</a></li>
+        <li><a href="#move">Keep the program where it is</a></li>
+      </ul>
+    </nav>
+  </details>
+  <main class="doc" id="content">
+    <p class="kind">How-to guide</p>
+    <h1>Start CC Babysitter at login</h1>
+    <p class="lede">CC Babysitter brings babysat sessions back only while it runs. Starting it at login means a restart of the computer doesn't end that.</p>
+
+    <h2 id="why">Why it matters</h2>
+    <p>When the computer restarts, every app closes, CC Babysitter too. If it starts again when you log in, it brings your babysat sessions back in the background, as it would after any app closed. If it doesn't, they stay closed until you run <code>ccbabysitter</code> again.</p>
+    <p>The first time you run <code>ccbabysitter</code>, it turns start at login on for you. After that it leaves the choice to you.</p>
+
+    <h2 id="check">Check whether it's on</h2>
+    <p>On the page, open <strong>Settings</strong>. The box <strong>Start CC Babysitter when I log in</strong> shows whether it's on. From a terminal, this shows the same setting, as <code>autostart</code>:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter settings</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>When it's off, the Babysit dialog also offers to turn it on, so the session you babysit survives a restart.</p>
+
+    <h2 id="switch">Turn it on or off</h2>
+    <p>Tick or untick the box in Settings, or run:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter settings autostart on</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>Use <code>off</code> instead of <code>on</code> to turn it off. Turning it off doesn't stop CC Babysitter: it keeps running until you quit it or restart the computer.</p>
+
+    <h2 id="systems">What it uses on each system</h2>
+    <ul>
+      <li>On macOS, it's a login item. macOS may show a notice saying Background Items Added, and lists CC Babysitter in System Settings under General, then Login Items. If you switch it off there under Allow in the Background, macOS doesn't start it at all, and <code>ccbabysitter</code> tells you so.</li>
+      <li>On Linux, it's a systemd service of your user. On a desktop it starts with your desktop session. On a server it starts at boot and keeps running after you log out.</li>
+      <li>On Windows, it's an entry that starts CC Babysitter's windowless program when you log in, with no console window.</li>
+    </ul>
+    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>A Mac you reach only over SSH, with nobody logged in at its screen, has nowhere to start a login item. There, <code>ccbabysitter</code> runs in the terminal instead.</p></div>
+
+    <h2 id="move">Keep the program where it is</h2>
+    <p>Start at login runs the program from where it was when you turned it on. Keep it where the install script put it, or in another folder where it will stay. If you move it, run <code>ccbabysitter</code> from its new place once, and it updates the login entry.</p>
+
+    <nav class="pager" aria-label="Previous and next">
+      <a class="prev" href="/docs/server/"><small>Previous</small>Run it on a server</a>
+    </nav>
+    <p class="edit-line"><a class="edit" href="https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/docs/start-at-login/index.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub<span class="sr"> (opens in a new tab)</span></a></p>
+  </main>
+</div>
+<footer class="foot">{{VERSION}} &middot; Preview &middot; <a href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT<span class="sr"> (opens in a new tab)</span></a> &middot; Not affiliated with Anthropic</footer>
+<script src="/assets/site.js"></script>
+<script src="/assets/docs.js"></script>
+</body>
+</html>
