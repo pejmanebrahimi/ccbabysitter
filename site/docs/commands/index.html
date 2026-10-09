@@ -176,7 +176,8 @@ Sessions that are not babysat come first, then the babysat ones. Runs of a Claud
 Desktop scheduled task follow, under their own heading, since they are never
 babysat: Desktop starts the task again on its schedule. Last come the page&#39;s Not
 running conversations from the last two weeks, under their own heading. show gives
-the command that starts one again.
+the commands that start one again: Attach for a background session that was
+stopped, which is the one the page offers, and Resume.
 
 Flags:
   --json             print one JSON document on stdout instead of text
@@ -508,8 +509,8 @@ Example:
     <pre class="out" tabindex="0">ccbabysitter activity [S] [-n N]
 
 Shows what CC Babysitter did and why, newest first. With S, only the entries
-about that session. It looks through the newest 500 entries, so an older entry
-about S is not found.
+about that session, which can also be a conversation that is not running. It looks
+through the newest 500 entries, so an older entry about S is not found.
 
 S is a session id, a short id, a name, or self. A full id always wins. A
 session that runs or is babysat wins over a conversation that is not running. A word

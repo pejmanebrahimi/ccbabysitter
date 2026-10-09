@@ -141,7 +141,8 @@ Sessions that are not babysat come first, then the babysat ones. Runs of a Claud
 Desktop scheduled task follow, under their own heading, since they are never
 babysat: Desktop starts the task again on its schedule. Last come the page's Not
 running conversations from the last two weeks, under their own heading. show gives
-the command that starts one again.`,
+the commands that start one again: Attach for a background session that was
+stopped, which is the one the page offers, and Resume.`,
 		"",
 		`Text: a header, then one line per session, columns separated by two spaces:
   ID       short id, 8 characters
@@ -254,8 +255,8 @@ background copy for one from a terminal, which shows the command to resume it.`,
 	"activity": controlPage(
 		"ccbabysitter activity [S] [-n N]",
 		`Shows what CC Babysitter did and why, newest first. With S, only the entries
-about that session. It looks through the newest 500 entries, so an older entry
-about S is not found.`,
+about that session, which can also be a conversation that is not running. It looks
+through the newest 500 entries, so an older entry about S is not found.`,
 		`  -n N               show at most N entries, 20 by default, 500 at most
 `,
 		`Text, one line each: 2026-10-02 14:05:09  SESSION  MESSAGE
