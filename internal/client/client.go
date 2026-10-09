@@ -50,6 +50,10 @@ func (e *Error) Error() string { return e.Message }
 const (
 	viewTimeout   = 10 * time.Second
 	actionTimeout = 90 * time.Second
+	// startTimeout is how long Start waits: answering Claude Code's trust
+	// question and starting the session can take the running copy up to two
+	// minutes.
+	startTimeout = 3 * time.Minute
 )
 
 // Client is one running copy's address, its page's key, and an HTTP
@@ -268,6 +272,18 @@ func (c *Client) Retry(ctx context.Context, id string) (supervise.Result, error)
 // dialog is confirmed.
 func (c *Client) Stop(ctx context.Context, id string) (supervise.Result, error) {
 	return c.action(ctx, id, "stop", nil)
+}
+
+// Start is the page's New session: it starts a new background session in
+// dir on a machine with no display, trusting the folder for the claude CLI
+// first when trust is set.
+func (c *Client) Start(ctx context.Context, dir string, trust bool) (supervise.Result, error) {
+	status, data, err := c.send(ctx, startTimeout, http.MethodPost, "/api/start?via=cli",
+		map[string]any{"path": dir, "trust": trust})
+	if err != nil {
+		return supervise.Result{}, err
+	}
+	return result(status, data)
 }
 
 // olderCopyQuit is quit's refusal when the running copy is from before

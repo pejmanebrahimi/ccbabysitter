@@ -463,6 +463,9 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 			AutostartNote:      autostartNote,
 			OpenTerminal:       terminal.OpenAttach,
 			TerminalName:       terminal.Name,
+			AcceptTrust: func(ctx context.Context, dir string) error {
+				return claude.AcceptTrust(ctx, "", dir)
+			},
 		}
 		deps.Notify = func() {
 			if srv != nil {

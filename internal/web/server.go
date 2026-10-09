@@ -28,6 +28,7 @@ type Engine interface {
 	Stop(id string, via supervise.Via) supervise.Result
 	ResumeWatch(id string, via supervise.Via) supervise.Result
 	OpenTerminal(id string) supervise.Result
+	Start(dir string, trust bool, via supervise.Via) supervise.Result
 	SetSettings(next state.Settings, via supervise.Via) supervise.Result
 }
 
@@ -138,6 +139,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/sessions/{id}/stop", s.withID(s.handleStop))
 	mux.HandleFunc("POST /api/sessions/{id}/resume-watch", s.withID(s.handleResumeWatch))
 	mux.HandleFunc("POST /api/sessions/{id}/open-terminal", s.withID(s.handleOpenTerminal))
+	mux.HandleFunc("POST /api/start", s.handleStart)
 
 	mux.HandleFunc("GET /api/settings", s.handleGetSettings)
 	mux.HandleFunc("PUT /api/settings", s.handlePutSettings)
@@ -191,8 +193,8 @@ func decodeOptionalJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 }
 
 // decodeRequiredJSON is decodeOptionalJSON without the empty-body
-// allowance, for the one route (PUT /api/settings) whose body is not
-// optional.
+// allowance, for the routes whose body is not optional: PUT /api/settings
+// and POST /api/start.
 func decodeRequiredJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -259,6 +261,20 @@ func (s *Server) handleResumeWatch(w http.ResponseWriter, r *http.Request, id st
 
 func (s *Server) handleOpenTerminal(w http.ResponseWriter, r *http.Request, id string) {
 	writeResult(w, s.engine.OpenTerminal(id))
+}
+
+// handleStart starts a new background session in the folder the request
+// names, trusting it for the claude CLI first only when the request says
+// the person agreed to.
+func (s *Server) handleStart(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Path  string `json:"path"`
+		Trust bool   `json:"trust"`
+	}
+	if !decodeRequiredJSON(w, r, &req) {
+		return
+	}
+	writeResult(w, s.engine.Start(req.Path, req.Trust, viaOf(r)))
 }
 
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
