@@ -431,3 +431,42 @@ func TestStartDoesNotAskTheLoginAgainWhenNotNeeded(t *testing.T) {
 		t.Fatalf("asked the login again: %v", sf.f.r.CallList())
 	}
 }
+
+// The login comes before the trust question, so a person is never asked to
+// trust a folder for a start that would be refused anyway.
+func TestStartChecksTheLoginBeforeAskingAboutTrust(t *testing.T) {
+	sf := newStartFixture(t, true, func(args []string) (string, error) {
+		if strings.Join(args, " ") == "auth status" {
+			return `{"loggedIn": false}`, errors.New("exit status 1")
+		}
+		return "[]", nil
+	})
+	sf.f.d.Env = func() hosts.Env {
+		return hosts.Env{Platform: "linux", CLIFound: true, CLIPresent: true, Headless: true, CLILoggedIn: hosts.LoginNo}
+	}
+	sf.s = New(*sf.f.d)
+	if res := sf.s.Start(sf.project, false, ViaPage); res.OK || res.NeedsTrust || res.Message != StartNotLoggedIn {
+		t.Fatalf("%+v", res)
+	}
+}
+
+// When the CLI does not answer the second time, the stored answer is not
+// enough to refuse, and the start goes ahead.
+func TestStartGoesAheadWhenTheLoginIsNotKnown(t *testing.T) {
+	sf := newStartFixture(t, true, func(args []string) (string, error) {
+		switch {
+		case strings.Join(args, " ") == "auth status":
+			return "", errors.New("signal: killed")
+		case startsBackground(args):
+			return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api (claude attach 1a2b3c4d)", nil
+		}
+		return "[]", nil
+	})
+	sf.f.d.Env = func() hosts.Env {
+		return hosts.Env{Platform: "linux", CLIFound: true, CLIPresent: true, Headless: true, CLILoggedIn: hosts.LoginNo}
+	}
+	sf.s = New(*sf.f.d)
+	if res := sf.s.Start(sf.project, true, ViaPage); !res.OK {
+		t.Fatalf("%+v", res)
+	}
+}

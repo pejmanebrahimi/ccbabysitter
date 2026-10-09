@@ -25,7 +25,8 @@ const StartNotLoggedIn = "Claude Code is not logged in on this machine. Run `cla
 // babysat when it shows up, before it is no longer looked for.
 const startedWait = 2 * time.Minute
 
-// startTimeout bounds the slow part of a start: answering the CLI's trust
+// startTimeout bounds the slow part of a start: asking the CLI again
+// whether it is logged in, when it last said no, answering its trust
 // question and starting the background session.
 const startTimeout = 2 * time.Minute
 
@@ -46,15 +47,18 @@ func TrustQuestion(dir string) string {
 // caller's goroutine, and the loop goes on babysitting meanwhile.
 func (s *Supervisor) Start(dir string, trust bool, via Via) Result {
 	var plan startPlan
-	if res := s.ask(func(context.Context) Result { return s.planStart(dir, trust, &plan) }); !res.OK {
-		return res
-	}
+	res := s.ask(func(context.Context) Result { return s.planStart(dir, trust, &plan) })
 	ctx, cancel := context.WithTimeout(context.Background(), startTimeout)
 	defer cancel()
 	// The login answer the loop holds can be a minute old, so one that
-	// says logged out is asked again before the start is refused.
-	if plan.loggedOut && hosts.AskLogin(ctx, s.deps.Runner) == hosts.LoginNo {
+	// says logged out is asked again before the start is refused. It comes
+	// before the trust question: nobody is asked to trust a folder for a
+	// start that would be refused anyway.
+	if (res.OK || res.NeedsTrust) && plan.loggedOut && hosts.AskLogin(ctx, s.deps.Runner) == hosts.LoginNo {
 		return Result{Message: StartNotLoggedIn}
+	}
+	if !res.OK {
+		return res
 	}
 	if plan.trust {
 		if res, ok := s.trustFolder(ctx, plan.dir, via); !ok {
