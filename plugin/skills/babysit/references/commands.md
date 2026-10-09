@@ -24,6 +24,7 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter unbabysit S     stop babysitting S, which keeps running where it is
   ccbabysitter retry S         try again on a babysat session that is stuck
   ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
+  ccbabysitter start PATH      on a machine with no display, start a babysat session in PATH
   ccbabysitter activity [S]    what CC Babysitter did and why, newest first
   ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
   ccbabysitter open            open the page in your browser, printing no key

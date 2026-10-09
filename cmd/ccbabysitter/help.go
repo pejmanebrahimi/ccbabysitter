@@ -29,6 +29,7 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter unbabysit S     stop babysitting S, which keeps running where it is
   ccbabysitter retry S         try again on a babysat session that is stuck
   ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
+  ccbabysitter start PATH      on a machine with no display, start a babysat session in PATH
   ccbabysitter activity [S]    what CC Babysitter did and why, newest first
   ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
   ccbabysitter open            open the page in your browser, printing no key
@@ -275,6 +276,25 @@ With --json: {"schema":1,"settings":{"autostart":false,"autoBabysit":true,
   ccbabysitter settings theme dark
 `),
 
+	"start": controlPage(
+		"ccbabysitter start PATH [--trust]",
+		`Starts a new background session with Remote Control in the folder PATH, on a
+machine with no display, as the page's New session does, and babysits it. PATH is
+the folder's full path. The home folder is refused, since Claude Code does not
+start background sessions there.
+Claude Code runs on its own only in a folder it trusts. When it does not trust
+PATH yet, start says so and starts nothing. With --trust, start answers Claude
+Code's own question whether to trust the folder with Yes, then starts the
+session. Claude Code records the trust itself.`,
+		`  --trust            trust PATH for Claude Code first, when it does not yet
+`,
+		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {"schema":1,"ok":true,"message":"...","session":"SHORT ID"}.
+ok is false when it was refused, with exit code 1 and the reason in message, and
+needsTrust is true when Claude Code does not trust PATH and --trust was not given.`,
+		`  ccbabysitter start /srv/shop-api --trust
+`),
 	"open": controlPage(
 		"ccbabysitter open",
 		`Opens the running copy's page in your default browser, with a one-time address,

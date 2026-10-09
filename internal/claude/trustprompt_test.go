@@ -15,9 +15,9 @@ import (
 func trustScreen(onYes bool) string {
 	no, yes := "  No, exit", "  Yes, I trust this folder"
 	if onYes {
-		yes = "❯ Yes, I trust this folder"
+		yes = "\u276f Yes, I trust this folder"
 	} else {
-		no = "❯ No, exit"
+		no = "\u276f No, exit"
 	}
 	return "\x1b[2K\x1b[1A\x1b[38;5;214mAccessing workspace:\x1b[39m\r\n" +
 		"/srv/project\r\n\r\n" +
@@ -27,7 +27,7 @@ func trustScreen(onYes bool) string {
 		"Claude Code'll be able to read, edit, and execute files here.\r\n\r\n" +
 		"\x1b[36m" + no + "\x1b[39m\r\n" +
 		"\x1b[36m" + yes + "\x1b[39m\r\n\r\n" +
-		"Enter to confirm · Esc to cancel\r\n"
+		"Enter to confirm \u00b7 Esc to cancel\r\n"
 }
 
 func TestReadTrustScreen(t *testing.T) {
@@ -41,7 +41,7 @@ func TestReadTrustScreen(t *testing.T) {
 		{"asked, on Yes", trustScreen(true), true, true},
 		{"a redraw after Down", trustScreen(false) + "\x1b[3A\x1b[2K" + trustScreen(true), true, true},
 		{"a redraw back to No", trustScreen(true) + trustScreen(false), true, false},
-		{"another question", "Do you want to continue?\r\n❯ 1. Yes\r\n  2. No\r\n", false, false},
+		{"another question", "Do you want to continue?\r\n\u276f 1. Yes\r\n  2. No\r\n", false, false},
 	} {
 		asked, onYes := readTrustScreen(c.screen)
 		if asked != c.asked || onYes != c.onYes {

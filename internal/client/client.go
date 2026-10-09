@@ -270,6 +270,18 @@ func (c *Client) Stop(ctx context.Context, id string) (supervise.Result, error) 
 	return c.action(ctx, id, "stop", nil)
 }
 
+// Start is the page's New session: it starts a new background session in
+// dir on a machine with no display, trusting the folder for the claude CLI
+// first when trust is set.
+func (c *Client) Start(ctx context.Context, dir string, trust bool) (supervise.Result, error) {
+	status, data, err := c.send(ctx, c.actionTimeout, http.MethodPost, "/api/start?via=cli",
+		map[string]any{"path": dir, "trust": trust})
+	if err != nil {
+		return supervise.Result{}, err
+	}
+	return result(status, data)
+}
+
 // olderCopyQuit is quit's refusal when the running copy is from before
 // quit existed, which answers the route with a plain 404 or 405.
 const olderCopyQuit = "The running CC Babysitter is an older version that cannot quit this way. Quit it with Ctrl+C in its window. If it was started at login, stop it on Linux with: systemctl --user stop ccbabysitter, on macOS with: launchctl bootout gui/$(id -u)/com.ccbabysitter, or on Windows by ending ccbabysitter.exe in Task Manager."

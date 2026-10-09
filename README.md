@@ -179,6 +179,7 @@ ccbabysitter babysit S       keep S alive: if its app dies, it comes back in the
 ccbabysitter unbabysit S     stop babysitting S, which keeps running where it is
 ccbabysitter retry S         try again on a babysat session that is stuck
 ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
+ccbabysitter start PATH      on a machine with no display, start a babysat session in PATH
 ccbabysitter activity [S]    what CC Babysitter did and why, newest first
 ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
 ccbabysitter open            open the page in your browser, printing no key
@@ -186,7 +187,7 @@ ccbabysitter quit            quit CC Babysitter. Babysat sessions keep running w
 ccbabysitter help COMMAND    everything about one command
 ```
 
-On a Linux server, `ccbabysitter` prints the command to connect from your laptop, such as `ssh -L 47391:127.0.0.1:47391 user@host`, then open the address it prints, `http://127.0.0.1:47391/?token=...` with the page's key, while that connection is open. The same window stays an ordinary shell on the server. On a cloud server behind NAT, the printed address can be the server's private one; use the address you normally ssh to instead. To run CC Babysitter only while a terminal stays open instead, use `ccbabysitter --foreground`.
+On a Linux server, `ccbabysitter` prints the command to connect from your laptop, such as `ssh -L 47391:127.0.0.1:47391 user@host`, then open the address it prints, `http://127.0.0.1:47391/?token=...` with the page's key, while that connection is open. The same window stays an ordinary shell on the server. To start a new session there, run `ccbabysitter start` with the project folder's path. It babysits the session, and when Claude Code does not trust the folder yet it says so; with `--trust` it answers Claude Code's own question whether to trust it for you. On a cloud server behind NAT, the printed address can be the server's private one; use the address you normally ssh to instead. To run CC Babysitter only while a terminal stays open instead, use `ccbabysitter --foreground`.
 
 ## Start at login
 

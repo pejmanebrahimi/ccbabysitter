@@ -30,7 +30,7 @@ const (
 )
 
 // selected is the mark the CLI draws before the option that is chosen.
-const selected = "❯"
+const selected = "\u276f"
 
 // ansiCode matches the terminal's control sequences: colours, cursor
 // moves, screen clearing and window titles.

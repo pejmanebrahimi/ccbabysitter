@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -55,6 +56,13 @@ func (e *ctlEngine) ResumeWatch(id string, v supervise.Via) supervise.Result {
 	return e.act("retry", id, v)
 }
 func (e *ctlEngine) OpenTerminal(string) supervise.Result { return supervise.Result{} }
+func (e *ctlEngine) Start(dir string, trust bool, v supervise.Via) supervise.Result {
+	e.calls = append(e.calls, fmt.Sprintf("start %s trust=%v %s", dir, trust, v))
+	if dir == "/srv/new" && !trust {
+		return supervise.Result{Message: supervise.TrustQuestion(dir), NeedsTrust: true}
+	}
+	return supervise.Result{OK: true, Message: "Started a new session in " + dir + ".", ShortID: "1a2b3c4d"}
+}
 func (e *ctlEngine) SetSettings(s state.Settings, v supervise.Via) supervise.Result {
 	e.view.Settings = s
 	e.calls = append(e.calls, "settings "+string(v))
@@ -204,6 +212,36 @@ func TestStopNeedsYes(t *testing.T) {
 	}
 	if e.calls[0] != "stop "+cID4+" cli" {
 		t.Fatalf("calls = %q", e.calls)
+	}
+}
+
+// start takes one folder. In a folder Claude Code does not trust yet it
+// says so and asks for --trust, and with --trust it passes the person's yes
+// on.
+func TestStartCommand(t *testing.T) {
+	env, e, _ := testEnv(t)
+	if code, out, _ := runCmd(t, env, "start", "/srv/shop-api"); code != 0 || !strings.Contains(out, "Started a new session in /srv/shop-api.") {
+		t.Fatalf("start = %d, %q", code, out)
+	}
+	code, _, errOut := runCmd(t, env, "start", "/srv/new")
+	if code != 1 || !strings.Contains(errOut, "Trust this folder?") || !strings.Contains(errOut, "--trust") {
+		t.Fatalf("start in an untrusted folder = %d, %q", code, errOut)
+	}
+	if code, _, _ := runCmd(t, env, "start", "/srv/new", "--trust"); code != 0 {
+		t.Fatalf("start --trust = %d", code)
+	}
+	want := "start /srv/shop-api trust=false cli|start /srv/new trust=false cli|start /srv/new trust=true cli"
+	if got := strings.Join(e.calls, "|"); got != want {
+		t.Fatalf("calls %q, want %q", got, want)
+	}
+	code, out, _ := runCmd(t, env, "start", "/srv/new", "--json")
+	if code != 1 || !strings.Contains(out, `"needsTrust":true`) {
+		t.Fatalf("start --json = %d, %q", code, out)
+	}
+	for _, args := range [][]string{{"start"}, {"start", "/a", "/b"}} {
+		if code, _, _ := runCmd(t, env, args...); code != 2 {
+			t.Errorf("%q = %d, want 2", args, code)
+		}
 	}
 }
 
