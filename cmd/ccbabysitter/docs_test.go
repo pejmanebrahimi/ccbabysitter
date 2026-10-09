@@ -176,6 +176,8 @@ func TestMarkdownHTML(t *testing.T) {
 		"```\ncode\n```", "text\n```\ncode\n```", "    indented code", "a footnote[^1]",
 		"- item\n  - nested", "Intro:\n- a\n- b", "*italic*", "_italic_", "**bold `code` bold**",
 		"an `unmatched backtick", "``double``", "a \\* escape", "[ref][1]",
+		"![a picture](https://example.com/a.png)", "[**bold** label](https://example.com)", "[a * b](https://example.com)",
+		"- one\n\n- two",
 	} {
 		if _, err := markdownHTML(bad); err == nil {
 			t.Errorf("%q was turned into HTML instead of refused", bad)
@@ -195,7 +197,7 @@ var (
 	markdownBlockStart = regexp.MustCompile("^(#|\\d+[.)] |[*+] |> |<|\\||```)")
 	// markdownLeft is Markdown still in the text once bold and links are
 	// turned: a link of another kind, emphasis, an escape or a footnote.
-	markdownLeft = regexp.MustCompile(`\*|\]\(|\]\[|\[\^|(^|[\s(])_[^\s_]|\\[[:punct:]]`)
+	markdownLeft = regexp.MustCompile(`\*|\]\(|\]\[|\[\^|(^|[\s(])_[^\s_]|\\[[:punct:]]|!\x00`)
 )
 
 // markdownHTML turns the README's Markdown into the docs' HTML. It knows
@@ -208,6 +210,7 @@ var (
 // show fails a test instead of reaching the site half turned.
 func markdownHTML(md string) (string, error) {
 	var b strings.Builder
+	lastList := false
 	for _, block := range strings.Split(strings.Trim(md, "\n"), "\n\n") {
 		block = strings.Trim(block, "\n")
 		if strings.TrimSpace(block) == "" {
@@ -219,6 +222,10 @@ func markdownHTML(md string) (string, error) {
 			continue
 		}
 		list := strings.HasPrefix(lines[0], "- ")
+		if list && lastList {
+			return "", fmt.Errorf("the docs cannot show a list with blank lines in it: %q", lines[0])
+		}
+		lastList = list
 		var items []string
 		for i, line := range lines {
 			bullet := strings.HasPrefix(line, "- ")
@@ -293,6 +300,9 @@ func markdownInline(line string) (string, error) {
 		text = escapeText(text)
 		text = strings.NewReplacer("\x01", "<b>", "\x02", "</b>").Replace(text)
 		for n, l := range links {
+			if markdownLeft.MatchString(l.text) {
+				return "", fmt.Errorf("the docs cannot show Markdown in a link's text: %q", l.text)
+			}
 			text = strings.Replace(text, "\x00"+strconv.Itoa(n)+"\x00",
 				`<a href="`+html.EscapeString(l.url)+`" target="_blank" rel="noopener noreferrer">`+escapeText(l.text)+`<span class="sr"> (opens in a new tab)</span></a>`, 1)
 		}

@@ -516,3 +516,21 @@ console.log(visible().join("\n"));`
 		t.Errorf("on a hidden page got\n%s\nwant no timers and the calm pose at once\n%s", hidden, want)
 	}
 }
+
+// A link from elsewhere to /#why opens the "See more" disclosure, so it
+// lands on the text; any other address leaves it closed.
+func TestWhyLinkOpensSeeMore(t *testing.T) {
+	for hash, want := range map[string]string{"#why": "true", "#install": "false", "": "false"} {
+		out := runNode(t, `
+var details = { open: false };
+window.location = { hash: "`+hash+`" };
+var document = { documentElement: { getAttribute: function () { return null; } }, querySelector: function () { return null; },
+  querySelectorAll: function () { return []; },
+  getElementById: function (id) { return id === "why" ? details : null; } };
+`+"eval(require('fs').readFileSync('assets/site.js', 'utf8'));"+`
+console.log(details.open);`)
+		if out != want {
+			t.Errorf("hash %q: open %s, want %s", hash, out, want)
+		}
+	}
+}

@@ -99,6 +99,15 @@
     });
   });
 
+  // A link from elsewhere to the "See more" disclosure itself, /#why, opens
+  // it, so it lands on the text rather than on a closed box.
+  function openTarget() {
+    var box = window.location && window.location.hash === "#why" ? document.getElementById("why") : null;
+    if (box) box.open = true;
+  }
+  openTarget();
+  if (window.addEventListener) window.addEventListener("hashchange", openTarget);
+
   // A note mark in the intro opens the "See more" disclosure that holds the
   // note before the browser jumps to it, so the jump lands on readable text.
   Array.prototype.forEach.call(document.querySelectorAll("a.fn"), function (a) {
