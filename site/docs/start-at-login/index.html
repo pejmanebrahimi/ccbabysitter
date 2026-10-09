@@ -60,10 +60,10 @@
 
     <h2 id="restart">After a restart</h2>
     <p>When the computer restarts, every app closes, CC Babysitter too. When it starts again at login, it brings your babysat sessions back in the background, as it would after any app closed. Otherwise they stay closed until you run <code>ccbabysitter</code> again.</p>
-    <p>The first time <code>ccbabysitter</code> starts CC Babysitter in the background, it turns start at login on. After that it leaves the choice to you.</p>
+    <p>The first time <code>ccbabysitter</code> starts CC Babysitter in the background, it turns start at login on, and again after an upgrade from an earlier version. On Linux, <code>ccbabysitter install</code> always turns it on. Otherwise it leaves the choice to you.</p>
 
     <h2 id="check">Check whether it's on</h2>
-    <p>On a desktop, open <strong>Settings</strong> on the page. The box <strong>Start CC Babysitter when I log in</strong> shows whether it's on. On a server, or from any terminal, this shows the same setting, as <code>autostart</code>:</p>
+    <p>On a desktop, open <strong>Settings</strong> on the page. The box <strong>Start CC Babysitter when I log in</strong> shows whether it's on. On a server, or from any terminal, this shows the same setting, as <code>autostart</code>. It asks the running copy, so CC Babysitter must be running:</p>
     <button class="cmd" type="button" data-copy>
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter settings</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
@@ -76,13 +76,14 @@
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter settings autostart on</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
-    <p>Use <code>off</code> instead of <code>on</code> to turn it off. Turning it off doesn't stop CC Babysitter: it keeps running until you quit it, log out or restart.</p>
+    <p>Use <code>off</code> instead of <code>on</code> to turn it off. Turning it off doesn't stop CC Babysitter. On macOS it keeps running until you quit it or log out, and on Linux and Windows until you quit it or restart.</p>
+    <p>If CC Babysitter has quit, start it with <code>ccbabysitter</code> first, then change the setting. Or run <code>ccbabysitter uninstall --keep-files</code>, which removes start at login and keeps the program and its settings.</p>
 
     <h2 id="systems">What it uses on each system</h2>
     <ul>
-      <li>On macOS, it's a login item. macOS may show a notice saying Background Items Added, and lists CC Babysitter in System Settings under General, then Login Items. If you switch it off there under Allow in the Background, macOS doesn't start it at all, and <code>ccbabysitter</code> tells you so.</li>
+      <li>On macOS, it's a login item. macOS may show a notice saying Background Items Added, and lists CC Babysitter in System Settings under General, then Login Items. If you switch it off there under Allow in the Background, macOS doesn't start it at all, and <code>ccbabysitter</code> tells you so. Switch it back on there, or run <code>ccbabysitter --foreground</code> to run it in a terminal.</li>
       <li>On Linux, it's a systemd service of your user. On a desktop it starts with your desktop session. On a server it starts at boot and keeps running after you log out.</li>
-      <li>On Windows, it's the value <code>CCBabysitter</code> under <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Run</code>. It starts CC Babysitter's windowless program when you log in, with no console window.</li>
+      <li>On Windows, it's the value <code>CCBabysitter</code> under <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Run</code>. It starts CC Babysitter's windowless program when you log in, with no console window. A copy installed with <code>go install</code> has no windowless program, so it can't start at login and runs in the terminal.</li>
     </ul>
     <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>A Mac you reach only over SSH, with nobody logged in at its screen, has nowhere to start a login item. There, <code>ccbabysitter</code> runs in the terminal instead.</p></div>
 
