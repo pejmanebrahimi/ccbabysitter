@@ -727,6 +727,8 @@
       return ["Starting in the background"];
     }
     if (w.state === "stuck") { return ["Stuck: " + (w.pauseReason || "three starts failed in five minutes")]; }
+    /* A session frozen in an app is left there, and the card says so. */
+    if (w.notResponding) { return ["Not responding in " + phrase(w.host || w.originHost) + ": busy waiting on the model for 20 minutes"]; }
     return ["Watching in " + phrase(w.host || w.originHost)];
   }
 

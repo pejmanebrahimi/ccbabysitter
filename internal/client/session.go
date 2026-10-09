@@ -53,18 +53,21 @@ type Session struct {
 	Status        string   `json:"status"` // busy|idle|"" as the session reports it
 	Babysat       bool     `json:"babysat"`
 	State         string   `json:"state,omitempty"` // watching|background|starting|stuck while babysat
-	Tokens        Tokens   `json:"tokens"`
-	Model         string   `json:"model,omitempty"`
-	LastActivity  string   `json:"lastActivity,omitempty"` // RFC 3339, UTC
-	UptimeSeconds int64    `json:"uptimeSeconds"`
-	RemoteURL     string   `json:"remoteUrl,omitempty"`
-	AttachCmd     string   `json:"attachCmd,omitempty"`
-	SSHAttachCmd  string   `json:"sshAttachCmd,omitempty"`
-	ResumeCmd     string   `json:"resumeCmd,omitempty"`
-	RCHint        string   `json:"rcHint,omitempty"`
-	Warning       string   `json:"warning,omitempty"`
-	CanStop       bool     `json:"canStop"`
-	CanUnbabysit  bool     `json:"canUnbabysit"`
+	// NotResponding is true for a babysat session in a terminal or an app
+	// that has been busy for 20 minutes with nothing changing.
+	NotResponding bool   `json:"notResponding,omitempty"`
+	Tokens        Tokens `json:"tokens"`
+	Model         string `json:"model,omitempty"`
+	LastActivity  string `json:"lastActivity,omitempty"` // RFC 3339, UTC
+	UptimeSeconds int64  `json:"uptimeSeconds"`
+	RemoteURL     string `json:"remoteUrl,omitempty"`
+	AttachCmd     string `json:"attachCmd,omitempty"`
+	SSHAttachCmd  string `json:"sshAttachCmd,omitempty"`
+	ResumeCmd     string `json:"resumeCmd,omitempty"`
+	RCHint        string `json:"rcHint,omitempty"`
+	Warning       string `json:"warning,omitempty"`
+	CanStop       bool   `json:"canStop"`
+	CanUnbabysit  bool   `json:"canUnbabysit"`
 	// ScheduledTask is true for a run of a Claude Desktop scheduled task,
 	// which is never babysat.
 	ScheduledTask bool `json:"scheduledTask"`
@@ -176,6 +179,7 @@ func Sessions(v supervise.View) []Session {
 			Status:        w.Status,
 			Babysat:       true,
 			State:         string(w.State),
+			NotResponding: w.NotResponding,
 			Tokens:        tokensOf(w.Stats),
 			Model:         w.Stats.Model,
 			LastActivity:  activity(w.Stats.LastActivity),

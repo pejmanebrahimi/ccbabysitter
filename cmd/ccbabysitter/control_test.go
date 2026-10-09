@@ -573,7 +573,8 @@ func TestJSONKeysArePinned(t *testing.T) {
 		"app,apps,babysat,canStop,canUnbabysit,folder,id,name,pid,remoteControl,running,scheduledTask,shortId,status,tokens,uptimeSeconds")
 	check("show tokens", child(child(doc, "session"), "tokens"), "cacheRead,cacheWrite,input,output")
 
-	// A babysat session adds state, which is only there when set.
+	// A babysat session adds state, which is only there when set, as is
+	// notResponding.
 	_, out, _ = runCmd(t, env, "show", "worker", "--json")
 	check("show worker session", child(oneJSON(t, out), "session"),
 		"app,apps,babysat,canStop,canUnbabysit,folder,id,name,pid,remoteControl,running,scheduledTask,shortId,state,status,tokens,uptimeSeconds")
@@ -918,5 +919,27 @@ func TestStatusSaysWhileItsLidIsOpen(t *testing.T) {
 	e.view.Env.LidSleeps = false
 	if code, out, _ := runCmd(t, env, "status"); code != 0 || strings.Contains(out, "lid") || !strings.Contains(out, "Keeping the computer awake: yes\n") {
 		t.Fatalf("status with no lid that sleeps = %d\n%s", code, out)
+	}
+}
+
+// A babysat session found frozen in an app says so in show and list.
+func TestShowAndListSayNotResponding(t *testing.T) {
+	env, e, _ := testEnv(t)
+	for i := range e.view.Watches {
+		if e.view.Watches[i].ShortID == "dddddddd" {
+			e.view.Watches[i].NotResponding = true
+		}
+	}
+	_, out, _ := runCmd(t, env, "show", "worker")
+	if !strings.Contains(out, "Not responding: busy waiting on the model for 20 minutes or more, with no output and no CPU use\n") || !strings.Contains(out, "State: in background\n") {
+		t.Fatalf("show worker:\n%s", out)
+	}
+	_, out, _ = runCmd(t, env, "list")
+	if !strings.Contains(out, "not responding") {
+		t.Fatalf("list:\n%s", out)
+	}
+	_, out, _ = runCmd(t, env, "show", "worker", "--json")
+	if doc := oneJSON(t, out); doc["session"].(map[string]any)["notResponding"] != true {
+		t.Fatalf("show --json: %v", doc)
 	}
 }

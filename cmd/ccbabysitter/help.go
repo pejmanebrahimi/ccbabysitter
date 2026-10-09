@@ -144,7 +144,7 @@ babysat: Desktop starts the task again on its schedule.`,
   NAME     the session's name, or - when it has none
   APP      where it runs: terminal, background, desktop, vscode or other, - when nowhere
   RC       Remote Control, on or off
-  BABYSAT  no, or watching, in background, starting or stuck
+  BABYSAT  no, or watching, in background, starting, stuck or not responding
   TOKENS   everything used so far, as 12k or 4.5M
   UPTIME   as 45s, 12m, 3h 5m or 2d 4h, - when it is not running
   FOLDER   the folder it works in
@@ -167,19 +167,22 @@ session is not babysat. The text says in background for background.`,
 are not set are left out, except App, Running, Remote Control, Babysat and Tokens.`,
 		"",
 		`Text lines, in this order: Id, Short id, Name, Also called, Folder, App, Also running
-in, Running, Scheduled task, Remote Control, Status, Babysat, State, Tokens, Model,
-Last activity, Uptime, Open with Remote Control, Attach, Attach over ssh, Resume, To
-switch Remote Control on, Warning. Tokens is like: in 1.2k, out 3.4k, cache 50k. App
-is none when it runs nowhere. State is watching, in background, starting or stuck.
-Scheduled task is yes for a run of a Claude Desktop scheduled task, and left out
-otherwise.
+in, Running, Scheduled task, Remote Control, Status, Babysat, State, Not responding,
+Tokens, Model, Last activity, Uptime, Open with Remote Control, Attach, Attach over
+ssh, Resume, To switch Remote Control on, Warning. Tokens is like: in 1.2k, out 3.4k,
+cache 50k. App is none when it runs nowhere. State is watching, in background,
+starting or stuck. Not responding is there for a babysat session in a terminal or an
+app that has been busy waiting on the model for 20 minutes with no output and no CPU
+use, and list shows it in the BABYSAT column. Scheduled task
+is yes for a run of a Claude Desktop scheduled task, and left out otherwise.
 
 With --json: {"schema":1,"session":{...}}. These fields are always there: id, shortId,
 name, folder, app, apps, running, remoteControl, status, babysat, tokens {input,
 output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask.
 Empty ones are "" or [], and app is "" when it runs nowhere. These are left out when
-not set: alsoCalled, pid, state, model, lastActivity as RFC 3339 in UTC, remoteUrl,
-attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added.
+not set: alsoCalled, pid, state, notResponding (true), model, lastActivity as RFC
+3339 in UTC, remoteUrl, attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New
+fields may be added.
 In JSON, state is watching, background, starting or stuck. The text says in
 background for background, so filter on background when using --json.`,
 		`  ccbabysitter show self
@@ -215,7 +218,10 @@ Unbabysit button.`,
 		"ccbabysitter retry S",
 		`Tries again on a babysat session that is stuck, as the page's Try again button
 does. Use it when list or show says its state is stuck. On a session that is not
-stuck there is nothing to try again: it says so and exits with 1.`,
+stuck there is nothing to try again: it says so and exits with 1. On a session
+stuck because its background copy kept freezing, it also stops that copy with
+claude stop, while it is still the same copy and still frozen, so it is started
+again.`,
 		"",
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
 

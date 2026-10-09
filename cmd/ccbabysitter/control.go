@@ -548,11 +548,22 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 	return 0
 }
 
+// notRespondingWords says, for show, why a session counts as not
+// responding, and nothing when it does not.
+func notRespondingWords(b bool) string {
+	if !b {
+		return ""
+	}
+	return "busy waiting on the model for " + strconv.Itoa(int(supervise.FrozenAfter/time.Minute)) + " minutes or more, with no output and no CPU use"
+}
+
 // babysatWords is how a babysat session's state reads in text.
 func babysatWords(s client.Session) string {
 	switch {
 	case !s.Babysat:
 		return "no"
+	case s.NotResponding:
+		return "not responding"
 	case s.State == string(supervise.StateInBackground):
 		return "in background"
 	case s.State == "":
@@ -682,9 +693,12 @@ func (env controlEnv) printShow(asJSON bool, s client.Session) int {
 	if s.Running {
 		uptime = fmtDuration(s.UptimeSeconds)
 	}
+	// State is the watch's own state: not responding has its own line.
 	watch := ""
 	if s.Babysat {
-		watch = babysatWords(s)
+		state := s
+		state.NotResponding = false
+		watch = babysatWords(state)
 	}
 	fields := []struct{ label, value string }{
 		{"Id", s.ID},
@@ -700,6 +714,7 @@ func (env controlEnv) printShow(asJSON bool, s client.Session) int {
 		{"Status", s.Status},
 		{"Babysat", yesNo(s.Babysat)},
 		{"State", watch},
+		{"Not responding", notRespondingWords(s.NotResponding)},
 		{"Tokens", fmt.Sprintf("in %s, out %s, cache %s", fmtTokens(t.Input), fmtTokens(t.Output), fmtTokens(t.CacheRead+t.CacheWrite))},
 		{"Model", s.Model},
 		{"Last activity", last},
