@@ -554,7 +554,7 @@ func notRespondingWords(b bool) string {
 	if !b {
 		return ""
 	}
-	return "busy for 20 minutes or more with no output and no CPU use"
+	return "busy waiting on the model for " + strconv.Itoa(int(supervise.FrozenAfter/time.Minute)) + " minutes or more, with no output and no CPU use"
 }
 
 // babysatWords is how a babysat session's state reads in text.
@@ -693,9 +693,12 @@ func (env controlEnv) printShow(asJSON bool, s client.Session) int {
 	if s.Running {
 		uptime = fmtDuration(s.UptimeSeconds)
 	}
+	// State is the watch's own state: not responding has its own line.
 	watch := ""
 	if s.Babysat {
-		watch = babysatWords(s)
+		state := s
+		state.NotResponding = false
+		watch = babysatWords(state)
 	}
 	fields := []struct{ label, value string }{
 		{"Id", s.ID},

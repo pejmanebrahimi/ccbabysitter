@@ -931,7 +931,7 @@ func TestShowAndListSayNotResponding(t *testing.T) {
 		}
 	}
 	_, out, _ := runCmd(t, env, "show", "worker")
-	if !strings.Contains(out, "Not responding: busy for 20 minutes or more with no output and no CPU use\n") {
+	if !strings.Contains(out, "Not responding: busy waiting on the model for 20 minutes or more, with no output and no CPU use\n") || !strings.Contains(out, "State: in background\n") {
 		t.Fatalf("show worker:\n%s", out)
 	}
 	_, out, _ = runCmd(t, env, "list")

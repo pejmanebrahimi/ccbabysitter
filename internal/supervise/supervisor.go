@@ -196,7 +196,7 @@ type Supervisor struct {
 	liveness      map[string]Liveness
 	livenessAt    map[string]time.Time
 	notResponding map[string]bool
-	frozeStopped  map[string]bool
+	frozeStopped  map[string]time.Time
 	release       func()
 	held          bool
 	// heldFor is how many babysat sessions the request was last said to be
@@ -225,7 +225,7 @@ func New(d Deps) *Supervisor {
 		liveness:      map[string]Liveness{},
 		livenessAt:    map[string]time.Time{},
 		notResponding: map[string]bool{},
-		frozeStopped:  map[string]bool{},
+		frozeStopped:  map[string]time.Time{},
 		announced:     map[string]bool{},
 		backoffUntil:  map[string]time.Time{},
 		seen:          map[string]bool{},

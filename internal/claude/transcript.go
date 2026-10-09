@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,6 +32,12 @@ type Stats struct {
 	// scheduled task: its first prompt starts with the <scheduled-task> tag
 	// the app puts there. The views carry it outside Stats.
 	ScheduledTask bool `json:"-"`
+	// AwaitingModel says the newest record of the conversation itself,
+	// sidechains, meta records and bookkeeping aside, is one the model has
+	// to answer: a prompt or a tool's result. After a reply, which ends a
+	// turn or asks for a tool, or after an API error, which Claude Code
+	// waits out before it tries again, it is false.
+	AwaitingModel bool `json:"-"`
 }
 
 // StatsReader accumulates Stats over a transcript file, reading only the
@@ -65,6 +72,7 @@ type StatsReader struct {
 type transcriptRecord struct {
 	titleRecord
 	Type      string `json:"type"`
+	Subtype   string `json:"subtype"`
 	Operation string `json:"operation"`
 	// Content is a queued prompt's text, kept raw like the message's, and
 	// only looked at on a queue-operation record.
@@ -176,12 +184,22 @@ func (r *StatsReader) applyLine(line []byte) {
 	switch rec.Type {
 	case "assistant":
 		r.applyAssistant(&rec)
+		if !rec.IsSidechain {
+			r.stats.AwaitingModel = false
+		}
+	case "system":
+		if rec.Subtype == "api_error" && !rec.IsSidechain {
+			r.stats.AwaitingModel = false
+		}
 	case "user":
 		if isTurn(&rec) {
 			r.stats.Turns++
 		}
 		if !rec.IsMeta && !rec.IsSidechain {
 			r.firstPrompt(rec.Message.Content)
+			if len(rec.Message.Content) > 0 {
+				r.stats.AwaitingModel = true
+			}
 		}
 	case "queue-operation":
 		if rec.Operation == "enqueue" {
@@ -313,25 +331,40 @@ func isTurn(rec *transcriptRecord) bool {
 	return false
 }
 
+// maxSessionFiles bounds how many entries of a session's own folder are
+// looked at for its newest write, so a folder that grew without end cannot
+// stall the look.
+const maxSessionFiles = 5000
+
 // TranscriptWrittenAt is when a session last wrote to its transcript at
-// path or to one of its subagents' transcripts, which Claude Code keeps in
-// a subagents folder inside a folder named after the session. It is the
-// zero time when none of them can be read.
+// path or to any transcript in the folder Claude Code keeps beside it,
+// named after the session: its subagents', its workflows' and its remote
+// agents'. It is the zero time when none of them can be read.
 func TranscriptWrittenAt(path string) time.Time {
 	var newest time.Time
-	note := func(p string) {
-		if info, err := os.Stat(p); err == nil && info.ModTime().After(newest) {
+	note := func(info fs.FileInfo) {
+		if info.ModTime().After(newest) {
 			newest = info.ModTime()
 		}
 	}
-	note(path)
-	subagents := filepath.Join(strings.TrimSuffix(path, ".jsonl"), "subagents")
-	if entries, err := os.ReadDir(subagents); err == nil {
-		for _, e := range entries {
-			if !e.IsDir() && strings.HasSuffix(e.Name(), ".jsonl") {
-				note(filepath.Join(subagents, e.Name()))
-			}
-		}
+	if info, err := os.Stat(path); err == nil {
+		note(info)
 	}
+	seen := 0
+	_ = filepath.WalkDir(strings.TrimSuffix(path, ".jsonl"), func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if seen++; seen > maxSessionFiles {
+			return filepath.SkipAll
+		}
+		if d.IsDir() || !strings.HasSuffix(d.Name(), ".jsonl") {
+			return nil
+		}
+		if info, err := d.Info(); err == nil {
+			note(info)
+		}
+		return nil
+	})
 	return newest
 }

@@ -237,6 +237,7 @@ type member struct {
 	name     string
 	rss      uint64
 	cpuSecs  float64
+	cpuKnown bool
 	createMs int64
 }
 
@@ -254,6 +255,7 @@ func readMember(p *process.Process) (member, bool) {
 	}
 	if times, err := p.Times(); err == nil && times != nil {
 		m.cpuSecs = times.User + times.System
+		m.cpuKnown = true
 	}
 	return m, true
 }
@@ -491,6 +493,7 @@ func (r *Real) Tree(pid int) (TreeStats, bool) {
 	st.RSS += root.rss
 	st.CPUPercent += r.cpuPercent(pid, root.createMs, root.cpuSecs)
 	st.CPUSeconds += root.cpuSecs
+	st.CPUUnknown = !root.cpuKnown
 
 	for _, d := range kids {
 		p, ok := verifiedChild(d.pid, d.expectedPpid)
@@ -506,6 +509,7 @@ func (r *Real) Tree(pid int) (TreeStats, bool) {
 		st.RSS += m.rss
 		st.CPUPercent += r.cpuPercent(d.pid, m.createMs, m.cpuSecs)
 		st.CPUSeconds += m.cpuSecs
+		st.CPUUnknown = st.CPUUnknown || !m.cpuKnown
 	}
 
 	st.Processes = len(st.PIDs)

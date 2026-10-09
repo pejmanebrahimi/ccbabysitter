@@ -89,15 +89,21 @@ func ShouldPauseForFailures(failures []time.Time, now time.Time) bool {
 }
 
 const (
-	// FrozenAfter is how long a busy session's signals must stay the same
-	// before it counts as frozen. Claude Code ends a tool call that runs
-	// longer than ten minutes, and a reply being written uses CPU, so a
-	// session that is really working changes something well within it.
+	// FrozenAfter is how long a busy session waiting on the model must show
+	// no change before it counts as frozen. A reply being written uses CPU
+	// all along, and every other wait, a tool running, a retry after an
+	// API error, a task carried on after the turn, is not waiting on the
+	// model.
 	FrozenAfter = 20 * time.Minute
 	// FrozenCPUSlack is how many seconds of CPU a session's process tree
-	// may use over FrozenAfter and still count as quiet: an idle process
-	// uses a little for its timers.
-	FrozenCPUSlack = 5.0
+	// may use over FrozenAfter and still count as quiet. An idle Claude
+	// Code process was measured at 3 to 20 seconds over 20 minutes for its
+	// timers, and one receiving a reply at over 120.
+	FrozenCPUSlack = 30.0
+	// MaxLookGap is the longest time between two looks at a session that
+	// still counts the quiet time on. A longer gap means the computer
+	// slept, or the program was held up, and nothing could be seen then.
+	MaxLookGap = time.Minute
 	// MaxFreezes is how many freezes within FreezeWindow pause a watch
 	// rather than start it again once more.
 	MaxFreezes = 3
@@ -108,28 +114,35 @@ const (
 // Liveness is what a session has shown since its signals last changed:
 // Fingerprint joins what can be seen of it (its status, the newest write
 // to its transcripts, the processes in its tree), CPU is its tree's CPU
-// time in seconds then, and Since is when that was.
+// time in seconds then, Since is when that was, and Looked is when it was
+// last looked at.
 type Liveness struct {
 	Fingerprint string
 	CPU         float64
 	Since       time.Time
+	Looked      time.Time
 }
 
 // Next folds one look at the session into l. A new fingerprint, CPU used
-// beyond FrozenCPUSlack, or less CPU than before, which means a process
-// in the tree ended, starts the quiet time again from now.
+// beyond FrozenCPUSlack, less CPU than before, which means a process in
+// the tree ended, or a gap since the last look longer than MaxLookGap by
+// the wall clock, which also counts a sleep, starts the quiet time again
+// from now.
 func (l Liveness) Next(fingerprint string, cpu float64, now time.Time) Liveness {
-	if l.Since.IsZero() || fingerprint != l.Fingerprint || cpu-l.CPU >= FrozenCPUSlack || cpu < l.CPU {
-		return Liveness{Fingerprint: fingerprint, CPU: cpu, Since: now}
+	gap := now.Round(0).Sub(l.Looked.Round(0))
+	if l.Since.IsZero() || gap > MaxLookGap || fingerprint != l.Fingerprint || cpu-l.CPU >= FrozenCPUSlack || cpu < l.CPU {
+		return Liveness{Fingerprint: fingerprint, CPU: cpu, Since: now, Looked: now}
 	}
+	l.Looked = now
 	return l
 }
 
 // Frozen reports whether a session with status, seen as l, is frozen: busy
 // in Claude Code's own terms, which a session waiting on a question never
-// is, and quiet for FrozenAfter.
-func Frozen(l Liveness, status string, now time.Time) bool {
-	return status == "busy" && !l.Since.IsZero() && now.Sub(l.Since) >= FrozenAfter
+// is, waiting on the model, which a session running a tool, waiting to
+// retry or past its turn never is, and quiet for FrozenAfter.
+func Frozen(l Liveness, status string, awaitingModel bool, now time.Time) bool {
+	return status == "busy" && awaitingModel && !l.Since.IsZero() && now.Sub(l.Since) >= FrozenAfter
 }
 
 // ShouldPauseForFreezes reports whether MaxFreezes or more of the given

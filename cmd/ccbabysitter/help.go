@@ -144,7 +144,7 @@ babysat: Desktop starts the task again on its schedule.`,
   NAME     the session's name, or - when it has none
   APP      where it runs: terminal, background, desktop, vscode or other, - when nowhere
   RC       Remote Control, on or off
-  BABYSAT  no, or watching, in background, starting or stuck
+  BABYSAT  no, or watching, in background, starting, stuck or not responding
   TOKENS   everything used so far, as 12k or 4.5M
   UPTIME   as 45s, 12m, 3h 5m or 2d 4h, - when it is not running
   FOLDER   the folder it works in
@@ -172,7 +172,8 @@ Tokens, Model, Last activity, Uptime, Open with Remote Control, Attach, Attach o
 ssh, Resume, To switch Remote Control on, Warning. Tokens is like: in 1.2k, out 3.4k,
 cache 50k. App is none when it runs nowhere. State is watching, in background,
 starting or stuck. Not responding is there for a babysat session in a terminal or an
-app that has been busy for 20 minutes with no output and no CPU use. Scheduled task
+app that has been busy waiting on the model for 20 minutes with no output and no CPU
+use, and list shows it in the BABYSAT column. Scheduled task
 is yes for a run of a Claude Desktop scheduled task, and left out otherwise.
 
 With --json: {"schema":1,"session":{...}}. These fields are always there: id, shortId,

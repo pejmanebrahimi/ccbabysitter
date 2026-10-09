@@ -525,6 +525,9 @@ func TestTreeCPUSecondsGrows(t *testing.T) {
 	if !ok {
 		t.Fatal("second tree")
 	}
+	if st1.CPUUnknown || st2.CPUUnknown {
+		t.Fatal("this process's own CPU time could not be read")
+	}
 	if st1.CPUSeconds <= 0 || st2.CPUSeconds <= st1.CPUSeconds {
 		t.Fatalf("cpu seconds %v then %v", st1.CPUSeconds, st2.CPUSeconds)
 	}

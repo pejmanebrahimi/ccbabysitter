@@ -484,6 +484,7 @@ func (s *Supervisor) rejoin(w state.Watch, snap observe.Snapshot) bool {
 			continue
 		}
 		cur.PromiseState = "inplace"
+		delete(s.frozeStopped, w.SessionID)
 		cur.BackgroundSince = time.Time{}
 		cur.BackgroundCause = ""
 		cur.OriginHost = sn.Host

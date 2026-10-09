@@ -455,6 +455,23 @@ func TestTranscriptWrittenAt(t *testing.T) {
 	if got := TranscriptWrittenAt(main); !got.Equal(t0.Add(5 * time.Minute)) {
 		t.Fatalf("a subagent wrote later: %v", got)
 	}
+	// Workflow agents write deeper down, and remote agents beside them.
+	deep := filepath.Join(sub, "workflows", "run-1")
+	if err := os.MkdirAll(deep, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(filepath.Join(deep, "agent-b.jsonl"), t0.Add(7*time.Minute))
+	if got := TranscriptWrittenAt(main); !got.Equal(t0.Add(7 * time.Minute)) {
+		t.Fatalf("a workflow agent wrote later: %v", got)
+	}
+	remote := filepath.Join(dir, "7a7a7a7a-0000-4000-8000-000000000001", "remote-agents")
+	if err := os.MkdirAll(remote, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(filepath.Join(remote, "r.jsonl"), t0.Add(8*time.Minute))
+	if got := TranscriptWrittenAt(main); !got.Equal(t0.Add(8 * time.Minute)) {
+		t.Fatalf("a remote agent wrote later: %v", got)
+	}
 	if got := TranscriptWrittenAt(filepath.Join(dir, "missing.jsonl")); !got.IsZero() {
 		t.Fatalf("missing: %v", got)
 	}
@@ -477,5 +494,44 @@ func TestStatsSkipsSyntheticModel(t *testing.T) {
 	}
 	if s.Model != "claude-opus-5-5" {
 		t.Fatalf("model %q, want claude-opus-5-5", s.Model)
+	}
+}
+
+// AwaitingModel says the newest record of the conversation itself, its
+// sidechains and bookkeeping aside, is one the model has to answer: a
+// prompt or a tool's result. A reply, which ends a turn or asks for a
+// tool, or an API error, after which Claude Code waits to try again, is
+// not.
+func TestStatsAwaitingModel(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "s.jsonl")
+	if err := os.WriteFile(p, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := &StatsReader{}
+	for _, step := range []struct {
+		line string
+		want bool
+	}{
+		{`{"type":"user","message":{"role":"user","content":"hi"}}`, true},
+		{`{"type":"assistant","message":{"id":"m1","stop_reason":"tool_use","content":[{"type":"tool_use"}]}}`, false},
+		{`{"type":"attachment","attachment":{"type":"hook"}}`, false},
+		{`{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"ok"}]}}`, true},
+		{`{"type":"attachment","attachment":{"type":"hook"}}`, true},
+		{`{"type":"user","isSidechain":true,"message":{"role":"user","content":"sub"}}`, true},
+		{`{"type":"assistant","isSidechain":true,"message":{"id":"s1","stop_reason":"end_turn","content":[{"type":"text"}]}}`, true},
+		{`{"type":"system","subtype":"api_error","level":"error"}`, false},
+		{`{"type":"user","message":{"role":"user","content":"again"}}`, true},
+		{`{"type":"user","isMeta":true,"message":{"role":"user","content":"caveat"}}`, true},
+		{`{"type":"assistant","message":{"id":"m2","stop_reason":"end_turn","content":[{"type":"text"}]}}`, false},
+		{`{"type":"system","subtype":"turn_duration"}`, false},
+	} {
+		appendLine(t, p, step.line+"\n")
+		s, err := r.Update(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s.AwaitingModel != step.want {
+			t.Fatalf("after %s: AwaitingModel %v, want %v", step.line, s.AwaitingModel, step.want)
+		}
 	}
 }
