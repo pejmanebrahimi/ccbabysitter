@@ -32,7 +32,8 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter help COMMAND    everything about one command
 
 S is a session id, a short id, a name, or self.
-A full id always wins. A word that fits two sessions, as a short id or a name, is refused.
+A full id always wins. A session that runs or is babysat wins over one that is not
+running. A word that fits two sessions, as a short id or a name, is refused.
 self is the session this command runs in.
 Add --json for one JSON document on stdout. Exit codes: 0 done, 1 refused,
 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one.
@@ -96,8 +97,11 @@ ccbabysitter list
 
 Lists every Claude Code session on this machine, babysat or not, running or not.
 Sessions that are not babysat come first, then the babysat ones. Runs of a Claude
-Desktop scheduled task come last, under their own heading, since they are never
-babysat: Desktop starts the task again on its schedule.
+Desktop scheduled task follow, under their own heading, since they are never
+babysat: Desktop starts the task again on its schedule. Last come the page's Not
+running conversations from the last two weeks, under their own heading. show gives
+the commands that start one again: Attach for a background session that was
+stopped, which is the one the page offers, and Resume.
 
 Flags:
   --json             print one JSON document on stdout instead of text
@@ -120,11 +124,13 @@ Text: a header, then one line per session, columns separated by two spaces:
   UPTIME   as 45s, 12m, 3h 5m or 2d 4h, - when it is not running
   FOLDER   the folder it works in
 Scheduled task runs follow, after an empty line when other sessions come first,
-under the line "Scheduled task runs, never babysat:", with the same columns.
-With no sessions it says: No Claude Code sessions are running.
+under the line "Scheduled task runs, never babysat:", with the same columns, then the
+conversations that are not running, under the line "Not running:". With no sessions
+running it says: No Claude Code sessions are running.
 
 With --json: {"schema":1,"sessions":[...]}, an empty array when there are none.
-A scheduled task's run is in the same array, with scheduledTask true.
+A scheduled task's run is in the same array, with scheduledTask true, and so is a
+conversation that is not running, with notRunning true.
 Each session has the fields shown by ccbabysitter help show, and the same names.
 In JSON, state is watching, background, starting or stuck, and is left out when the
 session is not babysat. The text says in background for background.
@@ -151,8 +157,12 @@ ccbabysitter show S
 
 Shows one session in full, one Label: value line each. Lines for things that
 are not set are left out, except App, Running, Remote Control, Babysat and Tokens.
+A conversation that is not running has no Tokens line, and Handed back to names the
+app it went back to in the last day, desktop, vscode or terminal. babysit and stop
+refuse it with exit code 1, and babysit says how to start it again.
 
-S is a session id, a short id, a name, or self. A full id always wins. A word
+S is a session id, a short id, a name, or self. A full id always wins. A
+session that runs or is babysat wins over a conversation that is not running. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
 always the session this command runs in. See ccbabysitter list.
 
@@ -181,9 +191,9 @@ With --json: {"schema":1,"session":{...}}. These fields are always there: id, sh
 name, folder, app, apps, running, remoteControl, status, babysat, tokens {input,
 output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask.
 Empty ones are "" or [], and app is "" when it runs nowhere. These are left out when
-not set: alsoCalled, pid, state, notResponding (true), model, lastActivity as RFC
-3339 in UTC, remoteUrl, attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New
-fields may be added.
+not set: alsoCalled, pid, state, notResponding (true), notRunning (true),
+handedBackTo, model, lastActivity as RFC 3339 in UTC, remoteUrl, attachCmd,
+sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added.
 In JSON, state is watching, background, starting or stuck. The text says in
 background for background, so filter on background when using --json.
 
@@ -211,7 +221,8 @@ Keeps S alive. If the app it runs in dies, it comes back in the background and
 stays reachable. This is the page's Babysit button. A run of a Claude Desktop
 scheduled task is refused: Desktop starts the task again on its schedule.
 
-S is a session id, a short id, a name, or self. A full id always wins. A word
+S is a session id, a short id, a name, or self. A full id always wins. A
+session that runs or is babysat wins over a conversation that is not running. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
 always the session this command runs in. See ccbabysitter list.
 
@@ -255,7 +266,8 @@ ccbabysitter unbabysit S
 Stops babysitting S. The session keeps running where it is. This is the page's
 Unbabysit button.
 
-S is a session id, a short id, a name, or self. A full id always wins. A word
+S is a session id, a short id, a name, or self. A full id always wins. A
+session that runs or is babysat wins over a conversation that is not running. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
 always the session this command runs in. See ccbabysitter list.
 
@@ -301,7 +313,8 @@ stuck because its background copy kept freezing, it also stops that copy with
 claude stop, while it is still the same copy and still frozen, so it is started
 again.
 
-S is a session id, a short id, a name, or self. A full id always wins. A word
+S is a session id, a short id, a name, or self. A full id always wins. A
+session that runs or is babysat wins over a conversation that is not running. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
 always the session this command runs in. See ccbabysitter list.
 
@@ -350,7 +363,8 @@ Try again in Desktop picks the session up where it left off. On the page, stop i
 Back to Desktop or Back to VS Code for a session from those apps, and End
 background copy for one from a terminal, which shows the command to resume it.
 
-S is a session id, a short id, a name, or self. A full id always wins. A word
+S is a session id, a short id, a name, or self. A full id always wins. A
+session that runs or is babysat wins over a conversation that is not running. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
 always the session this command runs in. See ccbabysitter list.
 
@@ -439,10 +453,11 @@ Example:
 ccbabysitter activity [S] [-n N]
 
 Shows what CC Babysitter did and why, newest first. With S, only the entries
-about that session. It looks through the newest 500 entries, so an older entry
-about S is not found.
+about that session, which can also be a conversation that is not running. It looks
+through the newest 500 entries, so an older entry about S is not found.
 
-S is a session id, a short id, a name, or self. A full id always wins. A word
+S is a session id, a short id, a name, or self. A full id always wins. A
+session that runs or is babysat wins over a conversation that is not running. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
 always the session this command runs in. See ccbabysitter list.
 

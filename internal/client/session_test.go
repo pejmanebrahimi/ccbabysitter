@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
 	"ccbabysitter.dev/ccbabysitter/internal/procs"
@@ -305,6 +306,55 @@ func TestResolveSkipsEmptyFields(t *testing.T) {
 	for _, w := range []string{"", "x"} {
 		if s, err := Resolve(v, w, noSelf); !errors.Is(err, ErrNotFound) {
 			t.Errorf("Resolve(%q) = %+v, %v; want ErrNotFound for an unnamed session", w, s, err)
+		}
+	}
+}
+
+// The conversations on the page's Not running list are sessions too, last,
+// marked as not running, with the commands to start them again. A session
+// that is running or babysat is never listed twice.
+func TestSessionsIncludeNotRunning(t *testing.T) {
+	v := view()
+	idE := "eeeeeeee-5555-4555-8555-eeeeeeeeeeee"
+	at := time.Date(2026, 10, 9, 13, 0, 0, 0, time.UTC)
+	v.NotRunning = []supervise.PastView{
+		{ID: idE, ShortID: "eeeeeeee", Name: "old", Cwd: "/srv/old", LastActivity: at,
+			ResumeCmd: "cd /srv/old && claude --resume " + idE, AttachCmd: "claude attach eeeeeeee"},
+		{ID: idC, ShortID: "cccccccc", Name: "nightly"},
+	}
+	all := Sessions(v)
+	last := all[len(all)-1]
+	if last.ID != idE || !last.NotRunning || last.Running || last.Babysat || last.App != "" ||
+		last.Folder != "/srv/old" || last.LastActivity != "2026-10-09T13:00:00Z" ||
+		last.ResumeCmd != "cd /srv/old && claude --resume "+idE || last.AttachCmd != "claude attach eeeeeeee" || last.Apps == nil {
+		t.Fatalf("last %+v", last)
+	}
+	n := 0
+	for _, s := range all {
+		if s.ID == idC {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("the babysat session is listed %d times", n)
+	}
+}
+
+// A word is matched against the running and babysat sessions first, so a
+// conversation that is not running never makes a word that names one of
+// them ambiguous. When nothing else fits, it finds the one not running.
+func TestResolvePrefersSessionsThatRun(t *testing.T) {
+	v := view()
+	idE := "eeeeeeee-5555-4555-8555-eeeeeeeeeeee"
+	v.NotRunning = []supervise.PastView{{ID: idE, ShortID: "eeeeeeee", Name: "worker"}, {ID: "ffffffff-6666-4666-8666-ffffffffffff", ShortID: "ffffffff", Name: "old"}}
+	s, err := Resolve(v, "worker", func() (int, bool) { return 0, false })
+	if err != nil || s.ID != idD {
+		t.Fatalf("worker: %+v %v", s, err)
+	}
+	for _, word := range []string{"old", "ffffffff"} {
+		s, err := Resolve(v, word, func() (int, bool) { return 0, false })
+		if err != nil || !s.NotRunning {
+			t.Fatalf("%s: %+v %v", word, s, err)
 		}
 	}
 }

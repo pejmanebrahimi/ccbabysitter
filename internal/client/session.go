@@ -71,7 +71,14 @@ type Session struct {
 	// ScheduledTask is true for a run of a Claude Desktop scheduled task,
 	// which is never babysat.
 	ScheduledTask bool `json:"scheduledTask"`
-	procStart     string
+	// NotRunning is true for a conversation from the page's Not running
+	// list: it runs nowhere and is not babysat, and ResumeCmd, or AttachCmd
+	// for a background session that was stopped, starts it again.
+	NotRunning bool `json:"notRunning,omitempty"`
+	// HandedBackTo is the app a conversation that is not running was
+	// handed back to in the last day: desktop, vscode or terminal.
+	HandedBackTo string `json:"handedBackTo,omitempty"`
+	procStart    string
 }
 
 // Tokens is what a session has used so far.
@@ -129,7 +136,8 @@ func tokensOf(st claude.Stats) Tokens {
 }
 
 // Sessions lists every session in v as the command line shows it: the
-// sessions that are not babysat first, then the babysat ones. The
+// sessions that are not babysat first, then the babysat ones, then the
+// conversations on the page's Not running list. The
 // supervisor puts a babysat session only in Watches, running or not. If an
 // id is in both lists, which a view built mid-change can do, the watch's
 // entry replaces the session's where it stood.
@@ -201,6 +209,35 @@ func Sessions(v supervise.View) []Session {
 		at[e.ID] = len(out)
 		out = append(out, e)
 	}
+	for _, p := range v.NotRunning {
+		if _, ok := at[p.ID]; ok {
+			continue
+		}
+		at[p.ID] = len(out)
+		// A stopped background copy goes by the short id the command line
+		// showed for it, and Activity by the name it had then.
+		short, also := p.ShortID, ""
+		if p.CopyShortID != "" {
+			short = p.CopyShortID
+		}
+		if p.ActivityLabel != p.Name {
+			also = p.ActivityLabel
+		}
+		out = append(out, Session{
+			ID:           p.ID,
+			ShortID:      short,
+			Name:         p.Name,
+			AlsoCalled:   also,
+			HandedBackTo: string(p.HandedBackTo),
+			Folder:       p.Cwd,
+			Apps:         []string{},
+			LastActivity: activity(p.LastActivity),
+			ResumeCmd:    p.ResumeCmd,
+			AttachCmd:    p.AttachCmd,
+			SSHAttachCmd: p.SSHAttachCmd,
+			NotRunning:   true,
+		})
+	}
 	return out
 }
 
@@ -252,12 +289,30 @@ func FindSelf(v supervise.View, pid int, p Process) (int, bool) {
 // short id, else a name or the name it is also called. A full id wins
 // outright. A word that fits two sessions, whether as the same short id,
 // the same name, or one session's short id and another's name, is an
-// *AmbiguousError.
+// *AmbiguousError. The sessions that run or are babysat are looked at
+// first, and the conversations that are not running only when none of them
+// fits, so an old conversation never makes a word ambiguous.
 func Resolve(v supervise.View, word string, self func() (int, bool)) (Session, error) {
 	if word == "" {
 		return Session{}, ErrNotFound
 	}
-	all := Sessions(v)
+	var current, past []Session
+	for _, s := range Sessions(v) {
+		if s.NotRunning {
+			past = append(past, s)
+		} else {
+			current = append(current, s)
+		}
+	}
+	s, err := resolveIn(current, word, self)
+	if errors.Is(err, ErrNotFound) && word != "self" {
+		return resolveIn(past, word, self)
+	}
+	return s, err
+}
+
+// resolveIn is Resolve over one list of sessions.
+func resolveIn(all []Session, word string, self func() (int, bool)) (Session, error) {
 	if word == "self" {
 		pid, ok := self()
 		if !ok {

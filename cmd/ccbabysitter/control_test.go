@@ -545,7 +545,7 @@ func keysOf(m map[string]any) string {
 // The JSON names are a promise to agents: fields are only ever added. This
 // pins them, so a rename breaks here before it breaks an agent.
 func TestJSONKeysArePinned(t *testing.T) {
-	env, _, _ := testEnv(t)
+	env, e, _ := testEnv(t)
 	check := func(what string, got map[string]any, want string) {
 		t.Helper()
 		if k := keysOf(got); k != want {
@@ -578,6 +578,14 @@ func TestJSONKeysArePinned(t *testing.T) {
 	_, out, _ = runCmd(t, env, "show", "worker", "--json")
 	check("show worker session", child(oneJSON(t, out), "session"),
 		"app,apps,babysat,canStop,canUnbabysit,folder,id,name,pid,remoteControl,running,scheduledTask,shortId,state,status,tokens,uptimeSeconds")
+
+	// A conversation that is not running adds notRunning, and leaves out
+	// what only a running session has.
+	e.view.NotRunning = []supervise.PastView{{ID: "eeeeeeee-5555-4555-8555-eeeeeeeeeeee", ShortID: "eeeeeeee", Name: "old",
+		ResumeCmd: "claude --resume eeeeeeee-5555-4555-8555-eeeeeeeeeeee"}}
+	_, out, _ = runCmd(t, env, "show", "old", "--json")
+	check("show not running session", child(oneJSON(t, out), "session"),
+		"app,apps,babysat,canStop,canUnbabysit,folder,id,name,notRunning,remoteControl,resumeCmd,running,scheduledTask,shortId,status,tokens,uptimeSeconds")
 
 	_, out, _ = runCmd(t, env, "settings", "--json")
 	doc = oneJSON(t, out)
@@ -919,6 +927,82 @@ func TestStatusSaysWhileItsLidIsOpen(t *testing.T) {
 	e.view.Env.LidSleeps = false
 	if code, out, _ := runCmd(t, env, "status"); code != 0 || strings.Contains(out, "lid") || !strings.Contains(out, "Keeping the computer awake: yes\n") {
 		t.Fatalf("status with no lid that sleeps = %d\n%s", code, out)
+	}
+}
+
+// The page's Not running conversations are on the command line too: last
+// in list under their own heading, in show with the command that starts
+// them again, and in activity.
+func TestNotRunningSessionsAreListedAndShown(t *testing.T) {
+	env, e, _ := testEnv(t)
+	idE := "eeeeeeee-5555-4555-8555-eeeeeeeeeeee"
+	e.view.NotRunning = []supervise.PastView{{ID: idE, ShortID: "eeeeeeee", Name: "old", Cwd: "/srv/old",
+		ResumeCmd: "cd /srv/old && claude --resume " + idE}}
+	_, out, _ := runCmd(t, env, "list")
+	i := strings.Index(out, "Not running:\n")
+	if i < 0 || !strings.Contains(out[i:], "eeeeeeee") || strings.Contains(out[:i], "eeeeeeee") {
+		t.Fatalf("list:\n%s", out)
+	}
+	code, out, _ := runCmd(t, env, "show", "old")
+	if code != 0 || !strings.Contains(out, "Running: no\n") || !strings.Contains(out, "Resume: cd /srv/old && claude --resume "+idE+"\n") {
+		t.Fatalf("show old = %d\n%s", code, out)
+	}
+	_, out, _ = runCmd(t, env, "show", "old", "--json")
+	if doc := oneJSON(t, out); doc["session"].(map[string]any)["notRunning"] != true {
+		t.Fatalf("show --json: %v", doc)
+	}
+	if code, _, errOut := runCmd(t, env, "activity", "old"); code != 0 {
+		t.Fatalf("activity old = %d %s", code, errOut)
+	}
+}
+
+// A background session stopped from the command line is found by the
+// short id stop answered with, its Activity is found by the name it had,
+// and the commands that act on a running session say what to do instead.
+func TestAStoppedSessionOnTheCommandLine(t *testing.T) {
+	env, e, _ := testEnv(t)
+	idE := "eeeeeeee-5555-4555-8555-eeeeeeeeeeee"
+	e.view.NotRunning = []supervise.PastView{
+		{ID: idE, ShortID: "eeeeeeee", Name: "title from the transcript", Cwd: "/srv/old", CopyShortID: "1a2b3c4d", ActivityLabel: "old",
+			ResumeCmd: "cd /srv/old && claude --resume " + idE, AttachCmd: "claude attach 1a2b3c4d"},
+		{ID: "ffffffff-6666-4666-8666-ffffffffffff", ShortID: "ffffffff", Name: "desk", HandedBackTo: claude.HostDesktop},
+	}
+	e.log.Info("old", "stopped background copy 1a2b3c4d, from the command line")
+	code, out, _ := runCmd(t, env, "show", "1a2b3c4d")
+	if code != 0 || !strings.Contains(out, "Attach: claude attach 1a2b3c4d\n") || strings.Contains(out, "Tokens:") {
+		t.Fatalf("show 1a2b3c4d = %d\n%s", code, out)
+	}
+	_, out, _ = runCmd(t, env, "activity", "1a2b3c4d")
+	if !strings.Contains(out, "stopped background copy 1a2b3c4d") {
+		t.Fatalf("activity:\n%s", out)
+	}
+	_, out, _ = runCmd(t, env, "show", "desk")
+	if !strings.Contains(out, "Handed back to: desktop\n") {
+		t.Fatalf("show desk:\n%s", out)
+	}
+	code, _, errOut := runCmd(t, env, "stop", "1a2b3c4d", "--yes")
+	if code != 1 || !strings.Contains(errOut, "is not running, so there is nothing to stop") {
+		t.Fatalf("stop = %d %q", code, errOut)
+	}
+	code, _, errOut = runCmd(t, env, "babysit", "1a2b3c4d")
+	if code != 1 || !strings.Contains(errOut, "Start it again with `claude attach 1a2b3c4d`, then babysit it.") {
+		t.Fatalf("babysit = %d %q", code, errOut)
+	}
+	if len(e.calls) != 0 {
+		t.Fatalf("the engine was asked: %v", e.calls)
+	}
+	_, out, _ = runCmd(t, env, "list")
+	for _, line := range strings.Split(out, "\n") {
+		if strings.HasPrefix(line, "1a2b3c4d") && !strings.Contains(line, "  -  ") {
+			t.Fatalf("a session that is not running shows tokens: %q", line)
+		}
+	}
+	// status counts the sessions that run, as the page does.
+	_, before, _ := runCmd(t, env, "status")
+	e.view.NotRunning = nil
+	_, after, _ := runCmd(t, env, "status")
+	if before != after {
+		t.Fatalf("status counts conversations that are not running:\n%s\n%s", before, after)
 	}
 }
 

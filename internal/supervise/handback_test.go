@@ -106,6 +106,9 @@ func TestAHandedBackSessionIsBadgedFirstInNotRunning(t *testing.T) {
 	if nr[0].AttachCmd != "" || nr[0].SSHAttachCmd != "" {
 		t.Fatalf("a session handed back to its app is opened there, not attached to: %+v", nr[0])
 	}
+	if nr[0].ActivityLabel == "" {
+		t.Fatalf("the name Activity knew it by is kept: %+v", nr[0])
+	}
 }
 
 // Each way back names its own app, and one from a session that started
@@ -287,6 +290,11 @@ func TestAStoppedBackgroundSessionIsAttachedFromNotRunning(t *testing.T) {
 				want, wantSSH = "claude attach 11111111", "ssh -t dev@203.0.113.7 /home/dev/.local/bin/claude attach 11111111"
 			}
 			if p.AttachCmd != want || p.SSHAttachCmd != wantSSH || p.HandedBackTo != "" || p.ResumeCmd == "" {
+				t.Fatalf("babysat %v: %+v", babysat, p)
+			}
+			// The command line finds it by the short id stop answered
+			// with, and its Activity by the name it had.
+			if p.ID == id && (p.CopyShortID != "11111111" || p.ActivityLabel == "") {
 				t.Fatalf("babysat %v: %+v", babysat, p)
 			}
 		}

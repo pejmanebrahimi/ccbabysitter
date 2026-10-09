@@ -208,7 +208,7 @@ func TestHelpStatesHowASessionWordIsRead(t *testing.T) {
 		var b bytes.Buffer
 		printCommandHelp(&b, name)
 		flat := strings.Join(strings.Fields(b.String()), " ")
-		if !strings.Contains(flat, "A full id always wins. A word that fits two sessions, as a short id or a name, is refused") {
+		if !strings.Contains(flat, "A full id always wins. A session that runs or is babysat wins over a conversation that is not running. A word that fits two sessions, as a short id or a name, is refused") {
 			t.Errorf("%s page does not state the order", name)
 		}
 	}
