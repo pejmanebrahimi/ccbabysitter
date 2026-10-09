@@ -188,8 +188,17 @@ type Supervisor struct {
 	// handing it back to an app, by session id, so its Not running row can
 	// offer the command that starts it again. It is only kept in memory.
 	stopped map[string]stoppedCopy
-	release func()
-	held    bool
+	// liveness is what each babysat session has shown since its signals
+	// last changed, livenessAt when it was last looked at, notResponding
+	// the frozen sessions left as they are because they run in an app, and
+	// frozeStopped the background sessions stopped for being frozen, whose
+	// rescue says so. All of them are only kept in memory.
+	liveness      map[string]Liveness
+	livenessAt    map[string]time.Time
+	notResponding map[string]bool
+	frozeStopped  map[string]bool
+	release       func()
+	held          bool
 	// heldFor is how many babysat sessions the request was last said to be
 	// held for, so a change in that number is said as well.
 	heldFor int
@@ -213,6 +222,10 @@ func New(d Deps) *Supervisor {
 		absent:        map[string]int{},
 		lastHost:      map[string]claude.Host{},
 		causes:        map[string]string{},
+		liveness:      map[string]Liveness{},
+		livenessAt:    map[string]time.Time{},
+		notResponding: map[string]bool{},
+		frozeStopped:  map[string]bool{},
 		announced:     map[string]bool{},
 		backoffUntil:  map[string]time.Time{},
 		seen:          map[string]bool{},

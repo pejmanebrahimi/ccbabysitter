@@ -246,6 +246,11 @@ func (s *Supervisor) noteBoot() {
 func (s *Supervisor) explainExits(gone []state.Watch) {
 	apps := s.appsOnce()
 	for _, w := range gone {
+		if s.frozeStopped[w.SessionID] {
+			delete(s.frozeStopped, w.SessionID)
+			s.setCause(w.SessionID, notRespondingCause)
+			continue
+		}
 		host, seen := s.lastHost[w.SessionID]
 		if !seen {
 			if s.rebooted {

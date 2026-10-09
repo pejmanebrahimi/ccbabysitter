@@ -96,6 +96,7 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 
 	changed = s.autoBabysit(snap) || changed
 	s.sampleStats(snap)
+	changed = s.checkFrozen(ctx, snap) || changed
 	s.forgetHandBacks(snap)
 	s.askForPast(snap)
 	s.askForTrust()

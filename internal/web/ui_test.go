@@ -2086,3 +2086,23 @@ console.log([startAnswerFits(3, 3, true), startAnswerFits(2, 3, true), startAnsw
 		t.Fatalf("startAnswerFits gave %q", got)
 	}
 }
+
+// A babysat session found frozen in an app says so on its card, in place
+// of where it is watched.
+func TestTheCardSaysNotResponding(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	script := "(function () {\n" +
+		`var HOST_PHRASE = { terminal: "a terminal window" }; var state = {};` + "\n" +
+		jsFunction(t, app, "phrase") + jsFunction(t, app, "stateLines") +
+		`console.log(JSON.stringify(stateLines({ state: "watching", host: "terminal", notResponding: true })));` + "\n" +
+		`console.log(JSON.stringify(stateLines({ state: "watching", host: "terminal" })));` + "\n" +
+		"})();\n"
+	got := runNode(t, script)
+	want := []string{
+		`["Not responding in a terminal window: busy for 20 minutes with no output"]`,
+		`["Watching in a terminal window"]`,
+	}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
