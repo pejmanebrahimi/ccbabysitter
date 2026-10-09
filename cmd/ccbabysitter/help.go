@@ -217,7 +217,9 @@ Unbabysit button.`,
 	"retry": controlPage(
 		"ccbabysitter retry S",
 		`Tries again on a babysat session that is stuck, as the page's Try again button
-does. Use it when list or show says its state is stuck.`,
+does. Use it when list or show says its state is stuck. On a session stuck because
+its background copy kept freezing, it also stops that copy with claude stop, while
+it is still the same copy and still frozen, so it is started again.`,
 		"",
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
 

@@ -24,6 +24,20 @@ const frozePause = "it froze three times in two hours"
 // down is still put down to the freeze.
 const frozeCauseFor = 10 * time.Minute
 
+// frozenStopWait is how long a frozen copy is given to go after `claude
+// stop` answered.
+var frozenStopWait = 5 * time.Second
+
+// frozenCopy is the frozen background copy a watch was paused over: its
+// process and what it showed, so Try again stops it only while it is
+// still that copy and still frozen.
+type frozenCopy struct {
+	pid         int
+	procStart   string
+	fingerprint string
+	cpu         float64
+}
+
 // notRespondingWhy says how a frozen session looked, for Activity.
 func notRespondingWhy() string {
 	return "not responding: busy for " + strconv.Itoa(int(FrozenAfter/time.Minute)) +
@@ -89,14 +103,19 @@ func (s *Supervisor) checkFrozen(ctx context.Context, snap observe.Snapshot) boo
 			w.Paused = true
 			w.PauseReason = frozePause
 			changed = true
+			s.frozenPaused[id] = frozenCopy{pid: sn.PID, procStart: sn.ProcStart, fingerprint: fp, cpu: tree.CPUSeconds}
 			s.logAuto(label, frozePause, "stuck until you press Try again. The frozen copy is left as it is.")
 			continue
 		}
-		if err := s.stopFrozen(ctx, sn, live); err != nil {
-			if ctx.Err() != nil {
-				return changed
-			}
-			s.logError(label, "could not stop it after it stopped responding: "+err.Error()+". Stop it by hand with `claude stop "+sn.ShortID+"`.")
+		err := s.stopFrozen(ctx, sn, live)
+		switch {
+		case ctx.Err() != nil:
+			return changed
+		case errors.Is(err, errAlreadyGone):
+			// It went by itself: the usual rescue deals with it.
+			continue
+		case err != nil:
+			s.logError(label, "could not stop it after it stopped responding: "+err.Error()+". "+stopByHand(sn, err))
 			continue
 		}
 		w.Freezes = freezes
@@ -114,6 +133,11 @@ func (s *Supervisor) checkFrozen(ctx context.Context, snap observe.Snapshot) boo
 			delete(s.frozeStopped, id)
 		}
 	}
+	for id := range s.frozenPaused {
+		if !watched[id] {
+			delete(s.frozenPaused, id)
+		}
+	}
 	return changed
 }
 
@@ -125,47 +149,72 @@ func (s *Supervisor) forgetLiveness(id string) {
 }
 
 // errShortIDShared says a background copy's short id also names an app
-// session of the same conversation, so a command naming it could reach
-// that session.
+// session of the same conversation, or is not one a command can carry, so
+// it is never named in one.
 var errShortIDShared = errors.New("its short id is not one this program can name safely")
 
-// stopFrozen stops the frozen background copy sn, one of live: with
-// `claude stop`, which keeps the conversation and the CLI's own books
-// right, and by ending the process, matched by pid and creation time, when
-// that did not work or could not be used. A short id that is not valid,
-// or that an app session of the same conversation also answers to, is
-// never named in a command. A copy already gone needs nothing.
+// errAlreadyGone says the copy was gone before it was stopped.
+var errAlreadyGone = errors.New("it was already gone")
+
+// stopFrozen stops the frozen background copy sn, one of live, with
+// `claude stop`, which keeps the conversation: sessions are controlled only
+// through the claude CLI. It then waits up to frozenStopWait for the
+// process, matched by pid and creation time, to go. A short id that is not
+// valid, or that an app session of the same conversation also answers to,
+// is never named in a command. A copy already gone is errAlreadyGone.
 func (s *Supervisor) stopFrozen(ctx context.Context, sn claude.Session, live []claude.Session) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
 	if !s.deps.Procs.Alive(sn.PID, sn.ProcStart) {
-		return nil
+		return errAlreadyGone
 	}
-	stopErr := errShortIDShared
-	shared := false
 	for _, x := range live {
 		if x.Host != claude.HostBackground && x.ShortID == sn.ShortID {
-			shared = true
+			return errShortIDShared
 		}
 	}
-	if validShortID(sn.ShortID) && !shared {
-		out, err := s.deps.Runner.Run(ctx, "", hosts.StopArgs(sn.ShortID)...)
-		if ctx.Err() != nil {
+	if !validShortID(sn.ShortID) {
+		return errShortIDShared
+	}
+	out, err := s.deps.Runner.Run(ctx, "", hosts.StopArgs(sn.ShortID)...)
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if err != nil {
+		return errors.New(why(out, err))
+	}
+	deadline := time.Now().Add(frozenStopWait)
+	for s.deps.Procs.Alive(sn.PID, sn.ProcStart) {
+		if time.Now().After(deadline) {
+			return errors.New("`claude stop` answered, but it is still running")
+		}
+		select {
+		case <-ctx.Done():
 			return ctx.Err()
-		}
-		stopErr = nil
-		if err != nil {
-			stopErr = errors.New(why(out, err))
+		case <-time.After(100 * time.Millisecond):
 		}
 	}
-	if !s.deps.Procs.Alive(sn.PID, sn.ProcStart) || s.deps.Procs.Terminate(sn.PID, sn.ProcStart) {
-		return nil
+	return nil
+}
+
+// stopByHand says how to stop a frozen copy by hand after stopFrozen
+// failed with err.
+func stopByHand(sn claude.Session, err error) string {
+	if errors.Is(err, errShortIDShared) {
+		return "Find it with `claude agents` and stop it by hand with `claude stop` and its id."
 	}
-	if stopErr == nil {
-		stopErr = errors.New("it is still running")
-	}
-	return stopErr
+	return "Stop it by hand with `claude stop " + sn.ShortID + "`."
+}
+
+// stillFrozen reports whether sn is the copy a watch was paused over and
+// still shows nothing new: the same process, busy waiting on the model,
+// with the same fingerprint and no CPU used beyond the allowance.
+func (s *Supervisor) stillFrozen(cp frozenCopy, sn claude.Session) bool {
+	tree, ok := s.trees[sn.PID]
+	return ok && !tree.CPUUnknown && sn.PID == cp.pid && sn.ProcStart == cp.procStart &&
+		sn.Status == "busy" && s.stats[sn.ID].AwaitingModel &&
+		s.fingerprint(sn, tree.PIDs) == cp.fingerprint && tree.CPUSeconds-cp.cpu < FrozenCPUSlack
 }
 
 // fingerprint joins what can be seen of a session other than its CPU

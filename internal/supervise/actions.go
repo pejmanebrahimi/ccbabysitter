@@ -2,6 +2,7 @@ package supervise
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -91,8 +92,10 @@ func (s *Supervisor) unbabysit(_ context.Context, id string, via Via) Result {
 // ResumeWatch clears a pause and lets the watch act again.
 //
 // A watch paused because its background copy kept freezing has that copy
-// still running, frozen: it is stopped, as a freeze is, so the rescue
-// starts the session again now, with the count of freezes cleared.
+// still running: while it is the same copy and still frozen, it is
+// stopped, as a freeze is, so the rescue starts the session again now,
+// with the count of freezes cleared. A copy that came back to life, or a
+// new one, is only watched.
 func (s *Supervisor) ResumeWatch(id string, via Via) Result {
 	return s.ask(func(ctx context.Context) Result {
 		w := s.find(id)
@@ -110,15 +113,21 @@ func (s *Supervisor) ResumeWatch(id string, via Via) Result {
 		s.persist()
 		label := sessionLabel(w.Name, w.SessionID)
 		s.logInfo(label, "babysitting resumed"+via.Suffix())
-		if froze {
+		cp, paused := s.frozenPaused[id]
+		delete(s.frozenPaused, id)
+		if froze && paused {
 			s.refreshSnap()
 			live := s.snap.All(id)
-			if sn, ok := primarySession(*w, live); ok && sn.Host == claude.HostBackground {
-				if err := s.stopFrozen(ctx, sn, live); err != nil {
-					return Result{OK: true, Message: "Babysitting " + label + " again, but its frozen copy could not be stopped: " + err.Error() + ". Stop it by hand with `claude stop " + sn.ShortID + "`."}
+			if sn, ok := primarySession(*w, live); ok && sn.Host == claude.HostBackground && s.stillFrozen(cp, sn) {
+				err := s.stopFrozen(ctx, sn, live)
+				switch {
+				case errors.Is(err, errAlreadyGone):
+				case err != nil:
+					return Result{OK: true, Message: "Babysitting " + label + " again, but its frozen copy could not be stopped: " + err.Error() + ". " + stopByHand(sn, err)}
+				default:
+					s.frozeStopped[id] = s.deps.Now()
+					s.logInfo(label, "stopped the frozen copy to start it again"+via.Suffix())
 				}
-				s.frozeStopped[id] = s.deps.Now()
-				s.logInfo(label, "stopped the frozen copy to start it again"+via.Suffix())
 			}
 		}
 		return Result{OK: true, Message: "Babysitting " + label + " again."}

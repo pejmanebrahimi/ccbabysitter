@@ -62,6 +62,10 @@ type StatsReader struct {
 	// prompted is set once the first prompt has been read, which alone
 	// decides whether the session is a scheduled task's run.
 	prompted bool
+	// reply is the id of the newest reply of the conversation itself, and
+	// tools the tools it asked for that have not answered yet.
+	reply string
+	tools map[string]bool
 }
 
 // transcriptRecord is the subset of one transcript line this reader needs.
@@ -71,9 +75,12 @@ type StatsReader struct {
 // memory as a usable string.
 type transcriptRecord struct {
 	titleRecord
-	Type      string `json:"type"`
-	Subtype   string `json:"subtype"`
-	Operation string `json:"operation"`
+	Type    string `json:"type"`
+	Subtype string `json:"subtype"`
+	// TranscriptOnly marks a record written to the transcript only, which
+	// the model is never asked about.
+	TranscriptOnly bool   `json:"queueTranscriptOnly"`
+	Operation      string `json:"operation"`
 	// Content is a queued prompt's text, kept raw like the message's, and
 	// only looked at on a queue-operation record.
 	Content     json.RawMessage `json:"content"`
@@ -144,6 +151,8 @@ func (r *StatsReader) reset() {
 	r.titles = titleTracker{}
 	r.pendingRead = false
 	r.prompted = false
+	r.reply = ""
+	r.tools = nil
 }
 
 // updateTitle works out the title after a read. A custom-title that ended
@@ -185,6 +194,7 @@ func (r *StatsReader) applyLine(line []byte) {
 	case "assistant":
 		r.applyAssistant(&rec)
 		if !rec.IsSidechain {
+			r.askedForTools(&rec)
 			r.stats.AwaitingModel = false
 		}
 	case "system":
@@ -197,14 +207,66 @@ func (r *StatsReader) applyLine(line []byte) {
 		}
 		if !rec.IsMeta && !rec.IsSidechain {
 			r.firstPrompt(rec.Message.Content)
-			if len(rec.Message.Content) > 0 {
-				r.stats.AwaitingModel = true
+			if len(rec.Message.Content) > 0 && !rec.TranscriptOnly {
+				r.toolsAnswered(rec.Message.Content)
+				r.stats.AwaitingModel = len(r.tools) == 0
 			}
 		}
 	case "queue-operation":
 		if rec.Operation == "enqueue" {
 			r.firstPrompt(rec.Content)
 		}
+	}
+}
+
+// contentBlock is one block of a message's content, as far as tools go.
+type contentBlock struct {
+	Type      string `json:"type"`
+	ID        string `json:"id"`
+	ToolUseID string `json:"tool_use_id"`
+}
+
+// blocksOf reads a message's content as blocks, and none when it is plain
+// text.
+func blocksOf(content json.RawMessage) []contentBlock {
+	var blocks []contentBlock
+	if json.Unmarshal(content, &blocks) != nil {
+		return nil
+	}
+	return blocks
+}
+
+// askedForTools notes the tools a reply of the conversation asks for. A
+// reply is written as one record per block, so the tools of the newest
+// reply are gathered across its records, and a new reply starts afresh.
+func (r *StatsReader) askedForTools(rec *transcriptRecord) {
+	if rec.Message.ID != r.reply {
+		r.reply = rec.Message.ID
+		r.tools = nil
+	}
+	for _, b := range blocksOf(rec.Message.Content) {
+		if b.Type == "tool_use" && b.ID != "" {
+			if r.tools == nil {
+				r.tools = map[string]bool{}
+			}
+			r.tools[b.ID] = true
+		}
+	}
+}
+
+// toolsAnswered crosses off the tools whose results a record carries. A
+// record with no result is a prompt: whatever tools were asked for before
+// it have finished or were cut short.
+func (r *StatsReader) toolsAnswered(content json.RawMessage) {
+	results := 0
+	for _, b := range blocksOf(content) {
+		if b.Type == "tool_result" {
+			results++
+			delete(r.tools, b.ToolUseID)
+		}
+	}
+	if results == 0 {
+		r.tools = nil
 	}
 }
 

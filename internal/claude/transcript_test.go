@@ -535,3 +535,44 @@ func TestStatsAwaitingModel(t *testing.T) {
 		}
 	}
 }
+
+// A reply can ask for several tools at once, and each result is written
+// as that tool finishes: the model is due only once every tool it asked
+// for has answered. A record written to the transcript only, which the
+// model is never asked about, changes nothing.
+func TestStatsAwaitingModelWithParallelTools(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "s.jsonl")
+	if err := os.WriteFile(p, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := &StatsReader{}
+	for _, step := range []struct {
+		line string
+		want bool
+	}{
+		{`{"type":"user","message":{"role":"user","content":"check both"}}`, true},
+		{`{"type":"assistant","message":{"id":"m1","stop_reason":"tool_use","content":[{"type":"tool_use","id":"t1"}]}}`, false},
+		{`{"type":"assistant","message":{"id":"m1","stop_reason":"tool_use","content":[{"type":"tool_use","id":"t2"}]}}`, false},
+		{`{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]}}`, false},
+		{`{"type":"user","origin":{"kind":"task-notification"},"queueTranscriptOnly":true,"message":{"role":"user","content":"note"}}`, false},
+		{`{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":"ok"}]}}`, true},
+		{`{"type":"assistant","message":{"id":"m2","stop_reason":"tool_use","content":[{"type":"tool_use","id":"t3"}]}}`, false},
+		{`{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t3","content":"ok"}]}}`, true},
+		{`{"type":"assistant","message":{"id":"m3","stop_reason":"end_turn","content":[{"type":"text"}]}}`, false},
+		{`{"type":"user","queueTranscriptOnly":true,"message":{"role":"user","content":"note"}}`, false},
+		// A turn cut short leaves a tool unanswered; the next prompt is
+		// the model's to answer all the same.
+		{`{"type":"assistant","message":{"id":"m4","stop_reason":"tool_use","content":[{"type":"tool_use","id":"t4"}]}}`, false},
+		{`{"type":"user","message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]}}`, true},
+		{`{"type":"user","message":{"role":"user","content":"carry on"}}`, true},
+	} {
+		appendLine(t, p, step.line+"\n")
+		s, err := r.Update(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s.AwaitingModel != step.want {
+			t.Fatalf("after %s: AwaitingModel %v, want %v", step.line, s.AwaitingModel, step.want)
+		}
+	}
+}

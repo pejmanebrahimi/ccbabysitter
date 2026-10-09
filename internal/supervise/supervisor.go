@@ -197,8 +197,11 @@ type Supervisor struct {
 	livenessAt    map[string]time.Time
 	notResponding map[string]bool
 	frozeStopped  map[string]time.Time
-	release       func()
-	held          bool
+	// frozenPaused is the frozen copy each watch paused for freezing was
+	// paused over, only kept in memory.
+	frozenPaused map[string]frozenCopy
+	release      func()
+	held         bool
 	// heldFor is how many babysat sessions the request was last said to be
 	// held for, so a change in that number is said as well.
 	heldFor int
@@ -226,6 +229,7 @@ func New(d Deps) *Supervisor {
 		livenessAt:    map[string]time.Time{},
 		notResponding: map[string]bool{},
 		frozeStopped:  map[string]time.Time{},
+		frozenPaused:  map[string]frozenCopy{},
 		announced:     map[string]bool{},
 		backoffUntil:  map[string]time.Time{},
 		seen:          map[string]bool{},

@@ -237,9 +237,12 @@ func TestAFrozenSessionInAnAppIsOnlyFlagged(t *testing.T) {
 	}
 }
 
-// When `claude stop` fails, or leaves the process running, the process is
-// ended by pid and creation time instead.
-func TestAFrozenSessionIsEndedWhenStopDoesNotEndIt(t *testing.T) {
+// Sessions are controlled only through the claude CLI: when `claude stop`
+// fails, or leaves the process running, nothing else ends it. Activity
+// says how to stop it by hand, and no freeze is counted.
+func TestAFrozenSessionIsOnlyStoppedThroughTheCLI(t *testing.T) {
+	defer func(d time.Duration) { frozenStopWait = d }(frozenStopWait)
+	frozenStopWait = 50 * time.Millisecond
 	for name, respond := range map[string]func([]string) (string, error){
 		"stop failed":          func([]string) (string, error) { return "daemon not answering", errors.New("exit status 1") },
 		"stop left it running": func([]string) (string, error) { return "stopped", nil },
@@ -248,28 +251,47 @@ func TestAFrozenSessionIsEndedWhenStopDoesNotEndIt(t *testing.T) {
 		c.f.r.SetRespond(respond)
 		c.look()
 		c.wait(FrozenAfter)
-		if !slices.Contains(c.f.p.CallList(), "terminate 9") {
-			t.Errorf("%s: procs calls %v", name, c.f.p.CallList())
+		if len(c.f.p.CallList()) != 0 {
+			t.Errorf("%s: a process was ended directly: %v", name, c.f.p.CallList())
 		}
-		if len(c.watch().Freezes) != 1 {
-			t.Errorf("%s: the freeze was not counted", name)
+		if len(c.watch().Freezes) != 0 || len(c.entries("stopped it to start it again")) != 0 {
+			t.Errorf("%s: counted as stopped", name)
+		}
+		if len(c.entries("Stop it by hand with `claude stop 1b2c3d4e`")) != 1 {
+			t.Errorf("%s: activity %q", name, logMessages(c.log))
 		}
 	}
 }
 
 // A copy whose short id an app session of the same conversation also
-// answers to is never named in `claude stop`: only its own process is
-// ended.
+// answers to is never named in `claude stop`, and nothing else ends it:
+// Activity says how to find and stop it by hand.
 func TestASharedShortIDIsNeverNamed(t *testing.T) {
 	c := newFrozenCase(t, claude.HostBackground)
 	c.others = []claude.Session{{ID: c.sn.ID, ShortID: c.sn.ShortID, PID: 30, ProcStart: "8", Host: claude.HostTerminal, Cwd: c.sn.Cwd, Status: "idle"}}
 	c.look()
 	c.wait(FrozenAfter)
-	if c.stops() != 0 {
-		t.Fatalf("named a shared short id: %v", c.f.r.CallList())
+	if c.stops() != 0 || len(c.f.p.CallList()) != 0 {
+		t.Fatalf("acted on a shared short id: %v %v", c.f.r.CallList(), c.f.p.CallList())
 	}
-	if !slices.Contains(c.f.p.CallList(), "terminate 9") || slices.Contains(c.f.p.CallList(), "terminate 30") {
-		t.Fatalf("procs calls %v", c.f.p.CallList())
+	if len(c.entries("`claude agents`")) != 1 {
+		t.Fatalf("activity %q", logMessages(c.log))
+	}
+}
+
+// A copy that went by itself in the meantime is not stopped, not counted
+// as a freeze, and its rescue is not put down to one.
+func TestACopyAlreadyGoneIsNotCountedAsAFreeze(t *testing.T) {
+	c := newFrozenCase(t, claude.HostBackground)
+	c.look()
+	c.wait(FrozenAfter - time.Minute)
+	c.f.p.SetAlive(9, false)
+	c.wait(2 * time.Minute)
+	if c.stops() != 0 || len(c.watch().Freezes) != 0 || len(c.entries("stopped it to start it again")) != 0 {
+		t.Fatalf("a copy already gone was handled as a freeze: %v %+v", c.f.r.CallList(), c.watch())
+	}
+	if _, ok := c.s.frozeStopped[c.sn.ID]; ok {
+		t.Fatal("its rescue would blame a freeze")
 	}
 }
 
@@ -319,6 +341,42 @@ func TestRepeatedFreezesPauseUntilTryAgain(t *testing.T) {
 	}
 	if w := c.watch(); w.Paused || len(w.Freezes) != 0 {
 		t.Fatalf("watch after Try again %+v", w)
+	}
+}
+
+// Try again stops only the copy that froze, and only while it still looks
+// frozen: one that came back to life, or a new copy, is just watched.
+func TestTryAgainLeavesACopyThatRecovered(t *testing.T) {
+	for name, change := range map[string]func(c *frozenCase){
+		"it used CPU":        func(c *frozenCase) { c.cpu += FrozenCPUSlack + 1 },
+		"it wrote":           func(c *frozenCase) { c.touch(c.now) },
+		"it is another copy": func(c *frozenCase) { c.sn.PID, c.pids = 10, []int{10}; c.f.p.SetAlive(10, true) },
+		"it answered a tool": func(c *frozenCase) { c.awaiting = false },
+	} {
+		c := newFrozenCase(t, claude.HostBackground)
+		c.s.st.Watches[0].Freezes = []time.Time{c.now.Add(-90 * time.Minute), c.now.Add(-40 * time.Minute)}
+		c.look()
+		c.wait(FrozenAfter)
+		if !c.watch().Paused {
+			t.Fatalf("%s: not paused", name)
+		}
+		change(c)
+		c.now = c.now.Add(time.Minute)
+		c.s.ask(func(context.Context) Result {
+			c.s.snap = observe.Snapshot{At: c.now, Sessions: []claude.Session{c.sn}}
+			c.s.trees[c.sn.PID] = procs.TreeStats{CPUSeconds: c.cpu, PIDs: c.pids, Processes: len(c.pids)}
+			c.s.stats[c.sn.ID] = claude.Stats{AwaitingModel: c.awaiting}
+			return Result{OK: true}
+		})
+		if r := c.s.ResumeWatch(c.sn.ID, ViaPage); !r.OK {
+			t.Fatalf("%s: try again: %+v", name, r)
+		}
+		if c.stops() != 0 {
+			t.Errorf("%s: Try again stopped it: %v", name, c.f.r.CallList())
+		}
+		if c.watch().Paused {
+			t.Errorf("%s: still paused", name)
+		}
 	}
 }
 
@@ -378,8 +436,8 @@ func TestAFrozenSessionIsStartedAgainWithItsReason(t *testing.T) {
 	defer cancel()
 
 	stopped := false
-	for i := 0; i < 2*int(FrozenAfter/(30*time.Second)) && !stopped; i++ {
-		offset.Add(int64(30 * time.Second))
+	for i := 0; i < 2*int(FrozenAfter/(20*time.Second)) && !stopped; i++ {
+		offset.Add(int64(20 * time.Second))
 		f.d.Obs.RefreshNow()
 		time.Sleep(20 * time.Millisecond)
 		stopped = slices.Contains(f.r.CallList(), "stop 1b2c3d4e")
