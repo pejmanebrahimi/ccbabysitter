@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commands - CC Babysitter docs</title>
+<meta name="description" content="Every ccbabysitter command, with its flags, output, JSON and exit codes, as the program's own help prints them.">
+<link rel="canonical" href="https://ccbabysitter.dev/docs/commands/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/docs.css">
+<script src="/assets/theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="dtop">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">CC Babysitter</a>
+  <a class="crumb" href="/docs/">Docs</a>
+  <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
+    <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
+  </button>
+</header>
+<div class="docs">
+  <details class="sidebox" open>
+    <summary class="fold"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="9" height="1"/><rect x="0" y="4" width="9" height="1"/><rect x="0" y="7" width="9" height="1"/></svg>Menu</summary>
+    <nav class="side" id="docs-nav" aria-label="Docs">
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+      </ul>
+      <p class="group" id="nav-tutorials">Tutorials</p>
+      <ul aria-labelledby="nav-tutorials">
+        <li><a href="/docs/first-session/">Babysit your first session</a></li>
+      </ul>
+      <p class="group" id="nav-how-to">How-to guides</p>
+      <ul aria-labelledby="nav-how-to">
+        <li><a href="/docs/server/">Run it on a server</a></li>
+        <li><a href="/docs/start-at-login/">Start at login</a></li>
+        <li><a href="/docs/claude-code-plugin/">Use it from Claude Code</a></li>
+        <li><a href="/docs/uninstall/">Stop or remove it</a></li>
+      </ul>
+      <p class="group" id="nav-reference">Reference</p>
+      <ul aria-labelledby="nav-reference">
+        <li><a href="/docs/commands/" aria-current="page">Commands</a></li>
+      </ul>
+    </nav>
+  </details>
+  <details class="toc" open>
+    <summary class="fold">On this page<svg class="caret" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/></svg></summary>
+    <nav class="toc-list" aria-label="On this page">
+      <ul>
+<!-- generated:toc -->
+        <li><a href="#all">All commands</a></li>
+        <li><a href="#status">status</a></li>
+        <li><a href="#list">list</a></li>
+        <li><a href="#show">show</a></li>
+        <li><a href="#babysit">babysit</a></li>
+        <li><a href="#unbabysit">unbabysit</a></li>
+        <li><a href="#retry">retry</a></li>
+        <li><a href="#stop">stop</a></li>
+        <li><a href="#activity">activity</a></li>
+        <li><a href="#settings">settings</a></li>
+        <li><a href="#open">open</a></li>
+        <li><a href="#quit">quit</a></li>
+        <li><a href="#install">install</a></li>
+        <li><a href="#uninstall">uninstall</a></li>
+        <li><a href="#reset">reset</a></li>
+        <li><a href="#version">version</a></li>
+        <li><a href="#help">help</a></li><!-- /generated -->
+      </ul>
+    </nav>
+  </details>
+  <main class="doc" id="content">
+    <p class="kind">Reference</p>
+    <h1>Commands</h1>
+    <p class="lede">Every <code>ccbabysitter</code> command, as the program's own help prints it. <code>ccbabysitter help COMMAND</code> shows the same page for the version you have installed.</p>
+    <p>The commands from <code>status</code> to <code>quit</code> control the copy that is running, through the same local connection as the page. They work for people and AI agents alike, and with <code>--json</code> they print one JSON document.</p>
+
+<!-- generated:commands -->
+    <h2 id="all">All commands</h2>
+    <pre class="out">CC Babysitter keeps Claude Code sessions alive and reachable.
+
+Run it:
+  ccbabysitter                 start CC Babysitter. It runs in the background and starts at login
+  ccbabysitter --foreground    run in this terminal until Ctrl+C
+  ccbabysitter --no-open       start it without opening the page
+  ccbabysitter --demo          scripted sessions, touches nothing real
+  ccbabysitter --port N        with --foreground, prefer this port for the page, 47391 by default, else a random free port
+  ccbabysitter install         on Linux, set it up to start at boot and keep running after logout
+  ccbabysitter uninstall       remove CC Babysitter from this computer, after asking
+  ccbabysitter reset           delete the state folder after confirmation
+  ccbabysitter version         print the name and version
+
+Control the running copy, for people and AI agents alike:
+  ccbabysitter status          is it running, where, and what it is doing
+  ccbabysitter list            every Claude Code session on this machine
+  ccbabysitter show S          one session in full
+  ccbabysitter babysit S       keep S alive: if its app dies, it comes back in the background
+  ccbabysitter unbabysit S     stop babysitting S, which keeps running where it is
+  ccbabysitter retry S         try again on a babysat session that is stuck
+  ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
+  ccbabysitter activity [S]    what CC Babysitter did and why, newest first
+  ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
+  ccbabysitter open            open the page in your browser, printing no key
+  ccbabysitter quit            quit CC Babysitter. Babysat sessions keep running where they are
+  ccbabysitter help COMMAND    everything about one command
+
+S is a session id, a short id, a name, or self.
+A full id always wins. A word that fits two sessions, as a short id or a name, is refused.
+self is the session this command runs in.
+Add --json for one JSON document on stdout. Exit codes: 0 done, 1 refused,
+2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one.
+
+Examples:
+  ccbabysitter babysit self
+  ccbabysitter list --json
+  ccbabysitter stop 3f2a9c1e --yes
+</pre>
+
+    <h2 id="status">status</h2>
+    <pre class="out">ccbabysitter status
+
+Tells whether CC Babysitter is running, at what address, how many sessions it
+sees, how many are babysat, and whether it keeps the computer awake. The address
+includes the page&#39;s key, so it opens the page in a browser as it is.
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text, two lines:
+  CC Babysitter 0.4.0 is running at http://127.0.0.1:47391/?token=KEY
+  Sessions: 5, babysat: 2. Keeping the computer awake: yes
+Keeping the computer awake says yes, no, or not supported on this system. Where
+closing the lid would put the computer to sleep, yes adds: while its lid is open.
+
+With --json: {&#34;schema&#34;:1,&#34;running&#34;:true,&#34;version&#34;:&#34;...&#34;,&#34;url&#34;:&#34;...&#34;,&#34;headless&#34;:false,
+&#34;sessions&#34;:5,&#34;babysat&#34;:2,&#34;keepAwake&#34;:{&#34;held&#34;:true,&#34;supported&#34;:true}}.
+When it is not running, the sentence says so on stderr, the exit code is 3 and
+stdout is {&#34;schema&#34;:1,&#34;running&#34;:false} with --json. That is the answer, not an error.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter status
+  ccbabysitter status --json
+</pre>
+
+    <h2 id="list">list</h2>
+    <pre class="out">ccbabysitter list
+
+Lists every Claude Code session on this machine, babysat or not, running or not.
+Sessions that are not babysat come first, then the babysat ones. Runs of a Claude
+Desktop scheduled task come last, under their own heading, since they are never
+babysat: Desktop starts the task again on its schedule.
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: a header, then one line per session, columns separated by two spaces:
+  ID       short id, 8 characters
+  NAME     the session&#39;s name, or - when it has none
+  APP      where it runs: terminal, background, desktop, vscode or other, - when nowhere
+  RC       Remote Control, on or off
+  BABYSAT  no, or watching, in background, starting or stuck
+  TOKENS   everything used so far, as 12k or 4.5M
+  UPTIME   as 45s, 12m, 3h 5m or 2d 4h, - when it is not running
+  FOLDER   the folder it works in
+Scheduled task runs follow, after an empty line when other sessions come first,
+under the line &#34;Scheduled task runs, never babysat:&#34;, with the same columns.
+With no sessions it says: No Claude Code sessions are running.
+
+With --json: {&#34;schema&#34;:1,&#34;sessions&#34;:[...]}, an empty array when there are none.
+A scheduled task&#39;s run is in the same array, with scheduledTask true.
+Each session has the fields shown by ccbabysitter help show, and the same names.
+In JSON, state is watching, background, starting or stuck, and is left out when the
+session is not babysat. The text says in background for background.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter list
+  ccbabysitter list --json
+</pre>
+
+    <h2 id="show">show</h2>
+    <pre class="out">ccbabysitter show S
+
+Shows one session in full, one Label: value line each. Lines for things that
+are not set are left out, except App, Running, Remote Control, Babysat and Tokens.
+
+S is a session id, a short id, a name, or self. A full id always wins. A word
+that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
+always the session this command runs in. See ccbabysitter list.
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text lines, in this order: Id, Short id, Name, Also called, Folder, App, Also running
+in, Running, Scheduled task, Remote Control, Status, Babysat, State, Tokens, Model,
+Last activity, Uptime, Open with Remote Control, Attach, Attach over ssh, Resume, To
+switch Remote Control on, Warning. Tokens is like: in 1.2k, out 3.4k, cache 50k. App
+is none when it runs nowhere. State is watching, in background, starting or stuck.
+Scheduled task is yes for a run of a Claude Desktop scheduled task, and left out
+otherwise.
+
+With --json: {&#34;schema&#34;:1,&#34;session&#34;:{...}}. These fields are always there: id, shortId,
+name, folder, app, apps, running, remoteControl, status, babysat, tokens {input,
+output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask.
+Empty ones are &#34;&#34; or [], and app is &#34;&#34; when it runs nowhere. These are left out when
+not set: alsoCalled, pid, state, model, lastActivity as RFC 3339 in UTC, remoteUrl,
+attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New fields may be added.
+In JSON, state is watching, background, starting or stuck. The text says in
+background for background, so filter on background when using --json.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter show self
+  ccbabysitter show api --json
+</pre>
+
+    <h2 id="babysit">babysit</h2>
+    <pre class="out">ccbabysitter babysit S [--start-at-login]
+
+Keeps S alive. If the app it runs in dies, it comes back in the background and
+stays reachable. This is the page&#39;s Babysit button. A run of a Claude Desktop
+scheduled task is refused: Desktop starts the task again on its schedule.
+
+S is a session id, a short id, a name, or self. A full id always wins. A word
+that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
+always the session this command runs in. See ccbabysitter list.
+
+Flags:
+  --start-at-login   also start CC Babysitter when you log in, as the page&#39;s box does
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {&#34;schema&#34;:1,&#34;ok&#34;:true,&#34;message&#34;:&#34;...&#34;,&#34;session&#34;:&#34;SHORT ID&#34;}.
+ok is false when it was refused, with exit code 1 and the reason in message.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter babysit self
+  ccbabysitter babysit api --start-at-login
+</pre>
+
+    <h2 id="unbabysit">unbabysit</h2>
+    <pre class="out">ccbabysitter unbabysit S
+
+Stops babysitting S. The session keeps running where it is. This is the page&#39;s
+Unbabysit button.
+
+S is a session id, a short id, a name, or self. A full id always wins. A word
+that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
+always the session this command runs in. See ccbabysitter list.
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {&#34;schema&#34;:1,&#34;ok&#34;:true,&#34;message&#34;:&#34;...&#34;,&#34;session&#34;:&#34;SHORT ID&#34;}.
+ok is false when it was refused, with exit code 1 and the reason in message.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter unbabysit api
+</pre>
+
+    <h2 id="retry">retry</h2>
+    <pre class="out">ccbabysitter retry S
+
+Tries again on a babysat session that is stuck, as the page&#39;s Try again button
+does. Use it when list or show says its state is stuck.
+
+S is a session id, a short id, a name, or self. A full id always wins. A word
+that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
+always the session this command runs in. See ccbabysitter list.
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {&#34;schema&#34;:1,&#34;ok&#34;:true,&#34;message&#34;:&#34;...&#34;,&#34;session&#34;:&#34;SHORT ID&#34;}.
+ok is false when it was refused, with exit code 1 and the reason in message.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter retry nightly
+</pre>
+
+    <h2 id="stop">stop</h2>
+    <pre class="out">ccbabysitter stop S --yes
+
+Stops the background copy of S. The conversation is kept, and can be resumed.
+Without --yes it changes nothing: it says what it would stop and exits with 2.
+Only a session with a background copy can be stopped. canStop in show --json says
+whether S has one. Otherwise stop is refused, with exit code 1.
+While the copy runs, Claude Desktop shows &#34;Claude Code crashed&#34; for a session
+that came from it, because only one copy of a session runs at a time. After stop,
+Try again in Desktop picks the session up where it left off. On the page, stop is
+Back to Desktop or Back to VS Code for a session from those apps, and End
+background copy for one from a terminal, which shows the command to resume it.
+
+S is a session id, a short id, a name, or self. A full id always wins. A word
+that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
+always the session this command runs in. See ccbabysitter list.
+
+Flags:
+  --yes              confirm. Without it nothing is stopped
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {&#34;schema&#34;:1,&#34;ok&#34;:true,&#34;message&#34;:&#34;...&#34;,&#34;session&#34;:&#34;SHORT ID&#34;}.
+ok is false when it was refused, with exit code 1 and the reason in message.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter stop 3f2a9c1e --yes
+</pre>
+
+    <h2 id="activity">activity</h2>
+    <pre class="out">ccbabysitter activity [S] [-n N]
+
+Shows what CC Babysitter did and why, newest first. With S, only the entries
+about that session. It looks through the newest 500 entries, so an older entry
+about S is not found.
+
+S is a session id, a short id, a name, or self. A full id always wins. A word
+that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
+always the session this command runs in. See ccbabysitter list.
+
+Flags:
+  -n N               show at most N entries, 20 by default, 500 at most
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text, one line each: 2026-10-02 14:05:09  SESSION  MESSAGE
+The time is local, SESSION is - for entries about no session in particular, and
+(automatic: REASON) follows the message when CC Babysitter acted by itself.
+
+With --json: {&#34;schema&#34;:1,&#34;entries&#34;:[{&#34;time&#34;:&#34;RFC 3339&#34;,&#34;level&#34;:&#34;...&#34;,&#34;session&#34;:&#34;...&#34;,
+&#34;automatic&#34;:false,&#34;reason&#34;:&#34;...&#34;,&#34;message&#34;:&#34;...&#34;}]}, an empty array when there are none.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter activity
+  ccbabysitter activity worker -n 5
+</pre>
+
+    <h2 id="settings">settings</h2>
+    <pre class="out">ccbabysitter settings [NAME VALUE]
+
+Shows the settings, or changes one. These are the page&#39;s settings.
+  autostart      on or off     start CC Babysitter when you log in, or at boot on a server
+  auto-babysit   on or off     babysit every new background session on a server
+  open-browser   on or off     open the page when you run ccbabysitter
+  theme          auto, dark or light
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text, one line each: autostart: on, auto-babysit: on, open-browser: on, theme: auto.
+Changing one prints the answer, or Saved., and exits with 0, or with 1 when refused.
+
+With --json: {&#34;schema&#34;:1,&#34;settings&#34;:{&#34;autostart&#34;:false,&#34;autoBabysit&#34;:true,
+&#34;openBrowser&#34;:true,&#34;theme&#34;:&#34;auto&#34;}}. A change answers like the actions do:
+{&#34;schema&#34;:1,&#34;ok&#34;:true,&#34;message&#34;:&#34;...&#34;}.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter settings
+  ccbabysitter settings theme dark
+</pre>
+
+    <h2 id="open">open</h2>
+    <pre class="out">ccbabysitter open
+
+Opens the running copy&#39;s page in your default browser, with a one-time address,
+as starting CC Babysitter does. Nothing it prints carries the page&#39;s key, so it is
+safe to run from an AI agent. On a machine with no display it opens nothing and says
+how to connect from another computer. It never starts CC Babysitter.
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {&#34;schema&#34;:1,&#34;ok&#34;:true,&#34;message&#34;:&#34;...&#34;}.
+ok is false when the browser could not be opened, with exit code 1.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter open
+</pre>
+
+    <h2 id="quit">quit</h2>
+    <pre class="out">ccbabysitter quit
+
+Quits the running copy of CC Babysitter, as the page&#39;s Quit button does. Babysat
+sessions keep running where they are, but nothing brings them back if their app
+dies, and the computer may sleep, until you run ccbabysitter again.
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {&#34;schema&#34;:1,&#34;ok&#34;:true,&#34;message&#34;:&#34;...&#34;}.
+ok is false when it was refused, with exit code 1 and the reason in message.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {&#34;schema&#34;:1,&#34;ok&#34;:false,&#34;error&#34;:&#34;...&#34;,&#34;code&#34;:&#34;...&#34;}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page&#39;s key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter quit
+</pre>
+
+    <h2 id="install">install</h2>
+    <pre class="out">ccbabysitter install
+
+On Linux, sets CC Babysitter up as a systemd user service that starts at boot and
+keeps running after you log out, and starts it, whether or not the machine has a
+display. Running ccbabysitter on a Linux server does the same. On macOS and
+Windows it says that install is for Linux and exits with 2: there a plain
+ccbabysitter starts CC Babysitter in the background.
+
+Example:
+  ccbabysitter install
+</pre>
+
+    <h2 id="uninstall">uninstall</h2>
+    <pre class="out">ccbabysitter uninstall [--yes] [--keep-files]
+
+Removes CC Babysitter from this computer. It says what goes and asks Continue? [y/N]
+first, and anything but y changes nothing. Then it removes start at login, asks a
+copy still running to quit, and deletes the state folder and the program. Start at
+login is the systemd user service on Linux, where lingering is turned off only when
+CC Babysitter turned it on, the LaunchAgent on macOS and the Run value on Windows.
+On macOS and Linux the program is one file, and its folder stays. On Windows the
+install script&#39;s folder, %LOCALAPPDATA%\Programs\CCBabysitter, comes out of the
+user Path and is deleted a moment after the command ends. A program anywhere else
+loses only its own files, and the folder stays, also on PATH. A ccbabysitter that
+is a link loses the link, and one run with go run leaves Go&#39;s cache alone. Another
+ccbabysitter still on PATH is named at the end. Babysat sessions keep running
+where they are. It stops, with exit code 1, when start at login cannot be removed
+or a copy is still running after it was asked to quit.
+
+Flags:
+  --yes          ask nothing. Without it, and without a terminal to ask in,
+                 nothing changes and the exit code is 2
+  --keep-files   only stop the background copy and remove start at login,
+                 asking nothing. A later plain ccbabysitter turns it on again,
+                 as on a machine that never had CC Babysitter
+
+Examples:
+  ccbabysitter uninstall
+  ccbabysitter uninstall --keep-files
+</pre>
+
+    <h2 id="reset">reset</h2>
+    <pre class="out">ccbabysitter reset
+
+Deletes the state folder, which holds the settings, the babysat sessions and the
+activity log. It names the folder and asks Continue? [y/N] first, and anything but y
+changes nothing. It refuses, with exit code 1, while CC Babysitter is running.
+
+Example:
+  ccbabysitter reset
+</pre>
+
+    <h2 id="version">version</h2>
+    <pre class="out">ccbabysitter version [--json]
+
+Prints the name and the version, and exits with 0. With --json, prints
+{&#34;schema&#34;:1,&#34;name&#34;:&#34;CC Babysitter&#34;,&#34;version&#34;:&#34;...&#34;,&#34;headless&#34;:false} instead, where
+headless is true on a machine with no display. It works whether or not CC Babysitter
+is running. Any other word after version is a usage error, exit code 2.
+
+To report a problem, email hello@ccbabysitter.dev or open an issue at
+https://github.com/pejmanebrahimi/ccbabysitter/issues/new/choose, with this output.
+Report a security problem privately instead, as SECURITY.md says, at
+https://github.com/pejmanebrahimi/ccbabysitter/security/advisories/new. The page&#39;s
+About panel has the same, with the version details to copy.
+
+Example:
+  ccbabysitter version
+  ccbabysitter version --json
+</pre>
+
+    <h2 id="help">help</h2>
+    <pre class="out">ccbabysitter help [COMMAND]
+
+Without a command, prints the list of everything ccbabysitter does. With one, prints
+that command&#39;s page: what it does, its flags, its output and its exit codes.
+ccbabysitter --help and ccbabysitter -h are the same as help.
+
+Exit codes: 0 done, 2 no such command.
+
+Example:
+  ccbabysitter help babysit
+</pre><!-- /generated -->
+
+    <nav class="pager" aria-label="Previous and next">
+      <a class="prev" href="/docs/uninstall/"><small>Previous</small>Stop or remove it</a>
+    </nav>
+    <p class="edit-line"><a class="edit" href="https://github.com/pejmanebrahimi/ccbabysitter/edit/main/cmd/ccbabysitter/help.go" target="_blank" rel="noopener noreferrer">Edit this page on GitHub<span class="sr"> (opens in a new tab)</span></a></p>
+  </main>
+</div>
+<footer class="foot">{{VERSION}} &middot; Preview &middot; <a href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT<span class="sr"> (opens in a new tab)</span></a> &middot; Not affiliated with Anthropic</footer>
+<script src="/assets/site.js"></script>
+<script src="/assets/docs.js"></script>
+</body>
+</html>

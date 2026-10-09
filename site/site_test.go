@@ -78,6 +78,9 @@ var allowedURL = []string{
 	"https://schema.org",
 	"https://opensource.org/licenses/MIT",
 	"http://www.sitemaps.org/schemas/sitemap/0.9",
+	// The address CC Babysitter serves its page on, as the command
+	// reference quotes it.
+	"http://127.0.0.1",
 }
 
 func TestNoThirdPartyHosts(t *testing.T) {
@@ -89,9 +92,10 @@ func TestNoThirdPartyHosts(t *testing.T) {
 			ok := false
 			for _, a := range allowedURL {
 				// The address must end where the allowed one ends, or go on
-				// into a path, query or fragment: not into another host or name. An
-				// allowed address that ends in a slash is already a path prefix.
-				if strings.HasPrefix(u, a) && (len(u) == len(a) || strings.HasSuffix(a, "/") || strings.ContainsRune("/#?", rune(u[len(a)]))) {
+				// into a port, path, query or fragment: not into another host or
+				// name. An allowed address that ends in a slash is already a path
+				// prefix.
+				if strings.HasPrefix(u, a) && (len(u) == len(a) || strings.HasSuffix(a, "/") || strings.ContainsRune(":/#?", rune(u[len(a)]))) {
 					ok = true
 				}
 			}
