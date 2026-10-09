@@ -10,6 +10,8 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 - Fixed: a background session's uptime counts from when the session started, not from when Claude Code started its process ahead of time, which could be hours earlier (#97).
 - Fixed: `ccbabysitter retry` on a babysat session that is not stuck is refused and says so, with what the session is doing, instead of answering that it is babysitting it again and writing to Activity while nothing happened (#95).
 - New: `ccbabysitter list` shows the page's Not running conversations last, under their own heading, and `show` and `activity` find them, with the command that starts one again. A word that names a running or babysat session still means that one (#96).
+- Fixed: the page's note that Claude Code is not logged in now shows when it is not. The CLI exits with an error when nobody is logged in, which was read as no answer (#103).
+- Changed: New session and `ccbabysitter start` start nothing while Claude Code is not logged in, and say so: such a session could reach neither the model nor Remote Control (#103).
 
 ## 0.8.0 (2026-10-09)
 
