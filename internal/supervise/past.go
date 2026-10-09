@@ -40,6 +40,12 @@ type PastView struct {
 	// every other conversation, which is resumed with ResumeCmd instead.
 	AttachCmd    string `json:"attachCmd,omitempty"`
 	SSHAttachCmd string `json:"sshAttachCmd,omitempty"`
+	// CopyShortID is the short id of the background copy that was stopped,
+	// the one the command line showed for it, and ActivityLabel the name
+	// Activity knew the session by, both for a session stopped or handed
+	// back from here.
+	CopyShortID   string `json:"copyShortId,omitempty"`
+	ActivityLabel string `json:"activityLabel,omitempty"`
 }
 
 // handBackFor is how long a session handed back to its app is marked as
@@ -54,6 +60,8 @@ type handBack struct {
 	// still show for a moment while it goes. It is not the session
 	// running again.
 	pid int
+	// label is the name Activity knew the session by.
+	label string
 }
 
 // stoppedCopy is one background session whose copy Stop ended, without
@@ -65,6 +73,8 @@ type stoppedCopy struct {
 	// pid is the copy that was stopped, which a snapshot can still show
 	// for a moment while it goes.
 	pid int
+	// label is the name Activity knew the session by.
+	label string
 }
 
 // handBackTo names the app a session goes back to, the way the page's way
@@ -173,9 +183,12 @@ func (s *Supervisor) pastViews(watched map[string]bool) []PastView {
 		}
 		if hb, ok := s.handedBack[p.ID]; ok && now.Sub(hb.at) < handBackFor {
 			pv.HandedBackTo = hb.to
+			pv.ActivityLabel = hb.label
 		} else if sc, ok := s.stopped[p.ID]; ok {
 			pv.AttachCmd = hosts.AttachCommand(sc.short)
 			pv.SSHAttachCmd = s.sshAttachFor(sc.short)
+			pv.CopyShortID = sc.short
+			pv.ActivityLabel = sc.label
 		}
 		out = append(out, pv)
 	}

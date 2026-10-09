@@ -55,8 +55,8 @@ Say: CC Babysitter is installed but not running. Start it by running `ccbabysitt
 The session is the request's target, or this session when there is none: `ccbabysitter babysit self --json`, or `ccbabysitter babysit <name or short id> --json`. On a refusal the JSON's `code` says why:
 
 - `ambiguous`: the word fits more than one session; the message lists their ids. Run `ccbabysitter list --json`, offer only those sessions on a card by name and folder, then babysit the chosen one by its id.
-- `not-found`: no session goes by that word; say so, and offer the running sessions from `ccbabysitter list --json` on a card.
-- `not-in-session`: this command does not run inside a Claude Code session, so ask on a card which session is meant, from `ccbabysitter list --json`.
+- `not-found`: no session goes by that word; say so, and offer the running sessions from `ccbabysitter list --json` on a card, leaving out those with `notRunning` true.
+- `not-in-session`: this command does not run inside a Claude Code session, so ask on a card which session is meant, from `ccbabysitter list --json`, leaving out those with `notRunning` true: a session that is not running cannot be babysat.
 - Any other refusal (exit code 1): say CC Babysitter's reason in plain words, for example that a scheduled task run is never babysat.
 
 On success, say what it answered, including any warning, such as "Won't come back if its app closes" with its command, which you give exactly. On macOS (the platform Claude Code reports for this session), run `pmset -g batt`: if it lists an InternalBattery, this is a MacBook, so add that keeping it awake needs the lid open, or an external display.

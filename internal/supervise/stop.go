@@ -86,10 +86,10 @@ func (s *Supervisor) stop(ctx context.Context, id string, via Via) Result {
 		return Result{Message: "Could not stop " + label + ": " + why(out, err) + ". Stop it by hand with `claude stop " + bg.ShortID + "`."}
 	}
 	if handing {
-		s.handedBack[id] = handBack{to: handBackTo(origin), at: s.deps.Now(), pid: bg.PID}
+		s.handedBack[id] = handBack{to: handBackTo(origin), at: s.deps.Now(), pid: bg.PID, label: label}
 		delete(s.stopped, id)
 	} else {
-		s.stopped[id] = stoppedCopy{short: bg.ShortID, at: s.deps.Now(), pid: bg.PID}
+		s.stopped[id] = stoppedCopy{short: bg.ShortID, at: s.deps.Now(), pid: bg.PID, label: label}
 		delete(s.handedBack, id)
 	}
 	// A session that has just stopped belongs on the Not running list, so

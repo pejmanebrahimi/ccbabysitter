@@ -37,7 +37,8 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter help COMMAND    everything about one command
 
 S is a session id, a short id, a name, or self.
-A full id always wins. A word that fits two sessions, as a short id or a name, is refused.
+A full id always wins. A session that runs or is babysat wins over one that is not
+running. A word that fits two sessions, as a short id or a name, is refused.
 self is the session this command runs in.
 Add --json for one JSON document on stdout. Exit codes: 0 done, 1 refused,
 2 wrong usage, 3 CC Babysitter is not running, 4 no such session or more than one.
@@ -65,7 +66,8 @@ func printCommandHelp(w io.Writer, name string) bool {
 
 // The parts the control commands' pages share.
 const (
-	helpSession = `S is a session id, a short id, a name, or self. A full id always wins. A word
+	helpSession = `S is a session id, a short id, a name, or self. A full id always wins. A
+session that runs or is babysat wins over a conversation that is not running. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is
 always the session this command runs in. See ccbabysitter list.
 `
@@ -168,7 +170,10 @@ session is not babysat. The text says in background for background.`,
 	"show": controlPage(
 		"ccbabysitter show S",
 		`Shows one session in full, one Label: value line each. Lines for things that
-are not set are left out, except App, Running, Remote Control, Babysat and Tokens.`,
+are not set are left out, except App, Running, Remote Control, Babysat and Tokens.
+A conversation that is not running has no Tokens line, and Handed back to names the
+app it went back to in the last day, desktop, vscode or terminal. babysit and stop
+refuse it with exit code 1, and babysit says how to start it again.`,
 		"",
 		`Text lines, in this order: Id, Short id, Name, Also called, Folder, App, Also running
 in, Running, Scheduled task, Remote Control, Status, Babysat, State, Tokens, Model,
@@ -182,7 +187,7 @@ With --json: {"schema":1,"session":{...}}. These fields are always there: id, sh
 name, folder, app, apps, running, remoteControl, status, babysat, tokens {input,
 output, cacheRead, cacheWrite}, uptimeSeconds, canStop, canUnbabysit, scheduledTask.
 Empty ones are "" or [], and app is "" when it runs nowhere. These are left out when
-not set: alsoCalled, pid, state, notRunning (true), model, lastActivity as RFC
+not set: alsoCalled, pid, state, notRunning (true), handedBackTo, model, lastActivity as RFC
 3339 in UTC, remoteUrl, attachCmd, sshAttachCmd, resumeCmd, rcHint, warning. New
 fields may be added.
 In JSON, state is watching, background, starting or stuck. The text says in

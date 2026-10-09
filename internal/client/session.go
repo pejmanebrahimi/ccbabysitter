@@ -72,7 +72,10 @@ type Session struct {
 	// list: it runs nowhere and is not babysat, and ResumeCmd, or AttachCmd
 	// for a background session that was stopped, starts it again.
 	NotRunning bool `json:"notRunning,omitempty"`
-	procStart  string
+	// HandedBackTo is the app a conversation that is not running was
+	// handed back to in the last day: desktop, vscode or terminal.
+	HandedBackTo string `json:"handedBackTo,omitempty"`
+	procStart    string
 }
 
 // Tokens is what a session has used so far.
@@ -207,10 +210,21 @@ func Sessions(v supervise.View) []Session {
 			continue
 		}
 		at[p.ID] = len(out)
+		// A stopped background copy goes by the short id the command line
+		// showed for it, and Activity by the name it had then.
+		short, also := p.ShortID, ""
+		if p.CopyShortID != "" {
+			short = p.CopyShortID
+		}
+		if p.ActivityLabel != p.Name {
+			also = p.ActivityLabel
+		}
 		out = append(out, Session{
 			ID:           p.ID,
-			ShortID:      p.ShortID,
+			ShortID:      short,
 			Name:         p.Name,
+			AlsoCalled:   also,
+			HandedBackTo: string(p.HandedBackTo),
 			Folder:       p.Cwd,
 			Apps:         []string{},
 			LastActivity: activity(p.LastActivity),

@@ -406,6 +406,19 @@ func runControl(name string, args []string, env controlEnv) int {
 		return env.printActivity(a.json, forSession(entries, s, a.n))
 	}
 
+	// A conversation that is not running has nothing to babysit or stop
+	// until it is started again, which is said here rather than by an
+	// engine that cannot see it.
+	if s.NotRunning {
+		label := firstOf(s.AlsoCalled, s.Name, s.ShortID)
+		switch name {
+		case "babysit":
+			return env.fail(a.json, exitRefused, "failed", label+" is not running. Start it again with `"+firstOf(s.AttachCmd, s.ResumeCmd)+"`, then babysit it.")
+		case "stop":
+			return env.fail(a.json, exitRefused, "failed", label+" is not running, so there is nothing to stop.")
+		}
+	}
+
 	var res supervise.Result
 	switch name {
 	case "babysit":
@@ -519,9 +532,15 @@ func (env controlEnv) failErr(asJSON, isStatus bool, word string, err error) int
 }
 
 func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int {
-	sessions := client.Sessions(v)
+	// The sessions counted are the ones the page counts: the conversations
+	// that are not running are left out.
+	var sessions []client.Session
 	babysat := 0
-	for _, s := range sessions {
+	for _, s := range client.Sessions(v) {
+		if s.NotRunning {
+			continue
+		}
+		sessions = append(sessions, s)
 		if s.Babysat {
 			babysat++
 		}
@@ -546,6 +565,24 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 	fmt.Fprintf(env.stdout, "CC Babysitter %s is running at %s\n", v.Version, url)
 	fmt.Fprintf(env.stdout, "Sessions: %d, babysat: %d. Keeping the computer awake: %s\n", len(sessions), babysat, awake)
 	return 0
+}
+
+// showTokens is show's Tokens line, left out for a conversation that is
+// not running, whose use is not read.
+func showTokens(s client.Session, t client.Tokens) string {
+	if s.NotRunning {
+		return ""
+	}
+	return fmt.Sprintf("in %s, out %s, cache %s", fmtTokens(t.Input), fmtTokens(t.Output), fmtTokens(t.CacheRead+t.CacheWrite))
+}
+
+// tokensWord is the TOKENS column: everything used so far, or - for a
+// conversation that is not running, whose use is not read.
+func tokensWord(s client.Session, t client.Tokens) string {
+	if s.NotRunning {
+		return "-"
+	}
+	return fmtTokens(t.Input + t.Output + t.CacheRead + t.CacheWrite)
 }
 
 // babysatWords is how a babysat session's state reads in text.
@@ -651,7 +688,7 @@ func (env controlEnv) printTable(sessions []client.Session) {
 		t := s.Tokens
 		rows = append(rows, []string{
 			oneLine(s.ShortID), firstOf(oneLine(s.Name), "-"), firstOf(s.App, "-"), onOff(s.RemoteControl),
-			babysatWords(s), fmtTokens(t.Input + t.Output + t.CacheRead + t.CacheWrite), uptime, firstOf(oneLine(s.Folder), "-"),
+			babysatWords(s), tokensWord(s, t), uptime, firstOf(oneLine(s.Folder), "-"),
 		})
 	}
 	widths := make([]int, len(rows[0]))
@@ -706,12 +743,13 @@ func (env controlEnv) printShow(asJSON bool, s client.Session) int {
 		{"App", firstOf(s.App, "none")},
 		{"Also running in", strings.Join(also, ", ")},
 		{"Running", yesNo(s.Running)},
+		{"Handed back to", s.HandedBackTo},
 		{"Scheduled task", scheduledWords(s.ScheduledTask)},
 		{"Remote Control", onOff(s.RemoteControl)},
 		{"Status", s.Status},
 		{"Babysat", yesNo(s.Babysat)},
 		{"State", watch},
-		{"Tokens", fmt.Sprintf("in %s, out %s, cache %s", fmtTokens(t.Input), fmtTokens(t.Output), fmtTokens(t.CacheRead+t.CacheWrite))},
+		{"Tokens", showTokens(s, t)},
 		{"Model", s.Model},
 		{"Last activity", last},
 		{"Uptime", uptime},
