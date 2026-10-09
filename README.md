@@ -187,7 +187,9 @@ ccbabysitter quit            quit CC Babysitter. Babysat sessions keep running w
 ccbabysitter help COMMAND    everything about one command
 ```
 
-On a Linux server, `ccbabysitter` prints the command to connect from your laptop, such as `ssh -L 47391:127.0.0.1:47391 user@host`, then open the address it prints, `http://127.0.0.1:47391/?token=...` with the page's key, while that connection is open. The same window stays an ordinary shell on the server. To start a new session there, press New session on the page and type the project folder's path, or run `ccbabysitter start` with it, and the new session is babysat. If Claude Code does not trust the folder yet, CC Babysitter answers Claude Code's question for you, but only after you say yes on the page or add `--trust` to `start`. On a cloud server behind NAT, the printed address can be the server's private one; use the address you normally ssh to instead. To run CC Babysitter only while a terminal stays open instead, use `ccbabysitter --foreground`.
+On a Linux server, `ccbabysitter` prints the command to connect from your laptop, such as `ssh -L 47391:127.0.0.1:47391 user@host`, then open the address it prints, `http://127.0.0.1:47391/?token=...` with the page's key, while that connection is open. The same window stays an ordinary shell on the server. On a cloud server behind NAT, the printed address can be the server's private one; use the address you normally ssh to instead. To run CC Babysitter only while a terminal stays open instead, use `ccbabysitter --foreground`.
+
+New session on the page starts a session on the server: type the project folder's path, and CC Babysitter starts it in the background and babysits it. `ccbabysitter start` with the path does the same from a terminal. A folder Claude Code does not trust yet needs your yes first, on the page or as `--trust`, and then CC Babysitter answers Claude Code's trust question for you.
 
 ## Start at login
 
