@@ -68,6 +68,7 @@ html:has(.top), body:has(.top) { background: var(--ground); }
 .links a { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
 .links a svg { width: 12px; height: 12px; transition: transform .2s ease; }
 .links a:hover svg { transform: translate(2px, -2px); }
+.links a:hover svg.in { transform: translateX(2px); }
 
 /* why a babysitter */
 .why { max-width: 440px; margin: -32px 0 32px; }

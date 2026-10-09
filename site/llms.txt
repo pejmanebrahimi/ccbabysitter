@@ -18,6 +18,7 @@
 
 ## Links
 
-- [Get started](https://github.com/pejmanebrahimi/ccbabysitter#quick-start): desktop and server steps
-- [README](https://github.com/pejmanebrahimi/ccbabysitter): full documentation, settings, uninstalling
+- [Docs](https://ccbabysitter.dev/docs/): how to use CC Babysitter
+- [Babysit your first session](https://ccbabysitter.dev/docs/first-session/): a tutorial, from install to reaching the session from a phone
+- [README](https://github.com/pejmanebrahimi/ccbabysitter): server steps, settings, uninstalling, and everything the docs do not cover yet
 - [Releases](https://github.com/pejmanebrahimi/ccbabysitter/releases)

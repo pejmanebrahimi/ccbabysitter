@@ -199,24 +199,26 @@ var (
 	anchor   = regexp.MustCompile(`(?s)<a\b([^>]*)>(.*?)</a>`)
 )
 
-// TestHomeLinksLeadToTheREADMEAndReleases checks that the home page's links
-// are exactly Get started, at the README's Quick start, and Downloads, at
-// the latest release, now that the site has no page of steps of its own.
-func TestHomeLinksLeadToTheREADMEAndReleases(t *testing.T) {
+// TestHomeLinksLeadToTheDocsAndReleases checks that the home page's links
+// are exactly Get started, at the first docs tutorial, Docs, at the docs
+// overview, and Downloads, at the latest release.
+func TestHomeLinksLeadToTheDocsAndReleases(t *testing.T) {
 	m := navLinks.FindStringSubmatch(readSite(t, "index.html"))
 	if m == nil {
 		t.Fatal(`index.html has no <nav class="links">`)
 	}
 	links := anchor.FindAllStringSubmatch(m[1], -1)
 	want := [][2]string{
-		{"https://github.com/pejmanebrahimi/ccbabysitter#quick-start", "Get started"},
+		{"/docs/first-session/", "Get started"},
+		{"/docs/", "Docs"},
 		{"https://github.com/pejmanebrahimi/ccbabysitter/releases/latest", "Downloads"},
 	}
 	if len(links) != len(want) {
 		t.Fatalf("the home links are %d, want %d", len(links), len(want))
 	}
 	for i, w := range want {
-		if !strings.Contains(links[i][1], `href="`+w[0]+`"`) || !strings.HasPrefix(links[i][2], w[1]+"<") {
+		label := strings.HasPrefix(links[i][2], w[1]+"<") || strings.HasPrefix(links[i][2], w[1]+" <")
+		if !strings.Contains(links[i][1], `href="`+w[0]+`"`) || !label {
 			t.Errorf("home link %d is %q %q, want %q to %s", i+1, links[i][1], links[i][2], w[1], w[0])
 		}
 	}
@@ -506,13 +508,21 @@ func TestRobotsAllowsEveryoneAndNamesTheSitemap(t *testing.T) {
 	}
 }
 
+// TestSitemapListsThePages checks that the sitemap lists the home page and
+// every docs page, and nothing else.
 func TestSitemapListsThePages(t *testing.T) {
 	s := readSite(t, "sitemap.xml")
-	if !strings.Contains(s, "<loc>https://ccbabysitter.dev/</loc>") {
-		t.Error("sitemap.xml does not list the home page")
+	want := []string{"https://ccbabysitter.dev/"}
+	for _, f := range docsPages(t) {
+		want = append(want, "https://ccbabysitter.dev"+docsURL(f))
 	}
-	if n := strings.Count(s, "<loc>"); n != 1 {
-		t.Errorf("sitemap.xml lists %d pages, want only the home page", n)
+	for _, u := range want {
+		if !strings.Contains(s, "<loc>"+u+"</loc>") {
+			t.Errorf("sitemap.xml does not list %s", u)
+		}
+	}
+	if n := strings.Count(s, "<loc>"); n != len(want) {
+		t.Errorf("sitemap.xml lists %d pages, want %d", n, len(want))
 	}
 }
 
@@ -559,7 +569,7 @@ func TestCNAMEAndLLMs(t *testing.T) {
 		t.Error("CNAME must be ccbabysitter.dev")
 	}
 	l := readSite(t, "llms.txt")
-	for _, want := range []string{"# CC Babysitter", "curl -fsSL https://ccbabysitter.dev/install.sh | sh", "https://github.com/pejmanebrahimi/ccbabysitter#quick-start", "https://github.com/pejmanebrahimi/ccbabysitter", "ccbabysitter babysit self", "ccbabysitter --help",
+	for _, want := range []string{"# CC Babysitter", "curl -fsSL https://ccbabysitter.dev/install.sh | sh", "https://ccbabysitter.dev/docs/", "https://ccbabysitter.dev/docs/first-session/", "https://github.com/pejmanebrahimi/ccbabysitter", "ccbabysitter babysit self", "ccbabysitter --help",
 		"/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter", "`ccbabysitter open`: open the page in the browser without printing its key"} {
 		if !strings.Contains(l, want) {
 			t.Errorf("llms.txt is missing %q", want)
