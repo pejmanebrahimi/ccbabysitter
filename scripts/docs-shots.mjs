@@ -29,9 +29,9 @@ const out = join(root, "site", "docs", "shots");
 const WIDTH = 800;
 const SCALE = 2;
 
-// Each shot finds an element on the demo page and keeps it with a margin
-// around it. Whatever stands around it is hidden, so the margin shows the
-// page's own colour.
+// Each shot finds an element on the demo page, marks it with data-shot,
+// and keeps it with a margin around it. Whatever stands around it is
+// hidden, so the margin shows the page's own colour.
 const SHOTS = [
   {
     name: "babysit-dialog",
@@ -48,7 +48,8 @@ const SHOTS = [
       const hide = document.createElement("style");
       hide.textContent = "body > :not(dialog) { visibility: hidden; } #dlg-babysit::backdrop { background: transparent; } #dlg-babysit [data-el=login] { display: none !important; }";
       document.head.append(hide);
-      return "#dlg-babysit";
+      document.getElementById("dlg-babysit").dataset.shot = "";
+      return true;
     })()`,
   },
   {
@@ -61,8 +62,8 @@ const SHOTS = [
       const cards = [...document.querySelectorAll("#watches [data-key]")];
       const card = cards.find((c) => c.querySelector('[data-f="name"]').textContent === "report-gen");
       for (const c of cards) if (c !== card) c.style.visibility = "hidden";
-      card.id = "shot-target";
-      return "#shot-target";
+      card.dataset.shot = "";
+      return true;
     })()`,
   },
 ];
@@ -164,18 +165,19 @@ async function devtools(url) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// settled waits until the element stops moving and changing size, as a
-// dialog does once it has opened, and returns its place on the page.
-async function settled(cdp, selector) {
-  const measure = `(() => { const e = document.querySelector(${JSON.stringify(selector)}); e.scrollIntoView({ block: "center" }); const r = e.getBoundingClientRect(); return { x: r.x + scrollX, y: r.y + scrollY, w: r.width, h: r.height }; })()`;
+// settled waits until the element marked data-shot stops moving and
+// changing size, as a dialog does once it has opened, and returns its place
+// on the page.
+const MEASURE = `(() => { const e = document.querySelector("[data-shot]"); e.scrollIntoView({ block: "center" }); const r = e.getBoundingClientRect(); return { x: r.x + scrollX, y: r.y + scrollY, w: r.width, h: r.height }; })()`;
+async function settled(cdp, name) {
   let last = "";
   for (let tries = 0; tries < 20; tries++) {
     await sleep(400);
-    const box = await cdp.evaluate(measure);
+    const box = await cdp.evaluate(MEASURE);
     if (JSON.stringify(box) === last) return box;
     last = JSON.stringify(box);
   }
-  throw new Error(selector + " kept moving for 8 seconds");
+  throw new Error(name + " kept moving for 8 seconds");
 }
 
 // until waits for an expression to be true in the page, for what the demo
@@ -190,7 +192,7 @@ async function until(cdp, expression, name) {
 
 async function take(cdp, shot, theme) {
   await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }, { name: "prefers-reduced-motion", value: "reduce" }] });
-  const box = await settled(cdp, shot.selector);
+  const box = await settled(cdp, shot.name);
   const m = shot.margin;
   const clip = { x: Math.max(0, Math.floor(box.x - m)), y: Math.max(0, Math.floor(box.y - m)), width: Math.ceil(box.w + 2 * m), height: Math.ceil(box.h + 2 * m), scale: 1 };
   const pic = await cdp.send("Page.captureScreenshot", { format: "webp", quality: 90, clip, captureBeyondViewport: true });
@@ -253,7 +255,7 @@ async function main() {
       // the emulated light or dark.
       await cdp.evaluate(`(() => { document.querySelector('button[data-theme-mode="auto"]').click(); return true; })()`);
       await until(cdp, shot.ready, shot.name);
-      shot.selector = await cdp.evaluate(shot.find);
+      await cdp.evaluate(shot.find);
       shot.dir = fresh;
       const light = await take(cdp, shot, "light");
       const dark = await take(cdp, shot, "dark");
