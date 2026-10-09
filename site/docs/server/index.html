@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run CC Babysitter on a server - CC Babysitter docs</title>
+<meta name="description" content="Keep Claude Code sessions alive on a Linux server you reach over SSH, through SSH drops and reboots, and reach them from your phone.">
+<link rel="canonical" href="https://ccbabysitter.dev/docs/server/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/docs.css">
+<script src="/assets/theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="dtop">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">CC Babysitter</a>
+  <a class="crumb" href="/docs/">Docs</a>
+  <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
+    <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
+  </button>
+</header>
+<div class="docs">
+  <details class="sidebox" open>
+    <summary class="fold"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="9" height="1"/><rect x="0" y="4" width="9" height="1"/><rect x="0" y="7" width="9" height="1"/></svg>Menu</summary>
+    <nav class="side" id="docs-nav" aria-label="Docs">
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+      </ul>
+      <p class="group" id="nav-tutorials">Tutorials</p>
+      <ul aria-labelledby="nav-tutorials">
+        <li><a href="/docs/first-session/">Babysit your first session</a></li>
+      </ul>
+      <p class="group" id="nav-how-to">How-to guides</p>
+      <ul aria-labelledby="nav-how-to">
+        <li><a href="/docs/server/" aria-current="page">Run it on a server</a></li>
+      </ul>
+    </nav>
+  </details>
+  <details class="toc" open>
+    <summary class="fold">On this page<svg class="caret" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/></svg></summary>
+    <nav class="toc-list" aria-label="On this page">
+      <ul>
+        <li><a href="#before-you-start">Before you start</a></li>
+        <li><a href="#install">Install it</a></li>
+        <li><a href="#page">Open the page from your laptop</a></li>
+        <li><a href="#session">Start a session</a></li>
+        <li><a href="#away">Leave and come back</a></li>
+        <li><a href="#done">When you're done</a></li>
+      </ul>
+    </nav>
+  </details>
+  <main class="doc" id="content">
+    <p class="kind">How-to guide</p>
+    <h1>Run CC Babysitter on a server</h1>
+    <p class="lede">On a Linux server you reach over SSH, CC Babysitter keeps Claude Code sessions running through SSH drops and reboots, with no tmux. You reach them from your phone or from any terminal.</p>
+
+    <h2 id="before-you-start">Before you start</h2>
+    <ul>
+      <li>A Linux server with systemd, which you reach over SSH.</li>
+      <li>Claude Code 2.1.275 or later on the server, logged in.</li>
+    </ul>
+
+    <h2 id="install">Install it</h2>
+    <p>Over SSH, run:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>curl -fsSL https://ccbabysitter.dev/install.sh | sh</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>On a machine with no display, the script also sets CC Babysitter up as a service of your user. It starts at boot and keeps running after you log out. At the end, the script prints a command to reach the page from your laptop.</p>
+
+    <h2 id="page">Open the page from your laptop</h2>
+    <p>The page only listens on the server itself, so you reach it through SSH. On your laptop, run the command the script printed. It looks like this, with your own user and server:</p>
+    <pre class="out">ssh -L 47391:127.0.0.1:47391 you@your-server</pre>
+    <p>While that connection is open, open the address the script printed, such as <code>127.0.0.1:47391/?token=...</code>, in your browser. The window stays an ordinary shell on the server.</p>
+    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>To see the address again, run <code>ccbabysitter status</code> on the server. On a cloud server, the printed command may name the server's private address. Use the address you normally SSH to instead.</p></div>
+
+    <h2 id="session">Start a session</h2>
+    <p>In a project folder on the server, start Claude Code in the background with Remote Control:</p>
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>claude --bg --remote-control</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <p>CC Babysitter babysits it as soon as it starts. If you'd rather choose each time, switch off <strong>Babysit every new background session</strong> in Settings, and press <strong>Babysit</strong> on the sessions you want kept alive.</p>
+
+    <h2 id="away">Leave and come back</h2>
+    <p>Close SSH. The session keeps running, and if the server restarts, CC Babysitter starts it again in the background.</p>
+    <p>To reach it, open the Claude app on your phone and find it among your Claude Code sessions. To work in it from a terminal, its card on the page has two commands with Copy buttons:</p>
+    <ul>
+      <li><strong>Attach</strong> is <code>claude attach</code> with the session's short id, to run in an SSH shell on the server.</li>
+      <li><strong>From elsewhere</strong> is the same command run over SSH, to paste into a terminal on your laptop.</li>
+    </ul>
+    <p>Closing that terminal only detaches it. The session keeps running.</p>
+
+    <h2 id="done">When you're done</h2>
+    <p><strong>Unbabysit</strong> stops the babysitting and leaves the session running as an ordinary background session. To end it, press <strong>Stop background copy</strong>, or choose <strong>End background copy</strong> from the card's menu if CC Babysitter brought the session back after a restart. Either way the conversation is kept, so you can resume it later.</p>
+    <p>From a shell on the server, the same two are <code>ccbabysitter unbabysit</code> and <code>ccbabysitter stop</code> with the session's id.</p>
+
+    <nav class="pager" aria-label="Previous and next">
+      <a class="prev" href="/docs/first-session/"><small>Previous</small>Babysit your first session</a>
+    </nav>
+    <p class="edit-line"><a class="edit" href="https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/docs/server/index.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub<span class="sr"> (opens in a new tab)</span></a></p>
+  </main>
+</div>
+<footer class="foot">{{VERSION}} &middot; Preview &middot; <a href="https://github.com/pejmanebrahimi/ccbabysitter/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT<span class="sr"> (opens in a new tab)</span></a> &middot; Not affiliated with Anthropic</footer>
+<script src="/assets/site.js"></script>
+<script src="/assets/docs.js"></script>
+</body>
+</html>
