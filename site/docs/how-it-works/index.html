@@ -16,8 +16,14 @@
 <body>
 <a class="skip" href="#content">Skip to content</a>
 <header class="dtop">
-  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">CC Babysitter</a>
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24"><span class="name">CC Babysitter</span></a>
   <a class="crumb" href="/docs/">Docs</a>
+  <form class="search" role="search" hidden>
+    <label class="sr" for="docs-search">Search the docs</label>
+    <input id="docs-search" type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" aria-controls="docs-results">
+    <p class="sr" role="status"></p>
+    <ul class="results" id="docs-results" aria-label="Search results" hidden></ul>
+  </form>
   <button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark">
     <svg class="sun" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="3" height="3"/><rect x="4" y="0" width="1" height="2"/><rect x="4" y="7" width="1" height="2"/><rect x="0" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
     <svg class="moon" viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="0" y="3" width="2" height="3"/><rect x="1" y="6" width="2" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="3" y="8" width="3" height="1"/><rect x="6" y="7" width="2" height="1"/></svg>
