@@ -233,3 +233,45 @@ func TestARecordNameIsCleanedLikeATitle(t *testing.T) {
 		t.Fatalf("%q %q", got.Name, got.AlsoCalled)
 	}
 }
+
+// Uptime counts from when the session started in its process when that is
+// later than the process's own start, as for a background session given a
+// process that was started ahead of time.
+func TestUptimeCountsFromTheSessionStart(t *testing.T) {
+	id := "7a7a7a7a-0000-4000-8000-000000000009"
+	f := newFixture(t, func([]string) (string, error) { return "[]", nil })
+	now := time.Date(2026, 9, 26, 9, 0, 0, 0, time.UTC)
+	f.d.Now = func() time.Time { return now }
+	s := New(*f.d)
+	s.trees[41] = procs.TreeStats{Processes: 1, PIDs: []int{41}, Uptime: 2 * time.Hour}
+	bg := claude.Session{ID: id, ShortID: "7a7a7a7a", PID: 41, Host: claude.HostBackground, Entrypoint: "cli", Cwd: "/home/dev/a",
+		StartedAt: now.Add(-5 * time.Minute)}
+	if got := onlySession(t, viewOf(t, s, []claude.Session{bg})).Tree.UptimeSeconds; got != 300 {
+		t.Fatalf("uptime %d s, want 300", got)
+	}
+	// Without a start time, or with one before the process's, the
+	// process's age is the uptime.
+	for _, at := range []time.Time{{}, now.Add(-3 * time.Hour), now.Add(time.Hour)} {
+		bg.StartedAt = at
+		if got := onlySession(t, viewOf(t, s, []claude.Session{bg})).Tree.UptimeSeconds; got != 7200 {
+			t.Fatalf("StartedAt %v: uptime %d s, want 7200", at, got)
+		}
+	}
+}
+
+// The uptime of a babysat session counts from its start too.
+func TestWatchUptimeCountsFromTheSessionStart(t *testing.T) {
+	id := "7a7a7a7a-0000-4000-8000-00000000000a"
+	f := newFixture(t, func([]string) (string, error) { return "[]", nil })
+	now := time.Date(2026, 9, 26, 9, 0, 0, 0, time.UTC)
+	f.d.Now = func() time.Time { return now }
+	s := New(*f.d)
+	s.trees[41] = procs.TreeStats{Processes: 1, PIDs: []int{41}, Uptime: 2 * time.Hour}
+	s.st.Watches = []state.Watch{{SessionID: id, ShortID: "7a7a7a7a", Cwd: "/home/dev/a", PromiseState: "fallback", OriginHost: claude.HostTerminal}}
+	bg := claude.Session{ID: id, ShortID: "7a7a7a7a", PID: 41, Host: claude.HostBackground, Entrypoint: "cli", Cwd: "/home/dev/a",
+		StartedAt: now.Add(-5 * time.Minute)}
+	v := viewOf(t, s, []claude.Session{bg})
+	if len(v.Watches) != 1 || v.Watches[0].Tree.UptimeSeconds != 300 {
+		t.Fatalf("watches %+v", v.Watches)
+	}
+}

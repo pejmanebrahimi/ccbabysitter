@@ -6,6 +6,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 - New: on a machine with no display, New session on the page and `ccbabysitter start PATH` start a babysat background session with Remote Control in a project folder. When Claude Code does not trust the folder yet, the page asks first and `start` wants `--trust`. Then CC Babysitter answers Claude Code's own question whether to trust the folder, and Claude Code records the trust itself (#87).
 - Fixed: a session's model no longer shows as `<synthetic>` after it is resumed. Claude Code marks messages it writes itself that way, and the model shown is now the last one a model wrote (#98).
+- Fixed: a background session's uptime counts from when the session started, not from when Claude Code started its process ahead of time, which could be hours earlier (#97).
 - Fixed: the page's note that Claude Code is not logged in now shows when it is not. The CLI exits with an error when nobody is logged in, which was read as no answer (#103).
 - Changed: New session and `ccbabysitter start` start nothing while Claude Code is not logged in, and say so: such a session could reach neither the model nor Remote Control (#103).
 
