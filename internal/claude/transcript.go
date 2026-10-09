@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -303,4 +305,27 @@ func isTurn(rec *transcriptRecord) bool {
 		}
 	}
 	return false
+}
+
+// TranscriptWrittenAt is when a session last wrote to its transcript at
+// path or to one of its subagents' transcripts, which Claude Code keeps in
+// a subagents folder inside a folder named after the session. It is the
+// zero time when none of them can be read.
+func TranscriptWrittenAt(path string) time.Time {
+	var newest time.Time
+	note := func(p string) {
+		if info, err := os.Stat(p); err == nil && info.ModTime().After(newest) {
+			newest = info.ModTime()
+		}
+	}
+	note(path)
+	subagents := filepath.Join(strings.TrimSuffix(path, ".jsonl"), "subagents")
+	if entries, err := os.ReadDir(subagents); err == nil {
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), ".jsonl") {
+				note(filepath.Join(subagents, e.Name()))
+			}
+		}
+	}
+	return newest
 }

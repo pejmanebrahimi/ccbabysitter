@@ -271,6 +271,9 @@ func pathElements(path string) []string {
 // TreeStats summarizes a process and its descendants at one point in time.
 type TreeStats struct {
 	CPUPercent float64
+	// CPUSeconds is the CPU time the processes in the tree have used so
+	// far. A process that ends takes its share with it.
+	CPUSeconds float64
 	RSS        uint64
 	Children   []string
 	Uptime     time.Duration

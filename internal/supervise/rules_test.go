@@ -116,3 +116,54 @@ func TestStateOf(t *testing.T) {
 		}
 	}
 }
+
+// A busy session whose signals all stay the same for FrozenAfter is
+// frozen. Any change starts the quiet time again: a new status, a write to
+// a transcript, a process starting or ending in its tree, or CPU used.
+func TestFrozen(t *testing.T) {
+	t0 := time.Date(2026, 10, 9, 13, 0, 0, 0, time.UTC)
+	var l Liveness
+	l = l.Next("busy|a", 100, t0)
+	if Frozen(l, "busy", t0.Add(FrozenAfter-time.Second)) {
+		t.Fatal("frozen before FrozenAfter")
+	}
+	quiet := l.Next("busy|a", 100+FrozenCPUSlack/2, t0.Add(10*time.Minute))
+	if !Frozen(quiet, "busy", t0.Add(FrozenAfter)) {
+		t.Fatal("busy and unchanged for FrozenAfter is frozen")
+	}
+	if Frozen(quiet, "idle", t0.Add(FrozenAfter)) || Frozen(quiet, "waiting", t0.Add(FrozenAfter)) {
+		t.Fatal("only a busy session can be frozen")
+	}
+	for name, next := range map[string]Liveness{
+		"its fingerprint changed": l.Next("busy|b", 100, t0.Add(10*time.Minute)),
+		"it used CPU":             l.Next("busy|a", 100+FrozenCPUSlack, t0.Add(10*time.Minute)),
+		"a process in it ended":   l.Next("busy|a", 50, t0.Add(10*time.Minute)),
+	} {
+		if Frozen(next, "busy", t0.Add(FrozenAfter)) {
+			t.Errorf("%s, yet frozen", name)
+		}
+		if !Frozen(next, "busy", t0.Add(10*time.Minute+FrozenAfter)) {
+			t.Errorf("%s: frozen once quiet for FrozenAfter again", name)
+		}
+	}
+	if Frozen(Liveness{}, "busy", t0) {
+		t.Fatal("a session never seen is not frozen")
+	}
+}
+
+// Three freezes within FreezeWindow pause the watch rather than start it
+// again and again.
+func TestShouldPauseForFreezes(t *testing.T) {
+	now := time.Date(2026, 10, 9, 13, 0, 0, 0, time.UTC)
+	two := []time.Time{now.Add(-90 * time.Minute), now.Add(-30 * time.Minute)}
+	if ShouldPauseForFreezes(two, now) {
+		t.Fatal("two freezes do not pause")
+	}
+	if !ShouldPauseForFreezes(append(two, now), now) {
+		t.Fatal("three within the window pause")
+	}
+	old := []time.Time{now.Add(-FreezeWindow - time.Minute), now.Add(-30 * time.Minute), now}
+	if ShouldPauseForFreezes(old, now) {
+		t.Fatal("a freeze outside the window does not count")
+	}
+}

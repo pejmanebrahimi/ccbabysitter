@@ -1,9 +1,9 @@
 package claude
 
 import (
-	"time"
 	"strings"
 	"testing"
+	"time"
 )
 
 const desktopFile = `{"pid":120,"sessionId":"11111111-2222-4333-8444-555555555501","cwd":"C:\\Users\\dev\\ws","procStart":"134000000000000000","version":"2.1.266","kind":"interactive","entrypoint":"claude-desktop","name":"demo-a1","bridgeSessionId":"session_TESTBRIDGE01"}`
@@ -198,5 +198,18 @@ func TestParseSessionFileStartedAt(t *testing.T) {
 		if !s.StartedAt.IsZero() {
 			t.Fatalf("%s: StartedAt %v, want none", in, s.StartedAt)
 		}
+	}
+}
+
+// statusUpdatedAt is when Claude Code last set the session's status, in
+// milliseconds.
+func TestParseSessionFileStatusUpdatedAt(t *testing.T) {
+	in := `{"pid":121,"sessionId":"22222222-2222-4333-8444-555555555502","cwd":"/w","procStart":"1","kind":"bg","status":"busy","statusUpdatedAt":1791554815991}`
+	s, err := ParseSessionFile([]byte(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.StatusUpdatedAt.Equal(time.UnixMilli(1791554815991)) {
+		t.Fatalf("StatusUpdatedAt %v", s.StatusUpdatedAt)
 	}
 }

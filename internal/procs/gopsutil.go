@@ -490,6 +490,7 @@ func (r *Real) Tree(pid int) (TreeStats, bool) {
 	st.PIDs = append(st.PIDs, pid)
 	st.RSS += root.rss
 	st.CPUPercent += r.cpuPercent(pid, root.createMs, root.cpuSecs)
+	st.CPUSeconds += root.cpuSecs
 
 	for _, d := range kids {
 		p, ok := verifiedChild(d.pid, d.expectedPpid)
@@ -504,6 +505,7 @@ func (r *Real) Tree(pid int) (TreeStats, bool) {
 		st.Children = append(st.Children, m.name)
 		st.RSS += m.rss
 		st.CPUPercent += r.cpuPercent(d.pid, m.createMs, m.cpuSecs)
+		st.CPUSeconds += m.cpuSecs
 	}
 
 	st.Processes = len(st.PIDs)

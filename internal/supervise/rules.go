@@ -87,3 +87,59 @@ func ShouldPauseForFailures(failures []time.Time, now time.Time) bool {
 	}
 	return n >= MaxFailures
 }
+
+const (
+	// FrozenAfter is how long a busy session's signals must stay the same
+	// before it counts as frozen. Claude Code ends a tool call that runs
+	// longer than ten minutes, and a reply being written uses CPU, so a
+	// session that is really working changes something well within it.
+	FrozenAfter = 20 * time.Minute
+	// FrozenCPUSlack is how many seconds of CPU a session's process tree
+	// may use over FrozenAfter and still count as quiet: an idle process
+	// uses a little for its timers.
+	FrozenCPUSlack = 5.0
+	// MaxFreezes is how many freezes within FreezeWindow pause a watch
+	// rather than start it again once more.
+	MaxFreezes = 3
+	// FreezeWindow is the sliding window freezes are counted over.
+	FreezeWindow = 2 * time.Hour
+)
+
+// Liveness is what a session has shown since its signals last changed:
+// Fingerprint joins what can be seen of it (its status, the newest write
+// to its transcripts, the processes in its tree), CPU is its tree's CPU
+// time in seconds then, and Since is when that was.
+type Liveness struct {
+	Fingerprint string
+	CPU         float64
+	Since       time.Time
+}
+
+// Next folds one look at the session into l. A new fingerprint, CPU used
+// beyond FrozenCPUSlack, or less CPU than before, which means a process
+// in the tree ended, starts the quiet time again from now.
+func (l Liveness) Next(fingerprint string, cpu float64, now time.Time) Liveness {
+	if l.Since.IsZero() || fingerprint != l.Fingerprint || cpu-l.CPU >= FrozenCPUSlack || cpu < l.CPU {
+		return Liveness{Fingerprint: fingerprint, CPU: cpu, Since: now}
+	}
+	return l
+}
+
+// Frozen reports whether a session with status, seen as l, is frozen: busy
+// in Claude Code's own terms, which a session waiting on a question never
+// is, and quiet for FrozenAfter.
+func Frozen(l Liveness, status string, now time.Time) bool {
+	return status == "busy" && !l.Since.IsZero() && now.Sub(l.Since) >= FrozenAfter
+}
+
+// ShouldPauseForFreezes reports whether MaxFreezes or more of the given
+// freeze times fall within FreezeWindow of now.
+func ShouldPauseForFreezes(freezes []time.Time, now time.Time) bool {
+	n := 0
+	for _, f := range freezes {
+		if now.Sub(f) <= FreezeWindow {
+			n++
+		}
+	}
+	return n >= MaxFreezes
+}

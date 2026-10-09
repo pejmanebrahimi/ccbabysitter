@@ -508,3 +508,24 @@ func TestRealExe(t *testing.T) {
 		t.Fatal("a wrong creation time named a program")
 	}
 }
+
+// CPUSeconds is the CPU time the tree has used so far, which grows while
+// it works, unlike CPUPercent it needs no earlier sample.
+func TestTreeCPUSecondsGrows(t *testing.T) {
+	r := NewReal()
+	pid := os.Getpid()
+	st1, ok := r.Tree(pid)
+	if !ok {
+		t.Fatal("first tree")
+	}
+	end := time.Now().Add(300 * time.Millisecond)
+	for time.Now().Before(end) {
+	}
+	st2, ok := r.Tree(pid)
+	if !ok {
+		t.Fatal("second tree")
+	}
+	if st1.CPUSeconds <= 0 || st2.CPUSeconds <= st1.CPUSeconds {
+		t.Fatalf("cpu seconds %v then %v", st1.CPUSeconds, st2.CPUSeconds)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func appendLine(t *testing.T, path, line string) {
@@ -423,5 +424,38 @@ func TestScheduledRunWithAPromptPastTheReadLimit(t *testing.T) {
 	}
 	if run, _ := ScheduledRun(p); run {
 		t.Fatal("a long ordinary prompt read as a run")
+	}
+}
+
+// A session's last write is the newest of its transcript and its
+// subagents' transcripts, which sit in a folder named after the session.
+func TestTranscriptWrittenAt(t *testing.T) {
+	dir := t.TempDir()
+	main := filepath.Join(dir, "7a7a7a7a-0000-4000-8000-000000000001.jsonl")
+	sub := filepath.Join(dir, "7a7a7a7a-0000-4000-8000-000000000001", "subagents")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t0 := time.Date(2026, 10, 9, 13, 0, 0, 0, time.UTC)
+	write := func(p string, at time.Time) {
+		t.Helper()
+		if err := os.WriteFile(p, []byte("{}\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(p, at, at); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(main, t0)
+	if got := TranscriptWrittenAt(main); !got.Equal(t0) {
+		t.Fatalf("no subagents: %v", got)
+	}
+	write(filepath.Join(sub, "agent-a.jsonl"), t0.Add(5*time.Minute))
+	write(filepath.Join(sub, "agent-a.meta.json"), t0.Add(9*time.Minute))
+	if got := TranscriptWrittenAt(main); !got.Equal(t0.Add(5 * time.Minute)) {
+		t.Fatalf("a subagent wrote later: %v", got)
+	}
+	if got := TranscriptWrittenAt(filepath.Join(dir, "missing.jsonl")); !got.IsZero() {
+		t.Fatalf("missing: %v", got)
 	}
 }
