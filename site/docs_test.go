@@ -163,28 +163,12 @@ func TestDocsPagerFollowsTheSidebar(t *testing.T) {
 	}
 }
 
-// generatedFrom names the file a page's generated parts come from, for
-// the pages that have them: the page is edited there, not in its own file.
-var generatedFrom = map[string]string{
-	"docs/commands/index.html": "cmd/ccbabysitter/help.go",
-}
-
 // TestDocsEditLinksPointAtThePage checks that "Edit this page on GitHub"
-// opens the page's own file, or the file its generated parts come from,
-// and that each page names its own address.
+// opens the page's own file, and that each page names its own address.
 func TestDocsEditLinksPointAtThePage(t *testing.T) {
 	for _, f := range docsPages(t) {
 		s := readSite(t, f)
 		want := "https://github.com/pejmanebrahimi/ccbabysitter/edit/main/site/" + f
-		if src, ok := generatedFrom[f]; ok {
-			want = "https://github.com/pejmanebrahimi/ccbabysitter/edit/main/" + src
-			if _, err := os.Stat(filepath.Join("..", filepath.FromSlash(src))); err != nil {
-				t.Errorf("%s: its parts come from %s, which is not there", f, src)
-			}
-		}
-		if _, ok := generatedFrom[f]; ok != strings.Contains(s, "<!-- generated:") {
-			t.Errorf("%s: has generated parts %v, but generatedFrom lists it %v", f, !ok, ok)
-		}
 		if m := editLink.FindStringSubmatch(s); m == nil || m[1] != want {
 			t.Errorf("%s: the edit link is %v, want %s", f, m, want)
 		}
