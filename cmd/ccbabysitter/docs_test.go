@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -77,13 +78,14 @@ func checkGeneratedParts(t *testing.T, page string, parts map[string]string, tes
 var explanationPage = filepath.Join(repoRoot, "site", "docs", "how-it-works", "index.html")
 
 // explanationSections are the README sections the page is made of, in
-// order, with the id each has on the page.
-var explanationSections = []struct{ id, title string }{
-	{"how", "How it works"},
-	{"babysitting", "What babysitting does"},
-	{"hard-rules", "Hard rules"},
-	{"start-at-login", "Start at login"},
-	{"requirements", "Requirements"},
+// order: the README's title, and the id and heading each has on the page.
+// The words the page quotes from the app are plain text here, unlike on
+// the hand-written pages, since the README does not mark them.
+var explanationSections = []struct{ readme, id, heading string }{
+	{"What babysitting does", "babysitting", "What babysitting does"},
+	{"How it works", "apps", "Apps, the background and servers"},
+	{"Hard rules", "hard-rules", "Hard rules"},
+	{"Start at login", "start-at-login", "Start at login on each system"},
 }
 
 // readmeSections are README.md's sections by their titles.
@@ -93,8 +95,13 @@ func readmeSections(t *testing.T) map[string]string {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return sectionsOf(string(data))
+}
+
+// sectionsOf splits Markdown into its "## " sections, by their titles.
+func sectionsOf(md string) map[string]string {
 	sections := map[string]string{}
-	for _, part := range strings.Split("\n"+string(data), "\n## ")[1:] {
+	for _, part := range strings.Split("\n"+md, "\n## ")[1:] {
 		title, body, _ := strings.Cut(part, "\n")
 		sections[title] = strings.TrimSpace(body)
 	}
@@ -106,19 +113,19 @@ func TestDocsExplanation(t *testing.T) {
 	sections := readmeSections(t)
 	var toc, body strings.Builder
 	for i, s := range explanationSections {
-		md, ok := sections[s.title]
+		md, ok := sections[s.readme]
 		if !ok || md == "" {
-			t.Fatalf("README.md has no section %q", s.title)
+			t.Fatalf("README.md has no section %q", s.readme)
 		}
 		text, err := markdownHTML(md)
 		if err != nil {
-			t.Fatalf("README.md's %q: %v", s.title, err)
+			t.Fatalf("README.md's %q: %v", s.readme, err)
 		}
-		toc.WriteString(`        <li><a href="#` + s.id + `">` + s.title + "</a></li>\n")
+		toc.WriteString(`        <li><a href="#` + s.id + `">` + s.heading + "</a></li>\n")
 		if i > 0 {
 			body.WriteString("\n")
 		}
-		body.WriteString(`    <h2 id="` + s.id + `">` + s.title + "</h2>\n")
+		body.WriteString(`    <h2 id="` + s.id + `">` + s.heading + "</h2>\n")
 		for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
 			body.WriteString("    " + line + "\n")
 		}
@@ -163,90 +170,132 @@ func TestMarkdownHTML(t *testing.T) {
 	if got != want {
 		t.Fatalf("got\n%s\nwant\n%s", got, want)
 	}
-	for _, bad := range []string{"[here](#install)", "# Heading", "1. numbered"} {
+	for _, bad := range []string{
+		"[here](#install)", "[a file](SECURITY.md)", "[old](http://example.com)", "[paren](https://example.com/a_(b))",
+		"# Heading", "1. numbered", "1) numbered", "* star", "+ plus", "> quote", "<picture>", "| a | b |",
+		"```\ncode\n```", "text\n```\ncode\n```", "    indented code", "a footnote[^1]",
+		"- item\n  - nested", "Intro:\n- a\n- b", "*italic*", "_italic_", "**bold `code` bold**",
+		"an `unmatched backtick", "``double``", "a \\* escape", "[ref][1]",
+	} {
 		if _, err := markdownHTML(bad); err == nil {
 			t.Errorf("%q was turned into HTML instead of refused", bad)
 		}
 	}
 }
 
-// markdownLink is a Markdown link: [text](target).
-var markdownLink = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
-
-// markdownBold is Markdown's bold: **text**.
-var markdownBold = regexp.MustCompile(`\*\*([^*]+)\*\*`)
+// The Markdown markdownHTML reads, and what it refuses.
+var (
+	// markdownLink is a Markdown link out of the repository: [text](https://...).
+	markdownLink = regexp.MustCompile(`\[([^\]]+)\]\((https://[^()\s]+)\)`)
+	// markdownBold is Markdown's bold: **text**.
+	markdownBold = regexp.MustCompile(`\*\*([^*]+)\*\*`)
+	// markdownBlockStart is a line that starts a block markdownHTML cannot
+	// show: a heading, a numbered list, another bullet, a quote, HTML, a
+	// table or a fence.
+	markdownBlockStart = regexp.MustCompile("^(#|\\d+[.)] |[*+] |> |<|\\||```)")
+	// markdownLeft is Markdown still in the text once bold and links are
+	// turned: a link of another kind, emphasis, an escape or a footnote.
+	markdownLeft = regexp.MustCompile(`\*|\]\(|\]\[|\[\^|(^|[\s(])_[^\s_]|\\[[:punct:]]`)
+)
 
 // markdownHTML turns the README's Markdown into the docs' HTML. It knows
 // only what the README sections it is used on hold: paragraphs, one level
-// of "- " lists, inline code, bold, links out of the repository's README,
-// and Vale's on and off comments. Anything else, such as a heading, a
-// numbered list, a footnote or a link within the README, is refused, so a
-// change to the README that the page could not show fails a test instead
-// of reaching the site half turned.
+// of "- " lists whose items may carry on over indented lines, inline code,
+// bold, links out of the repository, and Vale's on and off comments, each
+// a block of its own. Anything else, such as a heading, a nested or
+// numbered list, a quote, a footnote, emphasis or a link within the
+// README, is refused, so a change to the README that the page could not
+// show fails a test instead of reaching the site half turned.
 func markdownHTML(md string) (string, error) {
 	var b strings.Builder
-	for _, block := range strings.Split(strings.TrimSpace(md), "\n\n") {
-		block = strings.TrimSpace(block)
-		switch {
-		case block == "":
-		case strings.HasPrefix(block, "<!-- vale ") && strings.HasSuffix(block, " -->") && !strings.Contains(block, "\n"):
+	for _, block := range strings.Split(strings.Trim(md, "\n"), "\n\n") {
+		block = strings.Trim(block, "\n")
+		if strings.TrimSpace(block) == "" {
+			continue
+		}
+		lines := strings.Split(block, "\n")
+		if len(lines) == 1 && strings.HasPrefix(block, "<!-- vale ") && strings.HasSuffix(block, " -->") {
 			b.WriteString(block + "\n")
-		case strings.HasPrefix(block, "#"), regexp.MustCompile(`^\d+\. `).MatchString(block), strings.Contains(block, "[^"), strings.HasPrefix(block, "|"), strings.HasPrefix(block, "```"):
-			return "", fmt.Errorf("the docs cannot show this Markdown: %.40q", block)
-		case strings.HasPrefix(block, "- "):
-			var items []string
-			for _, line := range strings.Split(block, "\n") {
-				if rest, ok := strings.CutPrefix(line, "- "); ok {
-					items = append(items, rest)
-				} else {
-					items[len(items)-1] += " " + strings.TrimSpace(line)
-				}
+			continue
+		}
+		list := strings.HasPrefix(lines[0], "- ")
+		var items []string
+		for i, line := range lines {
+			bullet := strings.HasPrefix(line, "- ")
+			indented := line != strings.TrimLeft(line, " \t")
+			switch {
+			case markdownBlockStart.MatchString(line):
+				return "", fmt.Errorf("the docs cannot show this Markdown: %q", line)
+			case bullet && !list, list && indented && strings.HasPrefix(strings.TrimSpace(line), "- "):
+				return "", fmt.Errorf("the docs cannot show a list here: %q", line)
+			case bullet:
+				items = append(items, strings.TrimPrefix(line, "- "))
+			case list && indented && i > 0:
+				items[len(items)-1] += " " + strings.TrimSpace(line)
+			case indented:
+				return "", fmt.Errorf("the docs cannot show an indented line: %q", line)
+			case list:
+				return "", fmt.Errorf("the docs cannot show a line run on into a list: %q", line)
+			default:
+				items = append(items, line)
 			}
-			b.WriteString("<ul>\n")
-			for _, item := range items {
-				text, err := markdownInline(item)
-				if err != nil {
-					return "", err
-				}
-				b.WriteString("<li>" + text + "</li>\n")
-			}
-			b.WriteString("</ul>\n")
-		default:
-			text, err := markdownInline(strings.Join(strings.Fields(block), " "))
+		}
+		if !list {
+			text, err := markdownInline(strings.Join(items, " "))
 			if err != nil {
 				return "", err
 			}
 			b.WriteString("<p>" + text + "</p>\n")
+			continue
 		}
+		b.WriteString("<ul>\n")
+		for _, item := range items {
+			text, err := markdownInline(item)
+			if err != nil {
+				return "", err
+			}
+			b.WriteString("<li>" + text + "</li>\n")
+		}
+		b.WriteString("</ul>\n")
 	}
 	return b.String(), nil
 }
 
+// escapeText escapes what HTML text needs escaped, and leaves quotes as
+// they are, as the hand-written pages have them.
+var escapeText = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace
+
 // markdownInline turns one line of Markdown into HTML: code spans as they
-// are, escaped, and bold and links in the text between them.
+// are, escaped, and bold and links in the text between them. A line with
+// an odd number of backticks, a doubled one, or any Markdown left over is
+// refused.
 func markdownInline(line string) (string, error) {
+	if strings.Count(line, "`")%2 == 1 || strings.Contains(line, "``") {
+		return "", fmt.Errorf("the docs cannot show these backticks: %q", line)
+	}
 	var b strings.Builder
 	for i, part := range strings.Split(line, "`") {
 		if i%2 == 1 {
-			b.WriteString("<code>" + html.EscapeString(part) + "</code>")
+			b.WriteString("<code>" + escapeText(part) + "</code>")
 			continue
 		}
-		var bad error
+		type link struct{ text, url string }
+		var links []link
 		text := markdownLink.ReplaceAllStringFunc(part, func(m string) string {
 			g := markdownLink.FindStringSubmatch(m)
-			if !strings.HasPrefix(g[2], "https://") {
-				bad = fmt.Errorf("a link the docs cannot follow: %s", m)
-				return m
-			}
-			return "\x00a\x01" + g[2] + "\x02" + g[1] + "\x00/a\x01"
+			links = append(links, link{g[1], g[2]})
+			return "\x00" + strconv.Itoa(len(links)-1) + "\x00"
 		})
-		if bad != nil {
-			return "", bad
+		text = markdownBold.ReplaceAllString(text, "\x01$1\x02")
+		if markdownLeft.MatchString(text) {
+			return "", fmt.Errorf("the docs cannot show this Markdown: %q", part)
 		}
-		text = html.EscapeString(text)
-		text = markdownBold.ReplaceAllString(text, "<b>$1</b>")
-		text = regexp.MustCompile("\x00a\x01([^\x02]*)\x02([^\x00]*)\x00/a\x01").ReplaceAllString(text,
-			`<a href="$1" target="_blank" rel="noopener noreferrer">$2<span class="sr"> (opens in a new tab)</span></a>`)
+		text = escapeText(text)
+		text = strings.NewReplacer("\x01", "<b>", "\x02", "</b>").Replace(text)
+		for n, l := range links {
+			text = strings.Replace(text, "\x00"+strconv.Itoa(n)+"\x00",
+				`<a href="`+html.EscapeString(l.url)+`" target="_blank" rel="noopener noreferrer">`+escapeText(l.text)+`<span class="sr"> (opens in a new tab)</span></a>`, 1)
+		}
 		b.WriteString(text)
 	}
 	return b.String(), nil
