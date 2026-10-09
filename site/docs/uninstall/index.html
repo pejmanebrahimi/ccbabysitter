@@ -57,7 +57,7 @@
   <main class="doc" id="content">
     <p class="kind">How-to guide</p>
     <h1>Stop babysitting or remove CC Babysitter</h1>
-    <p class="lede">You can stop babysitting one session, quit CC Babysitter until you need it again, or remove it from the computer. In every case, your sessions keep running where they are.</p>
+    <p class="lede">You can stop babysitting one session, quit CC Babysitter until you need it again, or remove it from the computer. Unbabysitting, quitting and uninstalling leave your sessions running where they are.</p>
 
     <h2 id="unbabysit">Stop babysitting one session</h2>
     <p>On the page, press <strong>Unbabysit</strong> on the session's card. The session keeps running in its app, and CC Babysitter no longer brings it back if that app closes. From a terminal, give the session's name or short id:</p>
@@ -72,7 +72,7 @@
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
     <!-- vale on -->
-    <p>On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has <strong>Stop watching</strong> instead.</p>
+    <p>On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has <strong>Try again</strong> and <strong>Stop watching</strong>; Stop watching is the one that ends the babysitting.</p>
 
     <h2 id="quit">Quit CC Babysitter for now</h2>
     <p>Open <strong>Settings</strong> on the page and press <strong>Quit CC Babysitter</strong>, then <strong>Quit</strong>. Or run:</p>
@@ -90,7 +90,7 @@
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
     <!-- vale on -->
-    <p>On Linux it also turns lingering off, if CC Babysitter turned it on. A later plain <code>ccbabysitter</code> starts it again and turns start at login back on, as on a computer that never had it.</p>
+    <p>It asks nothing. On Linux it also turns lingering off, if CC Babysitter turned it on. A later plain <code>ccbabysitter</code> starts it again and turns start at login back on, as on a computer that never had it.</p>
 
     <h2 id="remove">Remove it completely</h2>
     <p>Run:</p>
@@ -103,7 +103,7 @@
       <li>start at login;</li>
       <li>a copy still running, which it asks to quit;</li>
       <li>its state folder, with the settings, the babysat sessions and the activity log;</li>
-      <li>the program itself.</li>
+      <li>the program itself. On macOS and Linux that is one file, and its folder stays. On Windows it is the folder <code>%LOCALAPPDATA%\Programs\CCBabysitter</code>, which also comes out of your Path, and Windows deletes it a moment after the command ends.</li>
     </ul>
     <p>On Linux, it also turns lingering off, but only if CC Babysitter turned it on. If another <code>ccbabysitter</code> is still on your PATH, such as one from <code>go install</code>, it names it at the end for you to delete. In a script with no terminal to ask in, add <code>--yes</code> to skip the question.</p>
     <p>If you added the Claude Code plugin, remove it in Claude Code with <code>/plugin uninstall ccbabysitter</code>.</p>
