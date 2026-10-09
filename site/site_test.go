@@ -304,7 +304,7 @@ func TestHomeIntroAndSeeMore(t *testing.T) {
 		`<div class="why-body">
         <p>No matter how hard you hope or try, your computer and the Claude Code app will find a creative way<sup><a class="fn" href="#note-1" id="ref-1" aria-label="Note 1">1</a></sup> to kill the remote-controlled session you started before leaving the computer, hoping you could keep issuing destiny-defining orders to your coding agents while you're vacationing where the map gives up.`,
 		`Well, this has happened to me, and believe me, we are not alone<sup><a class="fn" href="#note-2" id="ref-2" aria-label="Note 2">2</a></sup>. Of course, you can go ahead and write some watchdog scripts on a laptop, or tmux and whatnot on a server, but some of us prefer a babysitter.</p>`,
-		`<details class="why">`, "<summary>See more <svg",
+		`<details class="why" id="why">`, "<summary>See more <svg",
 		"<p>If a babysat session's app dies, the session comes back in the background with Remote Control on, and the computer stays awake. On a server, babysat sessions survive SSH drops and reboots, no tmux needed. And one page shows every Claude Code session on the machine, in any app, with its tokens and uptime. Your agents can use it too: <code>ccbabysitter babysit self</code>.</p>",
 		`<ol class="notes">`,
 		`<li id="note-1">The ones I've run into: the Claude app updates itself and, for some reason, fails to start again; or it does come back after the update, but only some of the remote-controlled sessions are restored. Your computer or server can also act up and restart itself, for any reason, good or bad.</li>`,
