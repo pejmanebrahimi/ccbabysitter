@@ -1,6 +1,7 @@
 package supervise
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -680,6 +681,11 @@ func TestActionsFromTheCommandLineSaySoInActivity(t *testing.T) {
 	if r := s.Babysit(id, false, ViaCLI); !r.OK {
 		t.Fatalf("babysit: %s", r.Message)
 	}
+	s.ask(func(context.Context) Result {
+		w := s.find(id)
+		w.Paused, w.PauseReason = true, "three failed resumes"
+		return Result{OK: true}
+	})
 	if r := s.ResumeWatch(id, ViaCLI); !r.OK {
 		t.Fatalf("resume: %s", r.Message)
 	}
@@ -794,5 +800,23 @@ func TestBabysitWithStartAtLoginFromTheCommandLineMarksIt(t *testing.T) {
 	got := startAtLoginEntries(f.d.Log)
 	if len(got) != 1 || !strings.HasPrefix(got[0], "start at login enabled") || !strings.HasSuffix(got[0], ", from the command line") {
 		t.Errorf("entries: %q", got)
+	}
+}
+
+// Try again is for a stuck session. On one that is not stuck it does
+// nothing, so it says so and leaves Activity alone, rather than answering
+// as if it had done something.
+func TestRetryRefusesASessionThatIsNotStuck(t *testing.T) {
+	s, log, id := newSupervisorWithLiveTerminalSession(t, "api")
+	if r := s.Babysit(id, false, ViaCLI); !r.OK {
+		t.Fatalf("babysit: %s", r.Message)
+	}
+	before := len(logMessages(log))
+	r := s.ResumeWatch(id, ViaCLI)
+	if r.OK || !strings.Contains(r.Message, "is not stuck") {
+		t.Fatalf("retry on a watched session: %+v", r)
+	}
+	if got := logMessages(log); len(got) != before {
+		t.Fatalf("activity changed: %q", got)
 	}
 }

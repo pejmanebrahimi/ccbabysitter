@@ -721,6 +721,11 @@ func (d *DemoEngine) ResumeWatch(id string, via supervise.Via) supervise.Result 
 		d.mu.Unlock()
 		return supervise.Result{Message: "That session is not being babysat."}
 	}
+	if !it.paused {
+		label := demoLabel(it)
+		d.mu.Unlock()
+		return supervise.Result{Message: supervise.NotStuck(label)}
+	}
 	it.paused = false
 	it.pauseReason = ""
 	if it.promiseState == "paused" {
