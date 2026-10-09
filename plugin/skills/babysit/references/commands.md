@@ -378,6 +378,53 @@ Example:
   ccbabysitter stop 3f2a9c1e --yes
 ```
 
+## start
+
+```
+ccbabysitter start PATH [--trust]
+
+Starts a new background session with Remote Control in the folder PATH, on a
+machine with no display, and babysits it. A PATH that does not start with / is
+taken from this folder, or from the home folder when it starts with ~/. The home
+folder itself, / and the folders above home are refused.
+Claude Code runs on its own only in a folder it trusts. When it does not trust
+PATH yet, start says so and starts nothing. With --trust, start answers Claude
+Code's own question whether to trust the folder with Yes, then starts the
+session. Claude Code records the trust itself. Answering that question works on
+Linux; elsewhere start gives the one-time command to run instead.
+
+Flags:
+  --trust            trust PATH for Claude Code first, when it does not yet
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {"schema":1,"ok":true,"message":"...","session":"SHORT ID"}.
+ok is false when it was refused, with exit code 1 and the reason in message, and
+needsTrust is true when Claude Code does not trust PATH and --trust was not given.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {"schema":1,"ok":false,"error":"...","code":"..."}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter start /srv/shop-api --trust
+```
+
 ## activity
 
 ```
