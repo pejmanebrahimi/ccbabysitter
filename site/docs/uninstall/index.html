@@ -65,10 +65,17 @@
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter unbabysit api</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
-    <p>On a computer with a display, a session that CC Babysitter brought back in the background has no Unbabysit button. Its way back to its own app ends the babysitting too. That is <strong>Back to Desktop</strong> or <strong>Back to VS Code</strong> for a session from those apps, or <strong>End background copy</strong> for one from a terminal. On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has <strong>Stop watching</strong> instead.</p>
+    <p>On a computer with a display, a session that CC Babysitter brought back in the background has no Unbabysit button. Stopping its background copy ends the babysitting instead. For a session from Claude Desktop or VS Code, that is the card's <strong>Back to Desktop</strong> or <strong>Back to VS Code</strong> button. For one from a terminal, choose <strong>End background copy</strong> from the menu under the arrow beside the card's main button. From a terminal, the same is:</p>
+    <!-- vale off -->
+    <button class="cmd" type="button" data-copy>
+      <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter stop api --yes</span><span class="cursor" aria-hidden="true"></span></span>
+      <span class="copy" data-copy-label aria-live="polite">Copy</span>
+    </button>
+    <!-- vale on -->
+    <p>On a server, background sessions have Unbabysit, since there is no other app to go back to. A stuck session has <strong>Stop watching</strong> instead.</p>
 
     <h2 id="quit">Quit CC Babysitter for now</h2>
-    <p>Open <strong>Settings</strong> on the page and press <strong>Quit CC Babysitter</strong>, or run:</p>
+    <p>Open <strong>Settings</strong> on the page and press <strong>Quit CC Babysitter</strong>, then <strong>Quit</strong>. Or run:</p>
     <button class="cmd" type="button" data-copy>
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter quit</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
@@ -76,14 +83,14 @@
     <p>Babysat sessions keep running, but nothing brings them back if their app closes, and the computer may sleep. Run <code>ccbabysitter</code> to start it again. If start at login is on, it also starts again the next time you log in, or at boot on a server.</p>
 
     <h2 id="keep-files">Stop it and keep its files</h2>
-    <p>To stop CC Babysitter and keep it from starting at login, while keeping the program and its settings, run:</p>
+    <p>To stop the background copy and keep it from starting at login, while keeping the program and its settings, run:</p>
     <!-- vale off -->
     <button class="cmd" type="button" data-copy>
       <span class="text"><span class="p" data-prompt>$</span> <span data-cmd>ccbabysitter uninstall --keep-files</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
     <!-- vale on -->
-    <p>A later plain <code>ccbabysitter</code> starts it again and turns start at login back on, as on a computer that never had it.</p>
+    <p>On Linux it also turns lingering off, if CC Babysitter turned it on. A later plain <code>ccbabysitter</code> starts it again and turns start at login back on, as on a computer that never had it.</p>
 
     <h2 id="remove">Remove it completely</h2>
     <p>Run:</p>
