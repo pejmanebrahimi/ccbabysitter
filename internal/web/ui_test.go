@@ -765,6 +765,11 @@ func TestTheBackgroundCard(t *testing.T) {
 	if stack := regexp.MustCompile(`\.acts\.stack \{[^}]*\}`).FindString(css); !strings.Contains(stack, "flex-wrap: nowrap") {
 		t.Errorf("the In background card's stack may wrap: %q", stack)
 	}
+	for _, rule := range regexp.MustCompile(`[^{}]*\.acts[^{}]*\{[^}]*flex-wrap: wrap[^}]*\}`).FindAllString(css, -1) {
+		if strings.TrimSpace(rule[:strings.Index(rule, "{")]) != ".acts" {
+			t.Errorf("a rule other than .acts lets the actions wrap, and may undo the stack's nowrap: %q", strings.TrimSpace(rule))
+		}
+	}
 	for _, want := range []string{".rescue {", ".journey .arrow {", ".acts.stack {", ".wayon {", ".ways {", ".ways .way {", ".caret {", ".split.alone .b:first-child {", ".b .ext {",
 		"z-index: 36;", ".split .b { min-height: 44px; }", ".split .b.icon { min-width: 44px; }"} {
 		if !strings.Contains(css, want) {
