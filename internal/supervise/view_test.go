@@ -258,3 +258,20 @@ func TestUptimeCountsFromTheSessionStart(t *testing.T) {
 		}
 	}
 }
+
+// The uptime of a babysat session counts from its start too.
+func TestWatchUptimeCountsFromTheSessionStart(t *testing.T) {
+	id := "7a7a7a7a-0000-4000-8000-00000000000a"
+	f := newFixture(t, func([]string) (string, error) { return "[]", nil })
+	now := time.Date(2026, 9, 26, 9, 0, 0, 0, time.UTC)
+	f.d.Now = func() time.Time { return now }
+	s := New(*f.d)
+	s.trees[41] = procs.TreeStats{Processes: 1, PIDs: []int{41}, Uptime: 2 * time.Hour}
+	s.st.Watches = []state.Watch{{SessionID: id, ShortID: "7a7a7a7a", Cwd: "/home/dev/a", PromiseState: "fallback", OriginHost: claude.HostTerminal}}
+	bg := claude.Session{ID: id, ShortID: "7a7a7a7a", PID: 41, Host: claude.HostBackground, Entrypoint: "cli", Cwd: "/home/dev/a",
+		StartedAt: now.Add(-5 * time.Minute)}
+	v := viewOf(t, s, []claude.Session{bg})
+	if len(v.Watches) != 1 || v.Watches[0].Tree.UptimeSeconds != 300 {
+		t.Fatalf("watches %+v", v.Watches)
+	}
+}
