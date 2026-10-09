@@ -710,9 +710,10 @@ func TestTokenCountsAreWrittenShort(t *testing.T) {
 
 // An In background card says what happened while the person was away, and
 // that Claude Desktop shows its session as crashed meanwhile. Its way on is
-// one split button: back to the app it came from, and a menu with the ways
-// that leave it running as it is. Its old state lines and Attach row are
-// not shown on it.
+// one split button: its main way, back to Desktop or VS Code or attaching
+// for a session from a terminal, and a menu with the others. Its old state
+// lines are not shown on it, nor its Attach row unless copying the attach
+// command is its main way.
 func TestTheBackgroundCard(t *testing.T) {
 	index := readUI(t, "ui/index.html")
 	for _, want := range []string{
@@ -1183,6 +1184,12 @@ func TestTheWaysOn(t *testing.T) {
 		`var ways = waysOn(kind, { remote: !!url, terminal: terminal, copy: copy });`,
 		`main.dataset.act = ways.main;`,
 		`show(el(node, "endcopy"), ways.endcopy);`,
+		`setText(main, ways.main === "open-terminal" ? view.terminalLabel : ways.main === "copy-attach" ? "Copy attach command" : BACK[kind].label);`,
+		`setTitle(main, ways.main === "open-terminal" ? "Keeps it running in the background" : ways.main === "copy-attach" ? w.attachCmd : "");`,
+		`if (rescued) { show(el(node, "attachbox"), ways.main === "copy-attach"); }`,
+		`var arrow = button.dataset.el === "main" ? button.parentNode.querySelector('[data-act="ways"]') : null;`,
+		`var fromMenu = $$(".ways [data-act]", node).some(function (item) { return !!state.pending[busyKey(id, item.dataset.act)]; });`,
+		`(fromMenu && button.dataset.el === "main")`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)
@@ -1200,6 +1207,8 @@ func TestTheWaysOn(t *testing.T) {
 		{"terminal", `{ remote: true, terminal: false, copy: true }`, "copy-attach remote endcopy"},
 		{"terminal", `{ remote: false, terminal: false, copy: false }`, "back"},
 		{"terminal", `{ remote: true, terminal: false, copy: false }`, "back remote"},
+		{"terminal", `{ remote: false, terminal: true, copy: false }`, "open-terminal endcopy"},
+		{"desktop", `{ remote: false, terminal: false, copy: false }`, "back"},
 	}
 	var script strings.Builder
 	script.WriteString(fn + "\n")
