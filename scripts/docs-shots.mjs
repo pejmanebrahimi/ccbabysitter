@@ -38,12 +38,15 @@ const SHOTS = [
     margin: 16,
     ready: `[...document.querySelectorAll("#sessions .row [data-f=name]")].some((n) => n.textContent === "web-app")`,
     // The Babysit dialog for the demo's terminal session web-app, which has
-    // Remote Control on, as in the tutorial.
+    // Remote Control on, as in the tutorial. The demo starts with start at
+    // login off, so its dialog offers to turn it on; a plain ccbabysitter
+    // has turned it on already for the tutorial's reader, so the offer is
+    // left out.
     find: `(() => {
       const row = [...document.querySelectorAll("#sessions .row")].find((r) => r.querySelector('[data-f="name"]').textContent === "web-app");
       row.querySelector('[data-act="babysit"]').click();
       const hide = document.createElement("style");
-      hide.textContent = "body > :not(dialog) { visibility: hidden; } #dlg-babysit::backdrop { background: transparent; }";
+      hide.textContent = "body > :not(dialog) { visibility: hidden; } #dlg-babysit::backdrop { background: transparent; } #dlg-babysit [data-el=login] { display: none !important; }";
       document.head.append(hide);
       return "#dlg-babysit";
     })()`,
