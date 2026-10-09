@@ -182,8 +182,10 @@ func TestHeadlessReadsTheRealEnvironment(t *testing.T) {
 }
 
 // The CLI is asked whether an account is logged in, and only a clear
-// answer counts: a failed command, output that is not the expected
-// object, or an object without the field all leave the state unknown.
+// answer counts: output that is not the expected object, or an object
+// without the field, leave the state unknown. The object is the answer
+// even when the command exits with an error, as the CLI does when nobody
+// is logged in.
 func TestDetectLoginState(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -194,7 +196,10 @@ func TestDetectLoginState(t *testing.T) {
 		{"logged in", `{"loggedIn": true, "authMethod": "claude.ai"}`, nil, LoginYes},
 		{"not logged in", `{"loggedIn": false, "authMethod": "none", "apiProvider": "firstParty"}`, nil, LoginNo},
 		{"warning first", "a warning line\n{\"loggedIn\": false}\n", nil, LoginNo},
-		{"command failed", `{"loggedIn": false}`, errors.New("exit status 1"), LoginUnknown},
+		// The CLI exits with 1 when nobody is logged in, and still prints
+		// the object, which is the answer.
+		{"logged out exits with 1", `{"loggedIn": false, "authMethod": "none"}`, errors.New("exit status 1"), LoginNo},
+		{"command failed with no answer", "", errors.New("signal: killed"), LoginUnknown},
 		{"not json", "Not logged in", nil, LoginUnknown},
 		{"field missing", `{"authMethod": "none"}`, nil, LoginUnknown},
 		{"field not a bool", `{"loggedIn": "no"}`, nil, LoginUnknown},

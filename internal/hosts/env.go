@@ -141,7 +141,7 @@ func detect(ctx context.Context, p Probes, runner claude.Runner, snapshotHasDesk
 		// A CLI that did not answer for its version is not asked again:
 		// it would only hold detection up for as long a second time.
 		if env.CLIPresent && askLogin {
-			env.CLILoggedIn = loginState(ctx, runner)
+			env.CLILoggedIn = AskLogin(ctx, runner)
 		}
 	}
 
@@ -204,18 +204,16 @@ func DesktopNow(p Probes) (known, running bool, version string) {
 // cliAnswerTimeout bounds each question env detection puts to the CLI.
 const cliAnswerTimeout = 20 * time.Second
 
-// loginState asks the CLI whether an account is logged in. The answer is a
-// JSON object with a loggedIn field; a command that fails, prints no such
-// object or leaves the field out gives an unknown answer rather than a
-// guess. Anything printed ahead of the object, such as a warning, is
-// skipped.
-func loginState(ctx context.Context, runner claude.Runner) LoginState {
+// AskLogin asks the CLI whether an account is logged in. The answer is a
+// JSON object with a loggedIn field. The CLI exits with an error when
+// nobody is logged in and still prints the object, so the object is read
+// whatever the exit; output with no such object, or one that leaves the
+// field out, gives an unknown answer rather than a guess. Anything printed
+// ahead of the object, such as a warning, is skipped.
+func AskLogin(ctx context.Context, runner claude.Runner) LoginState {
 	cctx, cancel := context.WithTimeout(ctx, cliAnswerTimeout)
-	out, err := runner.Run(cctx, "", "auth", "status")
+	out, _ := runner.Run(cctx, "", "auth", "status")
 	cancel()
-	if err != nil {
-		return LoginUnknown
-	}
 	start := strings.IndexByte(out, '{')
 	if start < 0 {
 		return LoginUnknown

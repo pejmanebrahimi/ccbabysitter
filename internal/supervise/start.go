@@ -16,6 +16,11 @@ import (
 // with a display, where people start sessions in their own apps.
 const StartRefusedWithDisplay = "Starting a session from here is for a machine with no display. Start it in your terminal or Claude app."
 
+// StartNotLoggedIn is the answer to starting a session while the claude
+// CLI is not logged in, when it could reach neither the model nor Remote
+// Control. It says what the page's note about the login says.
+const StartNotLoggedIn = "Claude Code is not logged in on this machine. Run `claude` once and log in, then try again."
+
 // startedWait is how long a session Start started is waited for, to be
 // babysat when it shows up, before it is no longer looked for.
 const startedWait = 2 * time.Minute
@@ -46,6 +51,11 @@ func (s *Supervisor) Start(dir string, trust bool, via Via) Result {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), startTimeout)
 	defer cancel()
+	// The login answer the loop holds can be a minute old, so one that
+	// says logged out is asked again before the start is refused.
+	if plan.loggedOut && hosts.AskLogin(ctx, s.deps.Runner) == hosts.LoginNo {
+		return Result{Message: StartNotLoggedIn}
+	}
 	if plan.trust {
 		if res, ok := s.trustFolder(ctx, plan.dir, via); !ok {
 			return res
@@ -67,11 +77,13 @@ func (s *Supervisor) Start(dir string, trust bool, via Via) Result {
 	})
 }
 
-// startPlan is what the checks decided: the folder, by its real path, and
-// whether the CLI's trust question has to be answered first.
+// startPlan is what the checks decided: the folder, by its real path,
+// whether the CLI's trust question has to be answered first, and whether
+// the CLI last said it is logged out.
 type startPlan struct {
-	dir   string
-	trust bool
+	dir       string
+	trust     bool
+	loggedOut bool
 }
 
 // planStart checks dir and the CLI's trust, and fills plan when the start
@@ -108,6 +120,7 @@ func (s *Supervisor) planStart(dir string, trust bool, plan *startPlan) Result {
 		return Result{Message: dir + " holds your home folder. Choose a project folder."}
 	}
 	plan.dir = dir
+	plan.loggedOut = s.env.CLILoggedIn == hosts.LoginNo
 	// A folder is taken as trusted only when Claude Code's settings say so.
 	// When they cannot be read, as before Claude Code has ever run here, it
 	// is not.

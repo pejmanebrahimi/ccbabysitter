@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -378,5 +379,55 @@ func TestStartWithoutClaudeSettingsAsksAndTrusts(t *testing.T) {
 	}
 	if _, ok := sf.s.started["1a2b3c4d"]; !ok {
 		t.Errorf("waiting for %v, want 1a2b3c4d", sf.s.started)
+	}
+}
+
+// A CLI that is not logged in cannot reach the model or open Remote
+// Control, so nothing is trusted or started. The stored answer can be a
+// minute old, so the CLI is asked again first: once it is logged in, the
+// start goes ahead.
+func TestStartRefusedWhileLoggedOut(t *testing.T) {
+	loggedIn := false
+	sf := newStartFixture(t, true, func(args []string) (string, error) {
+		switch {
+		case strings.Join(args, " ") == "auth status" && !loggedIn:
+			return `{"loggedIn": false, "authMethod": "none"}`, errors.New("exit status 1")
+		case strings.Join(args, " ") == "auth status":
+			return `{"loggedIn": true}`, nil
+		case startsBackground(args):
+			return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api (claude attach 1a2b3c4d)", nil
+		}
+		return "[]", nil
+	})
+	sf.f.d.Env = func() hosts.Env {
+		return hosts.Env{Platform: "linux", CLIFound: true, CLIPresent: true, Headless: true, CLILoggedIn: hosts.LoginNo}
+	}
+	sf.s = New(*sf.f.d)
+	res := sf.s.Start(sf.project, true, ViaPage)
+	if res.OK || res.Message != StartNotLoggedIn {
+		t.Fatalf("%+v", res)
+	}
+	if len(sf.accept) != 0 || slices.ContainsFunc(sf.f.r.CallList(), func(c string) bool { return strings.HasPrefix(c, "--bg") }) {
+		t.Fatalf("accepted %v, ran %v", sf.accept, sf.f.r.CallList())
+	}
+	loggedIn = true
+	if res := sf.s.Start(sf.project, true, ViaPage); !res.OK {
+		t.Fatalf("after logging in: %+v", res)
+	}
+}
+
+// With a login answer that is yes or not known, the CLI is not asked again.
+func TestStartDoesNotAskTheLoginAgainWhenNotNeeded(t *testing.T) {
+	sf := newStartFixture(t, true, func(args []string) (string, error) {
+		if startsBackground(args) {
+			return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api (claude attach 1a2b3c4d)", nil
+		}
+		return "[]", nil
+	})
+	if res := sf.s.Start(sf.project, true, ViaPage); !res.OK {
+		t.Fatalf("%+v", res)
+	}
+	if slices.Contains(sf.f.r.CallList(), "auth status") {
+		t.Fatalf("asked the login again: %v", sf.f.r.CallList())
 	}
 }

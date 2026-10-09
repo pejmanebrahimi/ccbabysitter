@@ -287,7 +287,9 @@ Claude Code runs on its own only in a folder it trusts. When it does not trust
 PATH yet, start says so and starts nothing. With --trust, start answers Claude
 Code's own question whether to trust the folder with Yes, then starts the
 session. Claude Code records the trust itself. Answering that question works on
-Linux; elsewhere start gives the one-time command to run instead.`,
+Linux; elsewhere start gives the one-time command to run instead.
+When Claude Code is not logged in, a session could reach neither the model nor
+Remote Control, so start says so and starts nothing.`,
 		`  --trust            trust PATH for Claude Code first, when it does not yet
 `,
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
