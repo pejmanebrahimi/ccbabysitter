@@ -66,7 +66,7 @@
       <span class="text"><span class="p" data-prompt>&gt;</span> <span data-cmd>/plugin install ccbabysitter --marketplace pejmanebrahimi/ccbabysitter</span><span class="cursor" aria-hidden="true"></span></span>
       <span class="copy" data-copy-label aria-live="polite">Copy</span>
     </button>
-    <p>CC Babysitter itself doesn't need to be installed first. If it isn't, the plugin gives you the command that installs it the first time you ask for something.</p>
+    <p>CC Babysitter itself doesn't need to be installed first. If it isn't, the plugin gives you the one command that installs and starts it when you first ask it to do something.</p>
 
     <h2 id="ask">Ask in your own words</h2>
     <p>Say what you want, in any language. For example:</p>
@@ -82,11 +82,11 @@
     <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>The plugin never runs a command whose output holds the page's key, so the key never ends up in your chat. To show the page, it runs <code>ccbabysitter open</code>, which opens it in your browser.</p></div>
 
     <h2 id="not-running">When CC Babysitter isn't running</h2>
-    <p>If CC Babysitter isn't installed, or is installed but not running, the plugin says so and gives you the command to run in your terminal app. It never runs that command itself, since its output would bring the page's key into the chat. Run it, then tell the plugin you're done, and it carries on with what you asked.</p>
+    <p>If CC Babysitter isn't installed or isn't running, the plugin says so. It gives you the command to run in your terminal app. It never runs that command itself, since its output would bring the page's key into the chat. Run it, then tell the plugin you're done, and it carries on with what you asked.</p>
 
     <h2 id="asks-first">What it asks before doing</h2>
-    <p>Babysitting, unbabysitting, trying a stuck session again, and opening the page happen right away. So do the commands that only read, such as listing sessions or showing the Activity panel.</p>
-    <p>Before it stops a background copy, changes a setting, sets CC Babysitter up as a service on Linux, stops it for good or quits it, it asks you on a card. It never resets CC Babysitter or removes it completely: for those it explains what they delete and gives you the command to run yourself.</p>
+    <p>Babysitting, unbabysitting, trying a stuck session again, and opening the page happen right away. So do the commands that only read, such as listing sessions or showing the Activity panel. The first time in a conversation, it may also offer to open the page.</p>
+    <p>It asks you on a card before it stops a background copy, changes a setting or quits CC Babysitter. It also asks before it sets CC Babysitter up as a service on Linux or stops it for good. It never resets CC Babysitter or removes it completely: for those it explains what they delete and gives you the command to run yourself.</p>
 
     <h2 id="remove">Remove the plugin</h2>
     <p>In Claude Code, run:</p>
