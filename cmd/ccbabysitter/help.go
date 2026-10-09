@@ -229,8 +229,8 @@ Only a session with a background copy can be stopped. canStop in show --json say
 whether S has one. Otherwise stop is refused, with exit code 1.
 While the copy runs, Claude Desktop shows "Claude Code crashed" for a session
 that came from it, because only one copy of a session runs at a time. After stop,
-Try again in Desktop picks the session up where it left off. This is the page's
-Back to Desktop.`,
+Try again in Desktop picks the session up where it left off. This is what the
+page's Back to Desktop, Back to VS Code and End background copy do.`,
 		`  --yes              confirm. Without it nothing is stopped
 `,
 		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.

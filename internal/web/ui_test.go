@@ -722,12 +722,13 @@ func TestTheBackgroundCard(t *testing.T) {
 		`<div class="journey">`,
 		`<span class="arrow"></span>`,
 		`<div class="wayon" data-el="way" hidden>`,
-		`<button class="b primary" data-act="back"></button>`,
+		`<button class="b primary" data-el="main" data-act="back"></button>`,
 		`<button class="b primary icon" data-act="ways" aria-haspopup="menu" aria-expanded="false" aria-label="More ways to use this session"><span class="caret"></span></button>`,
 		`<div class="ways" role="menu" aria-label="More ways to use this session" data-el="ways" hidden>`,
 		`<a class="way" role="menuitem" tabindex="-1" data-el="remote" target="_blank" rel="noopener noreferrer" hidden>Open on claude.ai<span class="ext"></span><small>Keeps it running in the background</small></a>`,
 		`<button class="way" role="menuitem" tabindex="-1" data-act="open-terminal" data-el="terminal" hidden><span data-f="terminal">Open in Terminal</span><small>Keeps it running in the background</small></button>`,
 		`<button class="way" role="menuitem" tabindex="-1" data-act="copy-attach" data-el="copyattach" hidden>Copy attach command<small class="mono" data-f="attachcmd"></small></button>`,
+		`<button class="way" role="menuitem" tabindex="-1" data-act="back" data-el="endcopy" hidden>End background copy<small>Gives you a command to resume it in any terminal</small></button>`,
 	} {
 		if !strings.Contains(index, want) {
 			t.Errorf("index.html does not contain %s", want)
@@ -1155,7 +1156,7 @@ func TestTheBackDialog(t *testing.T) {
 	}
 	app := readUI(t, "ui/app.js")
 	for _, want := range []string{
-		`"Back to Desktop"`, `"Back to VS Code"`, `"Back to a terminal"`, `"End background copy"`,
+		`"Back to Desktop"`, `"Back to VS Code"`, `label: "End background copy", go: "End background copy"`,
 		`" is back with Desktop. Open it from the sidebar, and press Try again if it shows as crashed."`,
 		`" is back with VS Code. Open it from past conversations."`,
 		`"Background copy ended. Paste the command in any terminal to carry on."`,
@@ -1164,6 +1165,59 @@ func TestTheBackDialog(t *testing.T) {
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+	if strings.Contains(app, `"Back to a terminal"`) {
+		t.Error(`app.js still offers "Back to a terminal"`)
+	}
+}
+
+// TestTheWaysOn checks what an In background card leads with and what its
+// menu holds. A session from Desktop or VS Code goes back to that app. One
+// from a terminal, or any other app, leads with attaching to the copy where
+// it runs, in a terminal CC Babysitter opens or else as a command to copy,
+// and ends the copy from the menu; with neither, ending it is the main way.
+func TestTheWaysOn(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`var ways = waysOn(kind, { remote: !!url, terminal: terminal, copy: copy });`,
+		`main.dataset.act = ways.main;`,
+		`show(el(node, "endcopy"), ways.endcopy);`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	fn := "function waysOn(kind, can) {" + between(t, app, "function waysOn(kind, can) {", "\n  }") + "\n}"
+	cases := []struct{ kind, can, want string }{
+		{"desktop", `{ remote: true, terminal: true, copy: true }`, "back remote terminal copy"},
+		{"vscode", `{ remote: false, terminal: false, copy: true }`, "back copy"},
+		{"terminal", `{ remote: true, terminal: true, copy: true }`, "open-terminal remote copy endcopy"},
+		{"terminal", `{ remote: true, terminal: false, copy: true }`, "copy-attach remote endcopy"},
+		{"terminal", `{ remote: false, terminal: false, copy: false }`, "back"},
+		{"terminal", `{ remote: true, terminal: false, copy: false }`, "back remote"},
+	}
+	var script strings.Builder
+	script.WriteString(fn + "\n")
+	script.WriteString(`function say(w) { return [w.main].concat(["remote", "terminal", "copy", "endcopy"].filter(function (k) { return w[k]; })).join(" "); }` + "\n")
+	for _, c := range cases {
+		fmt.Fprintf(&script, "console.log(say(waysOn(%q, %s)));\n", c.kind, c.can)
+	}
+	out, err := exec.Command(node, "-e", script.String()).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	got := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(got) != len(cases) {
+		t.Fatalf("want %d lines from node, got %q", len(cases), out)
+	}
+	for i, c := range cases {
+		if got[i] != c.want {
+			t.Errorf("waysOn(%q, %s) = %q, want %q", c.kind, c.can, got[i], c.want)
 		}
 	}
 }

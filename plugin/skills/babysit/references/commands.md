@@ -338,8 +338,8 @@ Only a session with a background copy can be stopped. canStop in show --json say
 whether S has one. Otherwise stop is refused, with exit code 1.
 While the copy runs, Claude Desktop shows "Claude Code crashed" for a session
 that came from it, because only one copy of a session runs at a time. After stop,
-Try again in Desktop picks the session up where it left off. This is the page's
-Back to Desktop.
+Try again in Desktop picks the session up where it left off. This is what the
+page's Back to Desktop, Back to VS Code and End background copy do.
 
 S is a session id, a short id, a name, or self. A full id always wins. A word
 that fits two sessions, as a short id or a name, is refused, with exit code 4. self is

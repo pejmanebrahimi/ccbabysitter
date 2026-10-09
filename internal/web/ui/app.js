@@ -177,7 +177,9 @@
   var HOST_APP = {
     terminal: "the terminal", desktop: "the desktop app", vscode: "VS Code"
   };
-  /* What closed, on an In background card, and the way back to it. */
+  /* What closed, on an In background card, and the way back to it. A
+     session from a terminal has no app to go back to: its way is ending
+     the background copy, to resume the session in a terminal of its own. */
   var ORIGIN_PHRASE = { desktop: "The desktop app", vscode: "VS Code", terminal: "The terminal" };
   var BACK = {
     desktop: {
@@ -189,7 +191,7 @@
       done: function (name) { return name + " is back with VS Code. Open it from past conversations."; }
     },
     terminal: {
-      label: "Back to a terminal", go: "End background copy",
+      label: "End background copy", go: "End background copy",
       done: function () { return "Background copy ended. Paste the command in any terminal to carry on."; }
     }
   };
@@ -802,32 +804,61 @@
     setText(f(node, "since"), since);
   }
 
-  /* fillWaysOn fills the way on of an In background card: back to the app
-     it came from, as one split button whose menu holds the ways that leave
-     the session running as it is, each shown only where it can work. */
+  /* waysOn is what an In background card offers, from the kind of app the
+     session came from and the ways that can work here: the action of its
+     main button, and which items its menu shows. A session from Desktop or
+     VS Code leads back to that app. One from a terminal, or any other app,
+     leads with attaching to the copy where it runs, which loses nothing:
+     in the terminal CC Babysitter can open, or else as a command to copy.
+     Ending the copy is then in the menu, and is the main way when neither
+     attach can work. */
+  function waysOn(kind, can) {
+    var main = "back";
+    if (kind === "terminal" && can.terminal) {
+      main = "open-terminal";
+    } else if (kind === "terminal" && can.copy) {
+      main = "copy-attach";
+    }
+    return {
+      main: main,
+      remote: !!can.remote,
+      terminal: !!can.terminal && main !== "open-terminal",
+      copy: !!can.copy && main !== "copy-attach",
+      endcopy: kind === "terminal" && main !== "back"
+    };
+  }
+
+  /* fillWaysOn fills the way on of an In background card: one split button
+     for its main way and a menu with the others, each shown only where it
+     can work. */
   function fillWaysOn(node, w, rescued) {
     var view = state.view || {};
     var env = view.env || {};
+    var kind = backOf(w.originHost);
     el(node, "acts").classList.toggle("stack", rescued);
     show(el(node, "way"), rescued && !!w.canStop);
-    setText(node.querySelector('[data-act="back"]'), BACK[backOf(w.originHost)].label);
 
     var remote = el(node, "remote");
     var url = rescued && REMOTE_URL.test(w.remoteUrl || "") ? w.remoteUrl : "";
-    show(remote, !!url);
     if (url && remote.getAttribute("href") !== url) { remote.setAttribute("href", url); }
     if (!url && remote.hasAttribute("href")) { remote.removeAttribute("href"); }
 
     /* The engine names what really opens here, and names nothing where
        nothing can be opened. */
     var terminal = !!w.attachCmd && rescued && !env.headless && !!view.terminalLabel;
-    show(el(node, "terminal"), terminal);
-    setText(f(node, "terminal"), view.terminalLabel || "");
     var copy = rescued && !!w.attachCmd;
-    show(el(node, "copyattach"), copy);
+    var ways = waysOn(kind, { remote: !!url, terminal: terminal, copy: copy });
+    var main = el(node, "main");
+    main.dataset.act = ways.main;
+    setText(main, ways.main === "open-terminal" ? view.terminalLabel : ways.main === "copy-attach" ? "Copy attach command" : BACK[kind].label);
+    show(remote, ways.remote);
+    show(el(node, "terminal"), ways.terminal);
+    setText(f(node, "terminal"), view.terminalLabel || "");
+    show(el(node, "copyattach"), ways.copy);
     setText(f(node, "attachcmd"), w.attachCmd || "");
+    show(el(node, "endcopy"), ways.endcopy);
 
-    var more = !!url || terminal || copy;
+    var more = ways.remote || ways.terminal || ways.copy || ways.endcopy;
     var arrow = node.querySelector('[data-act="ways"]');
     var menu = el(node, "ways");
     menu.id = "ways-" + w.sessionId;

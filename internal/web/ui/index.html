@@ -293,13 +293,14 @@
     <div class="acts" data-el="acts">
       <div class="wayon" data-el="way" hidden>
         <div class="split">
-          <button class="b primary" data-act="back"></button>
+          <button class="b primary" data-el="main" data-act="back"></button>
           <button class="b primary icon" data-act="ways" aria-haspopup="menu" aria-expanded="false" aria-label="More ways to use this session"><span class="caret"></span></button>
         </div>
         <div class="ways" role="menu" aria-label="More ways to use this session" data-el="ways" hidden>
           <a class="way" role="menuitem" tabindex="-1" data-el="remote" target="_blank" rel="noopener noreferrer" hidden>Open on claude.ai<span class="ext"></span><small>Keeps it running in the background</small></a>
           <button class="way" role="menuitem" tabindex="-1" data-act="open-terminal" data-el="terminal" hidden><span data-f="terminal">Open in Terminal</span><small>Keeps it running in the background</small></button>
           <button class="way" role="menuitem" tabindex="-1" data-act="copy-attach" data-el="copyattach" hidden>Copy attach command<small class="mono" data-f="attachcmd"></small></button>
+          <button class="way" role="menuitem" tabindex="-1" data-act="back" data-el="endcopy" hidden>End background copy<small>Gives you a command to resume it in any terminal</small></button>
         </div>
       </div>
       <button class="b" data-act="unbabysit" hidden>Unbabysit</button>

@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Changed: on the In background card of a session that came from a terminal, the main button attaches to the background copy, which keeps running with Remote Control on: Open in Terminal where CC Babysitter can open a terminal, and Copy attach command where it cannot, such as on a server. End background copy, which ends the copy and gives the command to resume the session in any terminal, moves to the card's menu (#79).
+
 ## 0.7.0 (2026-10-08)
 
 - Changed: Activity says why a babysat session went down, when CC Babysitter can tell, instead of "host process exited": Claude Desktop closed, closed and updated, or restarted for an update, with both versions; the session ended while Claude Desktop kept running; the computer restarted; VS Code, the session's terminal or its SSH connection closed; or the background copy ended. The Claude Desktop reasons need macOS or Windows. When several sessions went down together, one line says so as the first is brought back. Where nothing tells, the reason is "the process running it exited". The In background card gives the same reason, for example "At 22:11, Claude Desktop restarted for an update." (#68).
