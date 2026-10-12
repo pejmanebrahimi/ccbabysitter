@@ -33,8 +33,8 @@ type pastRecord struct {
 }
 
 // ListPast finds the transcripts directly inside the project folders under
-// projectsDir that were written to at or after since, leaves out the ids in
-// skip, and returns at most max of them, newest first. A session whose
+// projectsDir that were written to at or after since and hold a message,
+// leaves out the ids in skip, and returns at most max of them, newest first. A session whose
 // transcript sits in two project folders is listed once, by its newest.
 func ListPast(projectsDir string, since time.Time, max int, skip map[string]bool) []PastSession {
 	type found struct {
@@ -84,12 +84,17 @@ func ListPast(projectsDir string, since time.Time, max int, skip map[string]bool
 		}
 		return list[i].id < list[j].id
 	})
-	if len(list) > max {
-		list = list[:max]
-	}
-	out := make([]PastSession, 0, len(list))
+	out := make([]PastSession, 0, max)
 	for _, f := range list {
-		cwd, name := readPastEdges(f.path)
+		if len(out) == max {
+			break
+		}
+		// A transcript with no message in it, such as an empty file, has
+		// nothing to resume, so it is left out.
+		cwd, name, said := readPastEdges(f.path)
+		if !said {
+			continue
+		}
 		out = append(out, PastSession{ID: f.id, Name: name, Cwd: cwd, LastActivity: f.mod})
 	}
 	return out
@@ -99,11 +104,12 @@ func ListPast(projectsDir string, since time.Time, max int, skip map[string]bool
 // name by the same rules as a live session's, from the sidecar title file
 // or from the title records within either end of the file. A line cut in
 // half at the edge of what was read is not valid JSON and is skipped like
-// any other that is not.
-func readPastEdges(path string) (cwd, name string) {
+// any other that is not. said reports whether either end holds a message,
+// from the person or from the model.
+func readPastEdges(path string) (cwd, name string, said bool) {
 	f, err := os.Open(path)
 	if err != nil {
-		return "", ""
+		return "", "", false
 	}
 	defer f.Close()
 	head := make([]byte, pastEdgeBytes)
@@ -117,6 +123,9 @@ func readPastEdges(path string) (cwd, name string) {
 			}
 			if cwd == "" && r.Cwd != "" {
 				cwd = r.Cwd
+			}
+			if r.Type == "user" || r.Type == "assistant" {
+				said = true
 			}
 			titles.record(r.Type, &r.titleRecord)
 		}
@@ -142,5 +151,5 @@ func readPastEdges(path string) (cwd, name string) {
 	if name == "" {
 		name = titles.title()
 	}
-	return capBytes(cwd, maxCwdBytes), name
+	return capBytes(cwd, maxCwdBytes), name, said
 }

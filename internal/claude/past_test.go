@@ -64,6 +64,35 @@ func TestListPastFindsRecentTranscriptsNewestFirst(t *testing.T) {
 	}
 }
 
+// A transcript with no conversation in it, an empty file or one with no
+// message, has nothing to resume, so it is left out, and it does not take
+// a place from one that does.
+func TestListPastLeavesOutConversationsWithNoMessage(t *testing.T) {
+	projects := t.TempDir()
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	const (
+		real   = "11111111-2222-4333-8444-555555555511"
+		empty  = "22222222-2222-4333-8444-555555555512"
+		noMsg  = "33333333-2222-4333-8444-555555555513"
+		answer = "44444444-2222-4333-8444-555555555514"
+	)
+	writeTranscriptAt(t, projects, "-home-dev-ws", real,
+		`{"type":"user","cwd":"/home/dev/ws","message":{"content":"hi"}}`+"\n", now.Add(-time.Hour))
+	writeTranscriptAt(t, projects, "-home-dev-ws", empty, "", now.Add(-time.Minute))
+	writeTranscriptAt(t, projects, "-home-dev-ws", noMsg,
+		`{"type":"file-history-snapshot","messageId":"x"}`+"\n", now.Add(-2*time.Minute))
+	writeTranscriptAt(t, projects, "-home-dev-api", answer,
+		`{"type":"assistant","cwd":"/home/dev/api","message":{"content":"hello"}}`+"\n", now.Add(-2*time.Hour))
+
+	got := ListPast(projects, now.Add(-14*24*time.Hour), 30, nil)
+	if len(got) != 2 || got[0].ID != real || got[1].ID != answer {
+		t.Fatalf("want only the two with a message: %+v", got)
+	}
+	if capped := ListPast(projects, now.Add(-14*24*time.Hour), 1, nil); len(capped) != 1 || capped[0].ID != real {
+		t.Fatalf("an empty one takes no place: %+v", capped)
+	}
+}
+
 // A name set late in a long conversation is still found, without the whole
 // file being read.
 func TestListPastReadsTheNameFromTheEnd(t *testing.T) {
