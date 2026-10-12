@@ -88,13 +88,50 @@ func currentUserAndAddress(stateDir string) (string, string) {
 	return currentUser(), serverAddress(stateDir, os.Getenv("SSH_CONNECTION"), hostName())
 }
 
+// laptopPort is the port on the other computer that the tunnel forwards
+// this machine's page port from. The default port is forwarded from the
+// one after it, since CC Babysitter on that computer prefers the default
+// port too and may hold it already; any other port is forwarded from the
+// same port.
+func laptopPort(port int) int {
+	if port == defaultPort {
+		return defaultPort + 1
+	}
+	return port
+}
+
 // tunnelHint is the command line that forwards the page's port from
 // another machine over SSH. It leaves out -N, so the same window is also
-// an ordinary shell on this machine for as long as it stays open. The
-// target is quoted for the shell the person pastes the line into when it
-// holds anything that shell would treat specially.
+// an ordinary shell on this machine for as long as it stays open. It stops
+// with an error when it cannot take the port on that machine, instead of
+// going on without it, and ends a connection that stopped answering
+// within a couple of minutes. The target is quoted for the shell the
+// person pastes the line into when it holds anything that shell would
+// treat specially.
 func tunnelHint(port int, user, address string) string {
-	return fmt.Sprintf("ssh -L %d:127.0.0.1:%d %s", port, port, hosts.ShellQuote(hosts.SSHTarget(user, address)))
+	return fmt.Sprintf("ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L %d:127.0.0.1:%d %s",
+		laptopPort(port), port, hosts.ShellQuote(hosts.SSHTarget(user, address)))
+}
+
+// tunnelLines are the lines that tell a person how to reach this machine's
+// page from another computer: the tunnel to run there, and the address to
+// open there while it runs, which is pageURL on the tunnel's port. They
+// are empty when pageURL has no port to forward.
+func tunnelLines(pageURL, user, address string) string {
+	u, err := url.Parse(pageURL)
+	if err != nil {
+		return ""
+	}
+	port, err := strconv.Atoi(u.Port())
+	if err != nil {
+		return ""
+	}
+	u.Host = "127.0.0.1:" + strconv.Itoa(laptopPort(port))
+	var b strings.Builder
+	fmt.Fprintf(&b, "To view and control this server's %s from a computer with a browser, connect from that computer with:\n", buildinfo.Name)
+	fmt.Fprintf(&b, "  %s\n", tunnelHint(port, user, address))
+	fmt.Fprintf(&b, "then open %s in its browser while that connection is open.\n", u.String())
+	return b.String()
 }
 
 // portOf pulls the port back out of a URL of the form
@@ -123,11 +160,7 @@ func banner(version, pageURL string, headless bool, user, address, cliVersion, d
 	fmt.Fprintf(&b, "%s %s\n", buildinfo.Name, version)
 	fmt.Fprintf(&b, "Page: %s\n", pageURL)
 	if headless {
-		if n, err := strconv.Atoi(portOf(pageURL)); err == nil {
-			fmt.Fprintf(&b, "To view and control this server's %s from a computer with a browser, connect from that computer with:\n", buildinfo.Name)
-			fmt.Fprintf(&b, "  %s\n", tunnelHint(n, user, address))
-			fmt.Fprintf(&b, "then open %s in its browser while that connection is open.\n", pageURL)
-		}
+		b.WriteString(tunnelLines(pageURL, user, address))
 	}
 
 	fmt.Fprint(&b, "Keep computer awake: while at least one session is babysat, the computer does not idle-sleep\n")

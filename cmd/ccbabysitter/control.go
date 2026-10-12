@@ -564,6 +564,13 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 	}
 	fmt.Fprintf(env.stdout, "CC Babysitter %s is running at %s\n", v.Version, url)
 	fmt.Fprintf(env.stdout, "Sessions: %d, babysat: %d. Keeping the computer awake: %s\n", len(sessions), babysat, awake)
+	// Run over ssh on a machine with no display, as open decides it, the
+	// address above only works here, so status also says how to reach the
+	// page from the computer the person is at, as the banner does.
+	if env.headless != nil && env.headless() {
+		user, address := currentUserAndAddress(env.stateDir)
+		fmt.Fprint(env.stdout, tunnelLines(url, user, address))
+	}
 	return 0
 }
 

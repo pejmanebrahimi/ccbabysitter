@@ -127,6 +127,8 @@ includes the page's key, so it opens the page in a browser as it is.`,
   Sessions: 5, babysat: 2. Keeping the computer awake: yes
 Keeping the computer awake says yes, no, or not supported on this system. Where
 closing the lid would put the computer to sleep, yes adds: while its lid is open.
+On a machine with no display, three more lines give the ssh command to run on
+your computer and the address to open there while it runs.
 
 With --json: {"schema":1,"running":true,"version":"...","url":"...","headless":false,
 "sessions":5,"babysat":2,"keepAwake":{"held":true,"supported":true}}.

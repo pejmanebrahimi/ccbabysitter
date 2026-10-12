@@ -364,7 +364,7 @@
         return body;
       });
     }, function () {
-      toast("CC Babysitter did not answer. It may have stopped running.", true);
+      toast(notAnswered(state.view), true);
       return null;
     });
   }
@@ -1162,7 +1162,7 @@
     $("#start-path").disabled = true;
     postJSON("/api/start", { path: path, trust: trust }).then(function (r) {
       var step = startStepFor(r.status, r.body);
-      var message = r.body && r.body.message ? r.body.message : (r.status ? statusMessage(r.status) : "CC Babysitter did not answer. It may have stopped running.");
+      var message = r.body && r.body.message ? r.body.message : (r.status ? statusMessage(r.status) : notAnswered(state.view));
       if (!startAnswerFits(seq, state.startSeq, dialog.open)) {
         /* A session that started is still news, wherever the dialog is. */
         if (step === "done") { toast(message, false); }
@@ -1598,7 +1598,7 @@
         return "";
       });
     }, function () {
-      return "CC Babysitter did not answer. It may have stopped running.";
+      return notAnswered(state.view);
     });
   }
 
@@ -1680,6 +1680,26 @@
     show($("#reconnect-dots"), dots);
   }
 
+  /* downSays is what the pill says once the page has given up hoping the
+     stream comes straight back. A server's page is reached through an
+     ssh connection, which is the usual thing to have gone, so it says that
+     and what to run; any other page says CC Babysitter is not running. */
+  function downSays(view) {
+    if (view && view.env && view.env.headless) {
+      return "Lost the connection to the server. Run the ssh command again, or ccbabysitter on the server if it stopped there.";
+    }
+    return "Not running. Start CC Babysitter to reconnect.";
+  }
+
+  /* notAnswered is what an action says when nothing answered it at all,
+     in the same terms as downSays. */
+  function notAnswered(view) {
+    if (view && view.env && view.env.headless) {
+      return "The server did not answer. Check that the ssh connection is still open.";
+    }
+    return "CC Babysitter did not answer. It may have stopped running.";
+  }
+
   /* keyRefusal is what the page says when asking for the state was
      answered with status and body: the server's own words when it is
      running but does not take this page's key, and "" for any other
@@ -1740,7 +1760,7 @@
       if (quitHere) {
         reconnectSays(QUIT_SAYS, false);
       } else if (attempts >= PATIENCE && !keyRefused) {
-        reconnectSays("Not running. Start CC Babysitter to reconnect.", false);
+        reconnectSays(downSays(state.view), false);
       }
       askWhyDown();
       var wait = backoff;

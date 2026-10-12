@@ -96,9 +96,10 @@
 
     <h2 id="page">Open the page from your laptop</h2>
     <p>The page only listens on the server itself, so you reach it through SSH. On your laptop, run the command the script printed. It looks like this, with your own user and server, and the port may differ:</p>
-    <pre class="out">ssh -L 47391:127.0.0.1:47391 you@your-server</pre>
-    <p>While that connection is open, open the address the script printed, which starts with <code>127.0.0.1</code> and ends with the page's key, in your browser. The window stays an ordinary shell on the server.</p>
-    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>To see the ssh command again, run <code>ccbabysitter open</code> on the server, and for the address, <code>ccbabysitter status</code>. On a cloud server, the printed command can contain the server's private address. Use the address you normally SSH to instead.</p></div>
+    <pre class="out">ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 you@your-server</pre>
+    <p>While that connection is open, open the address the script printed, which starts with <code>127.0.0.1:47392</code> and ends with the page's key, in your browser. Your laptop's side uses port 47392, so CC Babysitter on the laptop, which uses 47391, is not in the way. The window stays an ordinary shell on the server.</p>
+    <p>Keep that window open: the page works only while the connection is. When it closes, or the server restarts, the page says the connection was lost. Run the same command again, and the page reconnects by itself.</p>
+    <div class="note"><img src="/favicon.svg" alt="" width="18" height="18"><p>To see the ssh command and the address again, run <code>ccbabysitter status</code> on the server. On a cloud server, the printed command can contain the server's private address. Use the address you normally SSH to instead.</p></div>
 
     <h2 id="session">Start a session</h2>
     <p>On the page, press <strong>New session</strong>, type the full path of a project folder on the server, and press <strong>Start</strong>. CC Babysitter starts Claude Code there in the background, with Remote Control, and babysits it. From the server's shell, the same is:</p>

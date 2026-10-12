@@ -16,8 +16,8 @@ func TestBannerStatesTheKeepAwakeRuleAndTunnelsWhenHeadless(t *testing.T) {
 	for _, want := range []string{
 		"Keep computer awake: while at least one session is babysat, the computer does not idle-sleep",
 		"To view and control this server's CC Babysitter from a computer with a browser, connect from that computer with:\n" +
-			"  ssh -L 47391:127.0.0.1:47391 dev@203.0.113.7\n" +
-			"then open http://127.0.0.1:47391 in its browser while that connection is open.\n",
+			"  ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 dev@203.0.113.7\n" +
+			"then open http://127.0.0.1:47392 in its browser while that connection is open.\n",
 		"Ctrl+C",
 	} {
 		if !contains(b, want) {
@@ -46,7 +46,7 @@ func TestBannerNamesThePage(t *testing.T) {
 // another computer; the one in front of the user does not.
 func TestBannerOffersNoTunnelWhenNotHeadless(t *testing.T) {
 	b := banner("0.1.0", "http://127.0.0.1:47391", false, "dev", "box", "2.1.275", "", "", foregroundClosing)
-	for _, gone := range []string{"To view and control this server's", "ssh -L"} {
+	for _, gone := range []string{"To view and control this server's", " -L "} {
 		if contains(b, gone) {
 			t.Fatalf("a non-headless banner must not offer a tunnel: found %q in\n%s", gone, b)
 		}
@@ -70,10 +70,23 @@ func TestBannerOmitsUnknownVersions(t *testing.T) {
 }
 
 // The tunnel command leaves out -N, so the window it runs in is also an
-// ordinary shell on the server.
+// ordinary shell on the server. It forwards the default port from another
+// port on the computer, where CC Babysitter may hold the default port
+// itself; it stops when it cannot take that port rather than going on
+// without it, and notices a dead connection.
 func TestTunnelHintFormat(t *testing.T) {
 	got := tunnelHint(47391, "dev", "203.0.113.7")
-	want := "ssh -L 47391:127.0.0.1:47391 dev@203.0.113.7"
+	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 dev@203.0.113.7"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+// A port other than the default is forwarded from the same port, which
+// nothing on the computer has a reason to hold.
+func TestTunnelHintKeepsAnotherPort(t *testing.T) {
+	got := tunnelHint(51234, "dev", "203.0.113.7")
+	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 51234:127.0.0.1:51234 dev@203.0.113.7"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
@@ -174,13 +187,16 @@ func TestReadmeNamesTheVerifiedCLIVersion(t *testing.T) {
 
 // The banner prints the address with the page's key wherever it tells a
 // person to open the page, and the tunnel still forwards the plain port.
+// The address to open on the other computer is on the port the tunnel
+// takes there.
 func TestBannerCarriesTheKeyedAddress(t *testing.T) {
-	keyed := "http://127.0.0.1:47391/?token=" + strings.Repeat("ab", 32)
+	token := "/?token=" + strings.Repeat("ab", 32)
+	keyed := "http://127.0.0.1:47391" + token
 	b := banner("0.1.0", keyed, true, "dev", "203.0.113.7", "2.1.275", "", "", foregroundClosing)
 	for _, want := range []string{
 		"Page: " + keyed + "\n",
-		"  ssh -L 47391:127.0.0.1:47391 dev@203.0.113.7\n",
-		"then open " + keyed + " in its browser while that connection is open.\n",
+		"  ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 dev@203.0.113.7\n",
+		"then open http://127.0.0.1:47392" + token + " in its browser while that connection is open.\n",
 	} {
 		if !contains(b, want) {
 			t.Fatalf("missing %q in\n%s", want, b)
@@ -192,7 +208,7 @@ func TestBannerCarriesTheKeyedAddress(t *testing.T) {
 // and needs no quoting for the shell.
 func TestTunnelHintLeavesAnIPv6AddressBare(t *testing.T) {
 	got := tunnelHint(47391, "alice", "2001:db8::2")
-	want := "ssh -L 47391:127.0.0.1:47391 alice@2001:db8::2"
+	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 alice@2001:db8::2"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
