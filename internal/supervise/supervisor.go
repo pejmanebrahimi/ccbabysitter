@@ -184,6 +184,10 @@ type Supervisor struct {
 	// handedBack is every session handed back from the background to its
 	// app in the last day, by session id. It is only ever kept in memory.
 	handedBack map[string]handBack
+	// versions is, by session id, what the loop remembers about each
+	// babysat session's Claude Code version, to leave a background session
+	// to Claude Code while it starts it again on a new version.
+	versions map[string]versionNote
 	// stopped is every background session whose copy Stop ended without
 	// handing it back to an app, by session id, so its Not running row can
 	// offer the command that starts it again. It is only kept in memory.
@@ -241,6 +245,7 @@ func New(d Deps) *Supervisor {
 		treesAt:       map[int]time.Time{},
 		trouble:       newCopyTrouble(),
 		handedBack:    map[string]handBack{},
+		versions:      map[string]versionNote{},
 		stopped:       map[string]stoppedCopy{},
 		startedAt:     d.Now(),
 	}

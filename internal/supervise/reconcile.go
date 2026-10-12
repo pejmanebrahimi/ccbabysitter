@@ -75,6 +75,12 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 			if s.inGrace() {
 				continue
 			}
+			// Claude Code that has just updated itself starts its
+			// background sessions again on the new version, and a session
+			// is gone for a moment in between. It is left to do that.
+			if s.leftToClaudeCode(ctx, w) {
+				continue
+			}
 			if resumesLeft == 0 {
 				waiting++
 				continue
@@ -122,6 +128,7 @@ func (s *Supervisor) countAbsence(snap observe.Snapshot) {
 		return
 	}
 	s.lastCounted = snap.At
+	s.noteVersions(snap)
 	live := map[string][]claude.Host{}
 	for _, sn := range snap.Sessions {
 		live[sn.ID] = append(live[sn.ID], sn.Host)
@@ -626,23 +633,29 @@ func (s *Supervisor) dedupe(ctx context.Context, w state.Watch, snap observe.Sna
 // display, where nobody is watching a window to notice one dying. A
 // session that was already running when this program started is never
 // adopted, and neither is one the user has chosen to stop babysitting. A
-// session Start started is babysat whatever the setting says.
+// session Start started is babysat whatever the setting says, and is left
+// to the branch below, which says it is the one Start started.
 func (s *Supervisor) autoBabysit(snap observe.Snapshot) bool {
 	changed := false
+	// Start stops waiting for a session first, so one that shows up late
+	// is adopted below like any other new background session.
+	for short, at := range s.started {
+		if s.deps.Now().Sub(at) > startedWait {
+			delete(s.started, short)
+		}
+	}
 	if s.firstPass && s.st.Settings.AutoBabysit && s.env.Headless {
 		for _, sn := range snap.Sessions {
 			if sn.Host != claude.HostBackground || s.seen[sn.ID] || s.find(sn.ID) != nil {
+				continue
+			}
+			if _, mine := s.started[sn.ShortID]; mine {
 				continue
 			}
 			s.st.Watches = append(s.st.Watches, newWatch(sn, s.deps.Now()))
 			s.logAuto(sessionLabel(sn.Name, sn.ID), "server auto-babysit",
 				"adopted background session "+sn.ShortID+" on a machine with no display")
 			changed = true
-		}
-	}
-	for short, at := range s.started {
-		if s.deps.Now().Sub(at) > startedWait {
-			delete(s.started, short)
 		}
 	}
 	for _, sn := range snap.Sessions {
@@ -864,23 +877,30 @@ func (s *Supervisor) knownCause(id string) string {
 const retireWindow = 5 * time.Minute
 
 // exitReason is the reason Activity gives for bringing a session back: the
-// CLI daemon stopping it after it sat idle, when its log says so; else the
-// cause worked out the moment the session went missing; else the plain
-// fact that the process running it exited. A retire line
+// CLI daemon stopping it after it sat idle, when its log says so; else, for
+// a session that went away in the background within retireWindow on an
+// older Claude Code than the one installed, that update, unless it was
+// stopped for freezing or went down with the computer; else the cause
+// worked out the moment the session went missing; else the plain fact that
+// the process running it exited. A retire line
 // counts only when it is recent and newer than the session's last rescue,
 // lastResume: an older one explained an exit that was already dealt with.
 func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
-	if s.deps.DaemonLog == "" {
-		return s.knownCause(id)
+	if s.deps.DaemonLog != "" {
+		now := s.deps.Now()
+		from := now.Add(-retireWindow)
+		if lastResume.After(from) {
+			from = lastResume
+		}
+		for _, sh := range []string{strings.ToLower(short), strings.ToLower(shortOf(id))} {
+			if idle, ok := claude.Retired(s.deps.DaemonLog, sh, from, now); ok {
+				return "Claude Code stopped it after " + idleWords(idle) + " idle"
+			}
+		}
 	}
-	now := s.deps.Now()
-	from := now.Add(-retireWindow)
-	if lastResume.After(from) {
-		from = lastResume
-	}
-	for _, sh := range []string{strings.ToLower(short), strings.ToLower(shortOf(id))} {
-		if idle, ok := claude.Retired(s.deps.DaemonLog, sh, from, now); ok {
-			return "Claude Code stopped it after " + idleWords(idle) + " idle"
+	if w := s.find(id); w != nil {
+		if was, now, ok := s.outdatedBy(*w, s.installedKnown(id)); ok {
+			return updateWords(was, now)
 		}
 	}
 	return s.knownCause(id)

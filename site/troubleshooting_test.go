@@ -57,6 +57,8 @@ var troublePageNotes = []string{
 	"CC Babysitter refused that request. Open this page from the address it printed when it started.",
 	"Too many pages are connected to CC Babysitter. Close one and try again.",
 	"CC Babysitter did not answer. It may have stopped running.",
+	"Lost the connection to the server. Run the ssh command again, or ccbabysitter on the server if it stopped there.",
+	"The server did not answer. Check that the ssh connection is still open.",
 	"three starts failed in five minutes",
 	"Not responding in",
 }

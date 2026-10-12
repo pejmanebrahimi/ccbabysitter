@@ -150,10 +150,12 @@
       <li><code>the background copy ended</code></li>
       <li><code>the computer restarted</code></li>
       <li><code>Claude Code stopped it after ...</code></li>
+      <li><code>Claude Code updated from ...</code></li>
       <li><code>it stopped responding</code></li>
       <li><code>the process running it exited</code></li>
     </ul>
     <p>When a babysat session's app goes away, CC Babysitter starts the same session again in the background, under the same id. When that can be told, the Activity line says why the session went down. For example, Claude Desktop closed or updated, the computer restarted, or Claude Code ended it after it sat idle. When nothing tells, the line says only that its process exited.</p>
+    <p>After Claude Code updates itself, it moves each background session from a process on the old version to one on the new version. The session is gone for a moment. CC Babysitter leaves that to Claude Code for a minute, and says so in Activity. A session still gone after that is brought back as usual.</p>
     <p>Nothing needs doing. Reach the session from your phone. To go back to its app, use the card's <strong>Back to Desktop</strong>, <strong>Back to VS Code</strong> or <strong>End background copy</strong>. Some lines give one of these reasons but do not say the session was resumed. Those mean it could not be brought back: see the next entry.</p>
 
     <h2 id="could-not-bring-back">A session could not be brought back</h2>
@@ -248,8 +250,11 @@
     <ul class="msgs">
       <li><code>Not running. Start CC Babysitter to reconnect.</code></li>
       <li><code>CC Babysitter did not answer. It may have stopped running.</code></li>
+      <li><code>Lost the connection to the server. Run the ssh command again, or ccbabysitter on the server if it stopped there.</code></li>
+      <li><code>The server did not answer. Check that the ssh connection is still open.</code></li>
     </ul>
     <p>CC Babysitter quit, or stopped, while the page was open. Babysat sessions keep running, but nothing brings them back until it runs again. Run <code>ccbabysitter</code>, and the page reconnects. If start at login is on, it also starts again the next time you log in.</p>
+    <p>A server's page reaches the server through the ssh command you ran on your computer, and works only while that connection is open. When the connection closes, or the server restarts, run the same command again, and the page reconnects. <code>ccbabysitter status</code> on the server shows the command again.</p>
 
     <h2 id="state">Saved state could not be read or saved</h2>
     <ul class="msgs">

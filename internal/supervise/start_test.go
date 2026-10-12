@@ -235,6 +235,65 @@ func TestStartedSessionIsBabysat(t *testing.T) {
 	}
 }
 
+// With "Babysit every new background session" on, the session Start started
+// is still babysat as the one it started, and Activity says so, not that
+// server auto-babysit adopted it on its own.
+func TestStartedSessionIsLoggedAsStarted(t *testing.T) {
+	id := "1a2b3c4d-0000-4000-8000-000000000001"
+	sf := newStartFixture(t, true, func(args []string) (string, error) {
+		return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api", nil
+	})
+	sf.trust(t, sf.project)
+	sf.s.st.Settings.AutoBabysit = true
+	sf.s.reconcileForTest(observe.Snapshot{At: time.Now()})
+	if res := sf.s.Start(sf.project, false, ViaPage); !res.OK {
+		t.Fatalf("%+v", res)
+	}
+	sf.f.p.SetAlive(21, true)
+	sf.f.setFiles(sess(21, id, "background", "cli", "1a2b3c4d"))
+	sf.f.d.Obs.RefreshNow()
+	sf.s.reconcileForTest(sf.f.d.Obs.Current())
+	if _, ok := sf.s.watchForTest(id); !ok {
+		t.Fatal("the session started was not babysat")
+	}
+	started := false
+	for _, e := range sf.f.d.Log.Recent(50, "") {
+		if e.Reason == "server auto-babysit" {
+			t.Errorf("logged as adopted: %+v", e)
+		}
+		if e.Message == "babysitting the new background session 1a2b3c4d" {
+			started = true
+		}
+	}
+	if !started {
+		t.Errorf("no line says the new session is babysat: %+v", sf.f.d.Log.Recent(50, ""))
+	}
+}
+
+// A started session that shows up only after Start stopped waiting for it
+// is still babysat with the setting on, as any new background session is.
+func TestStartedSessionShowingUpLateIsStillBabysat(t *testing.T) {
+	id := "1a2b3c4d-0000-4000-8000-000000000001"
+	sf := newStartFixture(t, true, func(args []string) (string, error) {
+		return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api", nil
+	})
+	sf.trust(t, sf.project)
+	sf.s.st.Settings.AutoBabysit = true
+	sf.s.reconcileForTest(observe.Snapshot{At: time.Now()})
+	if res := sf.s.Start(sf.project, false, ViaPage); !res.OK {
+		t.Fatalf("%+v", res)
+	}
+	later := time.Now().Add(startedWait + time.Minute)
+	sf.s.deps.Now = func() time.Time { return later }
+	sf.f.p.SetAlive(21, true)
+	sf.f.setFiles(sess(21, id, "background", "cli", "1a2b3c4d"))
+	sf.f.d.Obs.RefreshNow()
+	sf.s.reconcileForTest(sf.f.d.Obs.Current())
+	if _, ok := sf.s.watchForTest(id); !ok {
+		t.Fatal("a session that showed up late was not babysat")
+	}
+}
+
 // A folder reached through a symbolic link is started, trusted and checked
 // under its real path, which is where Claude Code records the trust.
 func TestStartResolvesSymbolicLinks(t *testing.T) {

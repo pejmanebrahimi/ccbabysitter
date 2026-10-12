@@ -608,6 +608,26 @@ func TestStatusShowsTheKeyedAddress(t *testing.T) {
 	}
 }
 
+// Run over ssh on a machine with no display, status also gives the tunnel
+// and the address to open on the other computer, as the banner does, since
+// the address it starts with only works on this machine. At a screen it
+// gives neither.
+func TestStatusOnAHeadlessMachineGivesTheTunnel(t *testing.T) {
+	env, e, ts := testEnv(t)
+	e.view.URL = ts.URL
+	keyed := ts.URL + "/?token=" + state.ReadPageKey(env.stateDir)
+	env.headless = func() bool { return true }
+	code, out, _ := runCmd(t, env, "status")
+	if code != 0 || !strings.Contains(out, "connect from that computer with:\n  ssh -o ExitOnForwardFailure=yes ") ||
+		!strings.Contains(out, "then open "+keyed+" in its browser while that connection is open.\n") {
+		t.Fatalf("status = %d\n%s", code, out)
+	}
+	env.headless = func() bool { return false }
+	if code, out, _ := runCmd(t, env, "status"); code != 0 || strings.Contains(out, " -L ") {
+		t.Fatalf("at a screen, status = %d\n%s", code, out)
+	}
+}
+
 // A copy that answers without the right key is running, so a wrong or
 // missing key is exit 1 with its own code, never not running.
 func TestWrongKeyIsNoKey(t *testing.T) {
@@ -852,7 +872,7 @@ func TestOpenOnAHeadlessMachinePrintsTheTunnel(t *testing.T) {
 	opened := false
 	env.open = func(string) error { opened = true; return nil }
 	code, out, _ := runCmd(t, env, "open")
-	if code != 0 || opened || !strings.Contains(out, "\n  ssh -L ") || !strings.Contains(out, "ccbabysitter status") {
+	if code != 0 || opened || !strings.Contains(out, "\n  ssh -o ExitOnForwardFailure=yes ") || !strings.Contains(out, "ccbabysitter status") {
 		t.Fatalf("open = %d %q, opened %v", code, out, opened)
 	}
 }
@@ -868,13 +888,13 @@ func TestOpenDecidesTheDisplayWhereItRuns(t *testing.T) {
 	env.headless = func() bool { return false }
 	opened := false
 	env.open = func(string) error { opened = true; return nil }
-	if code, out, _ := runCmd(t, env, "open"); code != 0 || !opened || strings.Contains(out, "ssh -L") {
+	if code, out, _ := runCmd(t, env, "open"); code != 0 || !opened || strings.Contains(out, " -L ") {
 		t.Fatalf("headless service, caller at a screen: open = %d %q, opened %v", code, out, opened)
 	}
 	e.view.Env.Headless = false
 	env.headless = func() bool { return true }
 	opened = false
-	if code, out, _ := runCmd(t, env, "open"); code != 0 || opened || !strings.Contains(out, "ssh -L ") {
+	if code, out, _ := runCmd(t, env, "open"); code != 0 || opened || !strings.Contains(out, " -L ") {
 		t.Fatalf("service with a display, caller over ssh: open = %d %q, opened %v", code, out, opened)
 	}
 }
@@ -886,7 +906,7 @@ func TestOpenWithoutAPortPrintsNoTunnel(t *testing.T) {
 	env.headless = func() bool { return true }
 	env.open = func(string) error { t.Fatal("opened a browser"); return nil }
 	code, out, _ := runCmd(t, env, "open")
-	if code != 0 || strings.Contains(out, "ssh -L") || !strings.Contains(out, "no display") {
+	if code != 0 || strings.Contains(out, " -L ") || !strings.Contains(out, "no display") {
 		t.Fatalf("open = %d %q", code, out)
 	}
 }

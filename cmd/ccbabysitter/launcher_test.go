@@ -120,7 +120,7 @@ func TestLauncherOnAServerLingersAndOpensNothing(t *testing.T) {
 	if !f.did("write server") || !f.did("linger on") || len(d.opened) != 0 {
 		t.Fatalf("calls %q, opened %q", f.calls, d.opened)
 	}
-	if !strings.Contains(out.String(), "ssh -L 47391:127.0.0.1:47391") || !strings.Contains(out.String(), "starts again when this server boots.") {
+	if !strings.Contains(out.String(), "-L 127.0.0.1:47392:127.0.0.1:47391") || !strings.Contains(out.String(), "starts again when this server boots.") {
 		t.Fatalf("output:\n%s", out.String())
 	}
 }
@@ -402,7 +402,7 @@ func TestLauncherHeadlessIsNotAServer(t *testing.T) {
 	if rc := runLauncher(&out, f, keyedDir(t), launchOptions{Headless: true}, (&fakeDeps{view: desktopView()}).deps(answeringAt(pageAt))); rc != 0 {
 		t.Fatalf("rc %d", rc)
 	}
-	if !f.did("write desktop") || f.did("linger on") || !strings.Contains(out.String(), "ssh -L") || !strings.Contains(out.String(), "when you log in") {
+	if !f.did("write desktop") || f.did("linger on") || !strings.Contains(out.String(), " -L ") || !strings.Contains(out.String(), "when you log in") {
 		t.Fatalf("calls %q\n%s", f.calls, out.String())
 	}
 }

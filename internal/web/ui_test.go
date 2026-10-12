@@ -1694,6 +1694,40 @@ func TestARefusalWithACommandStays(t *testing.T) {
 	}
 }
 
+// A server's page is reached through an ssh connection, so when it loses
+// CC Babysitter it says the connection to the server was lost and what to
+// run, rather than that CC Babysitter is not running. A page on the
+// machine itself, or one that has not had a view yet, says what it always
+// said.
+func TestALostServerPageSpeaksOfTheConnection(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	script := "(function () {\n" + jsFunction(t, app, "downSays") + jsFunction(t, app, "notAnswered") +
+		`[{env: {headless: true}}, {env: {}}, null].forEach(function (v) { console.log(downSays(v)); console.log(notAnswered(v)); });` + "\n" +
+		"})();\n"
+	want := []string{
+		"Lost the connection to the server. Run the ssh command again, or ccbabysitter on the server if it stopped there.",
+		"The server did not answer. Check that the ssh connection is still open.",
+		"Not running. Start CC Babysitter to reconnect.",
+		"CC Babysitter did not answer. It may have stopped running.",
+		"Not running. Start CC Babysitter to reconnect.",
+		"CC Babysitter did not answer. It may have stopped running.",
+	}
+	got := runNode(t, script)
+	if len(got) != len(want) {
+		t.Fatalf("want %d lines from node, got %q", len(want), got)
+	}
+	for i, w := range want {
+		if got[i] != w {
+			t.Errorf("line %d: got %q, want %q", i, got[i], w)
+		}
+	}
+	for _, old := range []string{`reconnectSays("Not running. Start CC Babysitter to reconnect.", false)`, `toast("CC Babysitter did not answer. It may have stopped running.", true)`} {
+		if strings.Contains(app, old) {
+			t.Errorf("app.js still says it without asking which page it is: %s", old)
+		}
+	}
+}
+
 // runNode runs a script with node and returns its output lines, skipping
 // the test where node is not installed.
 func runNode(t *testing.T, script string) []string {
