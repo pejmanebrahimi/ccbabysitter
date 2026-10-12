@@ -626,23 +626,29 @@ func (s *Supervisor) dedupe(ctx context.Context, w state.Watch, snap observe.Sna
 // display, where nobody is watching a window to notice one dying. A
 // session that was already running when this program started is never
 // adopted, and neither is one the user has chosen to stop babysitting. A
-// session Start started is babysat whatever the setting says.
+// session Start started is babysat whatever the setting says, and is left
+// to the branch below, which says it is the one Start started.
 func (s *Supervisor) autoBabysit(snap observe.Snapshot) bool {
 	changed := false
+	// Start stops waiting for a session first, so one that shows up late
+	// is adopted below like any other new background session.
+	for short, at := range s.started {
+		if s.deps.Now().Sub(at) > startedWait {
+			delete(s.started, short)
+		}
+	}
 	if s.firstPass && s.st.Settings.AutoBabysit && s.env.Headless {
 		for _, sn := range snap.Sessions {
 			if sn.Host != claude.HostBackground || s.seen[sn.ID] || s.find(sn.ID) != nil {
+				continue
+			}
+			if _, mine := s.started[sn.ShortID]; mine {
 				continue
 			}
 			s.st.Watches = append(s.st.Watches, newWatch(sn, s.deps.Now()))
 			s.logAuto(sessionLabel(sn.Name, sn.ID), "server auto-babysit",
 				"adopted background session "+sn.ShortID+" on a machine with no display")
 			changed = true
-		}
-	}
-	for short, at := range s.started {
-		if s.deps.Now().Sub(at) > startedWait {
-			delete(s.started, short)
 		}
 	}
 	for _, sn := range snap.Sessions {
