@@ -2,7 +2,7 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
-## Unreleased
+## 0.9.1 (2026-10-12)
 
 - Fixed: after Claude Code updated itself, it replaced a background session's process on the old version with one on the new version, and CC Babysitter took a babysat session that was gone for that moment for one that had gone down. Its resume raced Claude Code, made a copy, and had to stop and remove it. A babysat background session that goes away on an older version than the one installed is now left to Claude Code for a minute, and Activity says why, such as "Claude Code updated from 2.1.295 to 2.1.296". A session still gone after that is brought back with that reason (#113).
 - Fixed: after a restart of a Linux machine, every command could say "CC Babysitter is not running" while it ran, and the checks that refuse to act beside a running copy, such as `ccbabysitter reset`'s, could be fooled the same way. When the clock is synced after boot, Linux can report a process's start a second later or earlier, and the check of the copy that holds the lock allowed only a tenth of a second (#112).
