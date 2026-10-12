@@ -16,7 +16,7 @@ func TestBannerStatesTheKeepAwakeRuleAndTunnelsWhenHeadless(t *testing.T) {
 	for _, want := range []string{
 		"Keep computer awake: while at least one session is babysat, the computer does not idle-sleep",
 		"To view and control this server's CC Babysitter from a computer with a browser, connect from that computer with:\n" +
-			"  ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 dev@203.0.113.7\n" +
+			"  ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:47392:127.0.0.1:47391 dev@203.0.113.7\n" +
 			"then open http://127.0.0.1:47392 in its browser while that connection is open.\n",
 		"Ctrl+C",
 	} {
@@ -76,7 +76,7 @@ func TestBannerOmitsUnknownVersions(t *testing.T) {
 // without it, and notices a dead connection.
 func TestTunnelHintFormat(t *testing.T) {
 	got := tunnelHint(47391, "dev", "203.0.113.7")
-	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 dev@203.0.113.7"
+	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:47392:127.0.0.1:47391 dev@203.0.113.7"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
@@ -86,7 +86,7 @@ func TestTunnelHintFormat(t *testing.T) {
 // nothing on the computer has a reason to hold.
 func TestTunnelHintKeepsAnotherPort(t *testing.T) {
 	got := tunnelHint(51234, "dev", "203.0.113.7")
-	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 51234:127.0.0.1:51234 dev@203.0.113.7"
+	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:51234:127.0.0.1:51234 dev@203.0.113.7"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
@@ -195,7 +195,7 @@ func TestBannerCarriesTheKeyedAddress(t *testing.T) {
 	b := banner("0.1.0", keyed, true, "dev", "203.0.113.7", "2.1.275", "", "", foregroundClosing)
 	for _, want := range []string{
 		"Page: " + keyed + "\n",
-		"  ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 dev@203.0.113.7\n",
+		"  ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:47392:127.0.0.1:47391 dev@203.0.113.7\n",
 		"then open http://127.0.0.1:47392" + token + " in its browser while that connection is open.\n",
 	} {
 		if !contains(b, want) {
@@ -208,7 +208,7 @@ func TestBannerCarriesTheKeyedAddress(t *testing.T) {
 // and needs no quoting for the shell.
 func TestTunnelHintLeavesAnIPv6AddressBare(t *testing.T) {
 	got := tunnelHint(47391, "alice", "2001:db8::2")
-	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 47392:127.0.0.1:47391 alice@2001:db8::2"
+	want := "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:47392:127.0.0.1:47391 alice@2001:db8::2"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}

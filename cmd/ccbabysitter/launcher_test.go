@@ -120,7 +120,7 @@ func TestLauncherOnAServerLingersAndOpensNothing(t *testing.T) {
 	if !f.did("write server") || !f.did("linger on") || len(d.opened) != 0 {
 		t.Fatalf("calls %q, opened %q", f.calls, d.opened)
 	}
-	if !strings.Contains(out.String(), "-L 47392:127.0.0.1:47391") || !strings.Contains(out.String(), "starts again when this server boots.") {
+	if !strings.Contains(out.String(), "-L 127.0.0.1:47392:127.0.0.1:47391") || !strings.Contains(out.String(), "starts again when this server boots.") {
 		t.Fatalf("output:\n%s", out.String())
 	}
 }

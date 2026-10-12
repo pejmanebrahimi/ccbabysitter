@@ -78,7 +78,7 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 			// Claude Code that has just updated itself starts its
 			// background sessions again on the new version, and a session
 			// is gone for a moment in between. It is left to do that.
-			if s.leftToClaudeCode(w) {
+			if s.leftToClaudeCode(ctx, w) {
 				continue
 			}
 			if resumesLeft == 0 {
@@ -878,28 +878,28 @@ const retireWindow = 5 * time.Minute
 
 // exitReason is the reason Activity gives for bringing a session back: the
 // CLI daemon stopping it after it sat idle, when its log says so; else, for
-// a session that ran in the background on an older Claude Code than the
-// one installed, that update; else the cause worked out the moment the
-// session went missing; else the plain fact that the process running it
-// exited. A retire line
+// a session that went away in the background within retireWindow on an
+// older Claude Code than the one installed, that update, unless it was
+// stopped for freezing or went down with the computer; else the cause
+// worked out the moment the session went missing; else the plain fact that
+// the process running it exited. A retire line
 // counts only when it is recent and newer than the session's last rescue,
 // lastResume: an older one explained an exit that was already dealt with.
 func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
-	if s.deps.DaemonLog == "" {
-		return s.knownCause(id)
-	}
-	now := s.deps.Now()
-	from := now.Add(-retireWindow)
-	if lastResume.After(from) {
-		from = lastResume
-	}
-	for _, sh := range []string{strings.ToLower(short), strings.ToLower(shortOf(id))} {
-		if idle, ok := claude.Retired(s.deps.DaemonLog, sh, from, now); ok {
-			return "Claude Code stopped it after " + idleWords(idle) + " idle"
+	if s.deps.DaemonLog != "" {
+		now := s.deps.Now()
+		from := now.Add(-retireWindow)
+		if lastResume.After(from) {
+			from = lastResume
+		}
+		for _, sh := range []string{strings.ToLower(short), strings.ToLower(shortOf(id))} {
+			if idle, ok := claude.Retired(s.deps.DaemonLog, sh, from, now); ok {
+				return "Claude Code stopped it after " + idleWords(idle) + " idle"
+			}
 		}
 	}
 	if w := s.find(id); w != nil {
-		if was, now, ok := s.outdatedBy(*w); ok {
+		if was, now, ok := s.outdatedBy(*w, s.installedKnown(id)); ok {
 			return updateWords(was, now)
 		}
 	}

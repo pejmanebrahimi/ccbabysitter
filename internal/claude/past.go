@@ -105,7 +105,8 @@ func ListPast(projectsDir string, since time.Time, max int, skip map[string]bool
 // or from the title records within either end of the file. A line cut in
 // half at the edge of what was read is not valid JSON and is skipped like
 // any other that is not. said reports whether either end holds a message,
-// from the person or from the model.
+// from the person or from the model, and is always true for a file too
+// long to be read whole.
 func readPastEdges(path string) (cwd, name string, said bool) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -131,7 +132,13 @@ func readPastEdges(path string) (cwd, name string, said bool) {
 		}
 	}
 	scan(head[:n])
-	if info, err := f.Stat(); err == nil && info.Size() > int64(n) {
+	info, err := f.Stat()
+	// Only a file read whole can be known to hold no message: in a longer
+	// one, the messages can all lie between the two ends that are read.
+	if err == nil && info.Size() > 2*pastEdgeBytes {
+		said = true
+	}
+	if err == nil && info.Size() > int64(n) {
 		// The record after a custom-title that ends the head window is
 		// somewhere unread, so the tail cannot say whether it was the
 		// automatic name. It is dropped rather than taken.

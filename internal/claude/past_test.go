@@ -93,6 +93,23 @@ func TestListPastLeavesOutConversationsWithNoMessage(t *testing.T) {
 	}
 }
 
+// A transcript too long to be read whole, whose messages all fall outside
+// the ends that are read, is kept: only a file read whole can be known to
+// hold no message.
+func TestListPastKeepsALongConversationItCannotSeeAMessageIn(t *testing.T) {
+	projects := t.TempDir()
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	const long = "55555555-2222-4333-8444-555555555515"
+	big := strings.Repeat("a", pastEdgeBytes+1024)
+	body := `{"type":"user","cwd":"/home/dev/ws","message":{"content":"` + big + `"}}` + "\n" +
+		`{"type":"assistant","message":{"content":"` + big + `"}}` + "\n"
+	writeTranscriptAt(t, projects, "-home-dev-ws", long, body, now.Add(-time.Minute))
+	got := ListPast(projects, now.Add(-14*24*time.Hour), 30, nil)
+	if len(got) != 1 || got[0].ID != long {
+		t.Fatalf("a long conversation was left out: %+v", got)
+	}
+}
+
 // A name set late in a long conversation is still found, without the whole
 // file being read.
 func TestListPastReadsTheNameFromTheEnd(t *testing.T) {

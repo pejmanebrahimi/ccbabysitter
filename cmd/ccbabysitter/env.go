@@ -102,14 +102,16 @@ func laptopPort(port int) int {
 
 // tunnelHint is the command line that forwards the page's port from
 // another machine over SSH. It leaves out -N, so the same window is also
-// an ordinary shell on this machine for as long as it stays open. It stops
-// with an error when it cannot take the port on that machine, instead of
-// going on without it, and ends a connection that stopped answering
-// within a couple of minutes. The target is quoted for the shell the
-// person pastes the line into when it holds anything that shell would
-// treat specially.
+// an ordinary shell on this machine for as long as it stays open. It
+// listens on that machine's 127.0.0.1 alone, the address the page is
+// opened at, and stops with an error when it cannot take the port there
+// instead of going on: without the address named, ssh takes whichever of
+// 127.0.0.1 and ::1 is free and goes on. It ends a connection that stopped
+// answering within a couple of minutes. The target is quoted for the
+// shell the person pastes the line into when it holds anything that shell
+// would treat specially.
 func tunnelHint(port int, user, address string) string {
-	return fmt.Sprintf("ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L %d:127.0.0.1:%d %s",
+	return fmt.Sprintf("ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:%d:127.0.0.1:%d %s",
 		laptopPort(port), port, hosts.ShellQuote(hosts.SSHTarget(user, address)))
 }
 
