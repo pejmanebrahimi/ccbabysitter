@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Fixed: after a restart of a Linux machine, every command could say "CC Babysitter is not running" while it ran, and the checks that refuse to act beside a running copy, such as `ccbabysitter reset`'s, could be fooled the same way. When the clock is synced after boot, Linux can report a process's start a second later or earlier, and the check of the copy that holds the lock allowed only a tenth of a second (#112).
+
 ## 0.9.0 (2026-10-10)
 
 - New: on a machine with no display, New session on the page and `ccbabysitter start PATH` start a babysat background session with Remote Control in a project folder. When Claude Code does not trust the folder yet, the page asks first and `start` wants `--trust`. Then CC Babysitter answers Claude Code's own question whether to trust the folder, and Claude Code records the trust itself (#87).

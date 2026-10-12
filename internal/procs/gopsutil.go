@@ -1,6 +1,7 @@
 package procs
 
 import (
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -344,7 +345,21 @@ func (r *Real) Exists(pid int, createMs int64) bool {
 	if err != nil {
 		return false
 	}
-	return withinTolerance(ct, createMs, 100) == Matches
+	return withinTolerance(ct, createMs, existsToleranceMs(runtime.GOOS)) == Matches
+}
+
+// existsToleranceMs is how far apart Exists lets a creation time and the
+// one it was recorded as be, on the system goos. A Windows creation time
+// is read exactly. A Unix one is the boot time plus the ticks since boot,
+// and the boot time is only known to the second, so it can move by a
+// second when the clock is synced after boot, which would otherwise make
+// a running copy's lock look stale. It is the same window MatchStart
+// gives a Unix time.
+func existsToleranceMs(goos string) int64 {
+	if goos == "windows" {
+		return filetimeToleranceMs
+	}
+	return unixMsToleranceMs
 }
 
 // looksLikeClaude reads what the operating system says about p and asks
