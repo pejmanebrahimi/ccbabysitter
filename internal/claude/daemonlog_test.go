@@ -8,35 +8,6 @@ import (
 	"time"
 )
 
-// The CLI daemon writes a line when it notices its program was updated and
-// restarts itself on the new one, which then starts its background
-// sessions' processes again. The latest such line within the window is the
-// answer, with the versions before and after; a missing or odd log is
-// simply no answer.
-func TestUpgraded(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "daemon.log")
-	now := time.Date(2026, 10, 9, 18, 22, 0, 0, time.UTC)
-	if _, ok := Upgraded(path, now.Add(-5*time.Minute), now); ok {
-		t.Fatal("no log: no answer")
-	}
-	log := "[2026-10-07T19:12:51.920Z] [supervisor] binary at /home/dev/.local/bin/claude changed (/home/dev/.local/share/claude/versions/2.1.292 \u2192 /home/dev/.local/share/claude/versions/2.1.293) \u2014 self-restarting\n" +
-		"garbage line\n" +
-		"[not a time] [supervisor] binary at /x changed (/v/1 \u2192 /v/2) \u2014 self-restarting\n" +
-		"[2026-10-09T18:21:38.719Z] [supervisor] binary at /home/dev/.local/bin/claude changed (/home/dev/.local/share/claude/versions/2.1.295 \u2192 /home/dev/.local/share/claude/versions/2.1.296) \u2014 self-restarting\n" +
-		"[2026-10-09T18:21:38.731Z] [supervisor] shutting down (cause=upgrade, uptime=50581s, leases=0, live_workers=3)\n" +
-		"[2026-10-09T18:21:39.070Z] [supervisor] \u2500\u2500\u2500 daemon start \u2500\u2500\u2500 version=2.1.296 pid=45671 origin=transient\n"
-	if err := os.WriteFile(path, []byte(log), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	up, ok := Upgraded(path, now.Add(-5*time.Minute), now)
-	if !ok || up.From != "2.1.295" || up.To != "2.1.296" || !up.At.Equal(time.Date(2026, 10, 9, 18, 21, 38, 719000000, time.UTC)) {
-		t.Fatalf("the recent upgrade line: %+v %v", up, ok)
-	}
-	if _, ok := Upgraded(path, now.Add(time.Hour-5*time.Minute), now.Add(time.Hour)); ok {
-		t.Fatal("an upgrade line older than the window does not count")
-	}
-}
-
 // The CLI daemon writes a line when it stops an idle background session.
 // Only a recent line for the very session counts, and a missing or odd log
 // is simply no answer.

@@ -5,6 +5,7 @@ package claude
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -42,6 +43,10 @@ type Session struct {
 	// StatusUpdatedAt is when Claude Code last set Status, zero when the
 	// file does not say.
 	StatusUpdatedAt time.Time
+	// Version is the Claude Code version the session's process runs, such
+	// as 2.1.296, empty when the file does not say or says something that
+	// is not a version.
+	Version string
 }
 
 type sessionFile struct {
@@ -57,6 +62,21 @@ type sessionFile struct {
 	BridgeSessionID string          `json:"bridgeSessionId"`
 	StartedAt       json.RawMessage `json:"startedAt"`
 	StatusUpdatedAt json.RawMessage `json:"statusUpdatedAt"`
+	Version         json.RawMessage `json:"version"`
+}
+
+// versionWord is what a version read from a session file must look like
+// to be kept and repeated in a sentence.
+var versionWord = regexp.MustCompile(`^[0-9][0-9A-Za-z.+-]{0,31}$`)
+
+// decodeVersion reads the version a session file gives, and "" for
+// anything that is not a string that looks like a version.
+func decodeVersion(raw json.RawMessage) string {
+	var v string
+	if json.Unmarshal(raw, &v) != nil || !versionWord.MatchString(v) {
+		return ""
+	}
+	return v
 }
 
 const (
@@ -103,6 +123,7 @@ func ParseSessionFile(data []byte) (Session, error) {
 		BridgeSessionID: f.BridgeSessionID,
 		StartedAt:       decodeMillis(f.StartedAt),
 		StatusUpdatedAt: decodeMillis(f.StatusUpdatedAt),
+		Version:         decodeVersion(f.Version),
 	}, nil
 }
 

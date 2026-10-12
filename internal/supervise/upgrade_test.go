@@ -1,34 +1,34 @@
 package supervise
 
 import (
-	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
+	"ccbabysitter.dev/ccbabysitter/internal/hosts"
 	"ccbabysitter.dev/ccbabysitter/internal/observe"
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
-// upgradeFixture is a babysat background session seen running at base,
-// with a clock the test moves forward, and a daemon log that says Claude
-// Code updated itself from 2.1.295 to 2.1.296 five seconds before base.
-// The clock keeps running from wherever the test set it, since a resume
-// waits on it for the copy it started.
+// upgradeFixture is a babysat session seen running at base in host, its
+// process on Claude Code 2.1.295, while the Claude Code installed is now
+// 2.1.296. Its clock is moved by the test and keeps running from there,
+// since a resume waits on it for the copy it started.
 type upgradeFixture struct {
 	f      *fixture
 	s      *Supervisor
 	id     string
+	host   claude.Host
 	base   time.Time
 	mu     sync.Mutex
 	offset time.Duration
 }
 
-func newUpgradeFixture(t *testing.T) *upgradeFixture {
+func newUpgradeFixture(t *testing.T, host claude.Host, installed string) *upgradeFixture {
 	t.Helper()
-	u := &upgradeFixture{id: "1a2b3c4d-0000-4000-8000-000000000001", base: time.Now().UTC()}
+	u := &upgradeFixture{id: "1a2b3c4d-0000-4000-8000-000000000001", host: host, base: time.Now().UTC()}
 	u.f = newFixture(t, nil)
 	u.f.r.SetRespond(func(args []string) (string, error) {
 		a := strings.Join(args, " ")
@@ -41,6 +41,9 @@ func newUpgradeFixture(t *testing.T) *upgradeFixture {
 		return "", nil
 	})
 	u.f.writeTranscript(t, "/home/dev/ws", u.id)
+	u.f.d.Env = func() hosts.Env {
+		return hosts.Env{Platform: "linux", CLIFound: true, CLIPresent: true, CLIVersion: installed}
+	}
 	u.f.d.Now = func() time.Time {
 		u.mu.Lock()
 		defer u.mu.Unlock()
@@ -48,18 +51,13 @@ func newUpgradeFixture(t *testing.T) *upgradeFixture {
 	}
 	u.s, _, _ = newSup(t, u.f)
 	u.s.addWatchForTest(state.Watch{SessionID: u.id, ShortID: "1a2b3c4d", Name: "demo-a1", Cwd: "/home/dev/ws",
-		PromiseState: "inplace", OriginHost: claude.HostBackground, HasSavedOptions: true})
+		PromiseState: "inplace", OriginHost: host, HasSavedOptions: true})
 	u.s.reconcileForTest(u.snap(0, true))
-	line := "[" + u.base.Add(-5*time.Second).Format(time.RFC3339Nano) + "] [supervisor] binary at /home/dev/.local/bin/claude changed " +
-		"(/home/dev/.local/share/claude/versions/2.1.295 \u2192 /home/dev/.local/share/claude/versions/2.1.296) \u2014 self-restarting\n"
-	if err := os.WriteFile(u.f.d.DaemonLog, []byte(line), 0o644); err != nil {
-		t.Fatal(err)
-	}
 	return u
 }
 
-// snap is a snapshot taken after base, with the session running in the
-// background or not, and the clock moved to it.
+// snap is a snapshot taken after base, with the session running on its
+// old version or gone, and the clock moved to it.
 func (u *upgradeFixture) snap(after time.Duration, running bool) observe.Snapshot {
 	at := u.base.Add(after)
 	u.mu.Lock()
@@ -67,7 +65,7 @@ func (u *upgradeFixture) snap(after time.Duration, running bool) observe.Snapsho
 	u.mu.Unlock()
 	sn := observe.Snapshot{At: at}
 	if running {
-		sn.Sessions = []claude.Session{{ID: u.id, ShortID: "1a2b3c4d", PID: 7, Host: claude.HostBackground, Cwd: "/home/dev/ws"}}
+		sn.Sessions = []claude.Session{{ID: u.id, ShortID: "1a2b3c4d", PID: 7, Host: u.host, Cwd: "/home/dev/ws", Version: "2.1.295"}}
 	}
 	return sn
 }
@@ -82,13 +80,14 @@ func (u *upgradeFixture) lines(match func(state.Entry) bool) int {
 	return n
 }
 
-// Claude Code updated itself and is starting its background sessions'
-// processes again on the new program. A babysat background session that is
-// gone for that moment is left to it, and Activity says why, once. When it
-// is still not back after the wait, it is resumed, with the update as the
-// reason.
+// Claude Code updated itself, and replaces a background session's process
+// still on the old version with one on the new version, so the session is
+// gone for a moment. A babysat background session that went away on an
+// older version than the one installed is left to Claude Code for a while,
+// and Activity says why, once. When it is still not back after that, it is
+// resumed, with the update as the reason.
 func TestABackgroundSessionIsLeftToClaudeCodeWhileItUpdates(t *testing.T) {
-	u := newUpgradeFixture(t)
+	u := newUpgradeFixture(t, claude.HostBackground, "2.1.296")
 	for i := 1; i <= 4; i++ {
 		u.s.reconcileForTest(u.snap(time.Duration(i)*time.Second, false))
 	}
@@ -102,7 +101,7 @@ func TestABackgroundSessionIsLeftToClaudeCodeWhileItUpdates(t *testing.T) {
 		t.Fatalf("want one line saying why it waits, got %d: %v", waiting, u.f.d.Log.Recent(20, ""))
 	}
 
-	u.s.reconcileForTest(u.snap(upgradeWait+time.Second, false))
+	u.s.reconcileForTest(u.snap(upgradeWait+2*time.Second, false))
 	if n := countCalls(u.f, "--bg --resume "); n != 1 {
 		t.Fatalf("not resumed once the wait was over: %v", u.f.r.CallList())
 	}
@@ -113,16 +112,41 @@ func TestABackgroundSessionIsLeftToClaudeCodeWhileItUpdates(t *testing.T) {
 	}
 }
 
-// A session Claude Code brings back on the new program within the wait is
+// A session Claude Code brings back on the new version within the wait is
 // never resumed.
 func TestABackgroundSessionClaudeCodeBringsBackIsNotResumed(t *testing.T) {
-	u := newUpgradeFixture(t)
+	u := newUpgradeFixture(t, claude.HostBackground, "2.1.296")
 	for i := 1; i <= 3; i++ {
 		u.s.reconcileForTest(u.snap(time.Duration(i)*time.Second, false))
 	}
 	u.s.reconcileForTest(u.snap(4*time.Second, true))
-	u.s.reconcileForTest(u.snap(upgradeWait+time.Second, true))
+	u.s.reconcileForTest(u.snap(upgradeWait+2*time.Second, true))
 	if n := countCalls(u.f, "--bg --resume "); n != 0 {
 		t.Fatalf("resumed a session Claude Code brought back: %v", u.f.r.CallList())
+	}
+}
+
+// A background session that went away on the version installed, or a
+// session that was not in the background, is not waited for: it is
+// resumed as soon as it counts as gone.
+func TestOnlyAnOutdatedBackgroundSessionIsWaitedFor(t *testing.T) {
+	for _, c := range []struct {
+		name      string
+		host      claude.Host
+		installed string
+	}{
+		{"same version", claude.HostBackground, "2.1.295"},
+		{"version unknown", claude.HostBackground, ""},
+		{"in a terminal", claude.HostTerminal, "2.1.296"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			u := newUpgradeFixture(t, c.host, c.installed)
+			for i := 1; i <= 4; i++ {
+				u.s.reconcileForTest(u.snap(time.Duration(i)*time.Second, false))
+			}
+			if n := countCalls(u.f, "--bg --resume "); n == 0 {
+				t.Fatalf("want it resumed at once: %v", u.f.r.CallList())
+			}
+		})
 	}
 }

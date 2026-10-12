@@ -128,6 +128,7 @@ func (s *Supervisor) countAbsence(snap observe.Snapshot) {
 		return
 	}
 	s.lastCounted = snap.At
+	s.noteVersions(snap)
 	live := map[string][]claude.Host{}
 	for _, sn := range snap.Sessions {
 		live[sn.ID] = append(live[sn.ID], sn.Host)
@@ -877,10 +878,10 @@ const retireWindow = 5 * time.Minute
 
 // exitReason is the reason Activity gives for bringing a session back: the
 // CLI daemon stopping it after it sat idle, when its log says so; else, for
-// a session that ran in the background, the daemon restarting itself on an
-// updated version, when its log says so; else the cause worked out the
-// moment the session went missing; else the plain fact that the process
-// running it exited. A retire line
+// a session that ran in the background on an older Claude Code than the
+// one installed, that update; else the cause worked out the moment the
+// session went missing; else the plain fact that the process running it
+// exited. A retire line
 // counts only when it is recent and newer than the session's last rescue,
 // lastResume: an older one explained an exit that was already dealt with.
 func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
@@ -897,9 +898,9 @@ func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
 			return "Claude Code stopped it after " + idleWords(idle) + " idle"
 		}
 	}
-	if w := s.find(id); w != nil && s.hostOf(*w) == claude.HostBackground {
-		if up, ok := s.claudeUpdate(lastResume); ok {
-			return updateWords(up)
+	if w := s.find(id); w != nil {
+		if was, now, ok := s.outdatedBy(*w); ok {
+			return updateWords(was, now)
 		}
 	}
 	return s.knownCause(id)

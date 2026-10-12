@@ -201,6 +201,27 @@ func TestParseSessionFileStartedAt(t *testing.T) {
 	}
 }
 
+// version is the Claude Code version the session's process runs. Anything
+// that does not look like a version is left out rather than repeated.
+func TestParseSessionFileVersion(t *testing.T) {
+	file := func(v string) []byte {
+		return []byte(`{"pid":121,"sessionId":"22222222-2222-4333-8444-555555555502","cwd":"/w","procStart":"1","kind":"bg","version":` + v + `}`)
+	}
+	s, err := ParseSessionFile(file(`"2.1.296"`))
+	if err != nil || s.Version != "2.1.296" {
+		t.Fatalf("Version %q, %v", s.Version, err)
+	}
+	for _, v := range []string{`""`, `"$(x)"`, `"2.1.296 extra"`, `296`, `"` + strings.Repeat("9", 40) + `"`} {
+		s, err := ParseSessionFile(file(v))
+		if err != nil {
+			t.Fatalf("%s: %v", v, err)
+		}
+		if s.Version != "" {
+			t.Errorf("%s: Version %q, want none", v, s.Version)
+		}
+	}
+}
+
 // statusUpdatedAt is when Claude Code last set the session's status, in
 // milliseconds.
 func TestParseSessionFileStatusUpdatedAt(t *testing.T) {
