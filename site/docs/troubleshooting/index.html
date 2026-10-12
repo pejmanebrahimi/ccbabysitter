@@ -150,10 +150,12 @@
       <li><code>the background copy ended</code></li>
       <li><code>the computer restarted</code></li>
       <li><code>Claude Code stopped it after ...</code></li>
+      <li><code>Claude Code updated from ...</code></li>
       <li><code>it stopped responding</code></li>
       <li><code>the process running it exited</code></li>
     </ul>
     <p>When a babysat session's app goes away, CC Babysitter starts the same session again in the background, under the same id. When that can be told, the Activity line says why the session went down. For example, Claude Desktop closed or updated, the computer restarted, or Claude Code ended it after it sat idle. When nothing tells, the line says only that its process exited.</p>
+    <p>When Claude Code updates itself, it starts its background sessions again on the new version, and each is gone for a moment. CC Babysitter leaves that to Claude Code for two minutes, and says so in Activity. A session still gone after that is brought back as usual.</p>
     <p>Nothing needs doing. Reach the session from your phone. To go back to its app, use the card's <strong>Back to Desktop</strong>, <strong>Back to VS Code</strong> or <strong>End background copy</strong>. Some lines give one of these reasons but do not say the session was resumed. Those mean it could not be brought back: see the next entry.</p>
 
     <h2 id="could-not-bring-back">A session could not be brought back</h2>

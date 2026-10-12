@@ -4,6 +4,8 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 ## Unreleased
 
+- Fixed: when Claude Code updated itself, it started its background sessions again on the new version, and CC Babysitter took a babysat one that was gone for that moment for a session that had gone down. Its resume raced Claude Code, made a copy, and had to stop and remove it. A babysat background session is now left to Claude Code for two minutes after it updates, and Activity says "Claude Code updated from 2.1.295 to 2.1.296" with the versions. A session still gone after that is brought back with that reason (#113).
+
 - Fixed: after a restart of a Linux machine, every command could say "CC Babysitter is not running" while it ran, and the checks that refuse to act beside a running copy, such as `ccbabysitter reset`'s, could be fooled the same way. When the clock is synced after boot, Linux can report a process's start a second later or earlier, and the check of the copy that holds the lock allowed only a tenth of a second (#112).
 - Fixed: a session started with New session or `ccbabysitter start` was logged as "adopted ... (automatic: server auto-babysit)", as if CC Babysitter had acted on its own. Activity now says it is babysitting the new session it started (#116).
 - Fixed: Not running listed conversations with nothing in them, such as an empty file left by an earlier Claude Code run, as rows with no name or folder that could not be resumed. They are left out now (#117).

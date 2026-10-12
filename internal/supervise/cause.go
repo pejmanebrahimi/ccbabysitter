@@ -34,6 +34,15 @@ const (
 	desktopRestartedFmt = "Claude Desktop restarted for an update from %s to %s"
 )
 
+// cliUpdatedFmt is the reason for a background session that went down
+// because Claude Code updated itself and restarted on the new version.
+const cliUpdatedFmt = "Claude Code updated from %s to %s"
+
+// updateWords says which update of Claude Code a session went down for.
+func updateWords(up claude.Upgrade) string {
+	return fmt.Sprintf(cliUpdatedFmt, up.From, up.To)
+}
+
 // desktopKeptRunning is the reason for a session that went down while
 // Claude Desktop stayed up.
 const desktopKeptRunning = "the session ended while Claude Desktop kept running"

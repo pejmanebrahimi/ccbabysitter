@@ -75,6 +75,12 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 			if s.inGrace() {
 				continue
 			}
+			// Claude Code that has just updated itself starts its
+			// background sessions again on the new version, and a session
+			// is gone for a moment in between. It is left to do that.
+			if s.leftToClaudeCode(w) {
+				continue
+			}
 			if resumesLeft == 0 {
 				waiting++
 				continue
@@ -870,9 +876,11 @@ func (s *Supervisor) knownCause(id string) string {
 const retireWindow = 5 * time.Minute
 
 // exitReason is the reason Activity gives for bringing a session back: the
-// CLI daemon stopping it after it sat idle, when its log says so; else the
-// cause worked out the moment the session went missing; else the plain
-// fact that the process running it exited. A retire line
+// CLI daemon stopping it after it sat idle, when its log says so; else, for
+// a session that ran in the background, the daemon restarting itself on an
+// updated version, when its log says so; else the cause worked out the
+// moment the session went missing; else the plain fact that the process
+// running it exited. A retire line
 // counts only when it is recent and newer than the session's last rescue,
 // lastResume: an older one explained an exit that was already dealt with.
 func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
@@ -887,6 +895,11 @@ func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
 	for _, sh := range []string{strings.ToLower(short), strings.ToLower(shortOf(id))} {
 		if idle, ok := claude.Retired(s.deps.DaemonLog, sh, from, now); ok {
 			return "Claude Code stopped it after " + idleWords(idle) + " idle"
+		}
+	}
+	if w := s.find(id); w != nil && s.hostOf(*w) == claude.HostBackground {
+		if up, ok := s.claudeUpdate(lastResume); ok {
+			return updateWords(up)
 		}
 	}
 	return s.knownCause(id)
