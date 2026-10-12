@@ -241,7 +241,7 @@ func TestStartedSessionIsBabysat(t *testing.T) {
 func TestStartedSessionIsLoggedAsStarted(t *testing.T) {
 	id := "1a2b3c4d-0000-4000-8000-000000000001"
 	sf := newStartFixture(t, true, func(args []string) (string, error) {
-		return "backgrounded · 1a2b3c4d · shop-api", nil
+		return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api", nil
 	})
 	sf.trust(t, sf.project)
 	sf.s.st.Settings.AutoBabysit = true
@@ -275,7 +275,7 @@ func TestStartedSessionIsLoggedAsStarted(t *testing.T) {
 func TestStartedSessionShowingUpLateIsStillBabysat(t *testing.T) {
 	id := "1a2b3c4d-0000-4000-8000-000000000001"
 	sf := newStartFixture(t, true, func(args []string) (string, error) {
-		return "backgrounded · 1a2b3c4d · shop-api", nil
+		return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api", nil
 	})
 	sf.trust(t, sf.project)
 	sf.s.st.Settings.AutoBabysit = true
