@@ -83,6 +83,34 @@ func TestListPastTellsAScheduledTaskRun(t *testing.T) {
 	}
 }
 
+// Scheduled task runs never take a conversation's place: max counts the
+// conversations and the runs apart, so runs newer than every conversation
+// do not push the conversations off the list.
+func TestListPastCountsRunsApart(t *testing.T) {
+	projects := t.TempDir()
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	run := `{"type":"user","cwd":"/home/dev/ws","message":{"role":"user","content":"<scheduled-task name=\"daily\">x</scheduled-task>"}}` + "\n"
+	plain := `{"type":"user","cwd":"/home/dev/ws","message":{"role":"user","content":"hi"}}` + "\n"
+	for i, id := range []string{"11111111-2222-4333-8444-555555555521", "11111111-2222-4333-8444-555555555522", "11111111-2222-4333-8444-555555555523"} {
+		writeTranscriptAt(t, projects, "-home-dev-ws", id, run, now.Add(-time.Duration(i+1)*time.Minute))
+	}
+	for i, id := range []string{"22222222-2222-4333-8444-555555555531", "22222222-2222-4333-8444-555555555532"} {
+		writeTranscriptAt(t, projects, "-home-dev-ws", id, plain, now.Add(-time.Duration(i+1)*time.Hour))
+	}
+	got := ListPast(projects, now.Add(-14*24*time.Hour), 2, nil)
+	runs, talks := 0, 0
+	for _, p := range got {
+		if p.ScheduledTask {
+			runs++
+		} else {
+			talks++
+		}
+	}
+	if runs != 2 || talks != 2 {
+		t.Fatalf("want 2 runs and 2 conversations, got %d and %d: %+v", runs, talks, got)
+	}
+}
+
 // A transcript with no conversation in it, an empty file or one with no
 // message, has nothing to resume, so it is left out, and it does not take
 // a place from one that does.

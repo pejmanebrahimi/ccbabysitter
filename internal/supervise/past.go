@@ -13,7 +13,8 @@ import (
 const (
 	// pastWindow is how far back the Not running list reaches.
 	pastWindow = 14 * 24 * time.Hour
-	// pastMax is the most conversations the Not running list shows.
+	// pastMax is the most conversations the Not running list shows, and
+	// apart from them the most scheduled task runs.
 	pastMax = 30
 	// pastInterval is how often the list is looked for again while the set
 	// of live sessions stays the same. A change in that set asks at once,
@@ -199,8 +200,24 @@ func (s *Supervisor) pastViews(watched map[string]bool) []PastView {
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].HandedBackTo != "" && out[j].HandedBackTo == ""
 	})
-	if len(out) > pastMax {
-		out = out[:pastMax]
+	// Scheduled task runs are counted apart from the conversations, as the
+	// page lists them apart.
+	talks, runs := 0, 0
+	kept := out[:0]
+	for _, pv := range out {
+		if pv.ScheduledTask {
+			if runs == pastMax {
+				continue
+			}
+			runs++
+		} else {
+			if talks == pastMax {
+				continue
+			}
+			talks++
+		}
+		kept = append(kept, pv)
 	}
+	out = kept
 	return out
 }

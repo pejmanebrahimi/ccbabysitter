@@ -1768,7 +1768,7 @@ func jsFunction(t *testing.T, app, name string) string {
 // nothing.
 func TestTheNotLoggedInLine(t *testing.T) {
 	index := readUI(t, "ui/index.html")
-	want := `<p class="info warn" id="login-note" hidden>Claude Code is not logged in on this machine. Run <code class="mono">claude</code> once and log in.</p>`
+	want := `<p class="info warn" id="login-note" hidden>Claude Code is not logged in on this machine. Run <code class="mono">claude auth login</code> here.</p>`
 	if !strings.Contains(index, want) {
 		t.Errorf("index.html does not contain, word for word:\n%s", want)
 	}
@@ -2258,7 +2258,7 @@ console.log([startAnswerFits(3, 3, true), startAnswerFits(2, 3, true), startAnsw
 // so the dialog and the note say the same thing.
 func TestTheLoginRefusalIsThePagesNote(t *testing.T) {
 	index := readUI(t, "ui/index.html")
-	note := strings.ReplaceAll(strings.ReplaceAll(supervise.StartNotLoggedIn, "`claude`", `<code class="mono">claude</code>`), "\n", "")
+	note := strings.ReplaceAll(strings.ReplaceAll(supervise.StartNotLoggedIn, "`claude auth login`", `<code class="mono">claude auth login</code>`), "\n", "")
 	if !strings.Contains(index, `<p class="info warn" id="login-note" hidden>`+note+`</p>`) {
 		t.Fatalf("the page's note is not %q", supervise.StartNotLoggedIn)
 	}
@@ -2290,7 +2290,7 @@ func TestTheCardSaysNotResponding(t *testing.T) {
 
 // A card whose folder Claude Code does not trust offers Allow rescue, when
 // it is stuck there or would be if its app closed. The button posts the
-// folder to /api/trust, and on a stuck card it stands in for Try again.
+// folder to /api/trust, and on a stuck card it comes first, before Try again.
 // The check is run as the page runs it, when node is there to run it.
 func TestAllowRescueOnlyWhereTheFolderIsNotTrusted(t *testing.T) {
 	index := readUI(t, "ui/index.html")
@@ -2300,7 +2300,9 @@ func TestAllowRescueOnlyWhereTheFolderIsNotTrusted(t *testing.T) {
 	app := readUI(t, "ui/app.js")
 	for _, want := range []string{
 		`show(node.querySelector('[data-act="trust"]'), allowRescue(w));`,
-		`show(node.querySelector('[data-act="resume"]'), w.state === "stuck" && !stuckOnTrust(w));`,
+		// Try again stays, as ccbabysitter retry does, behind Allow rescue.
+		`show(node.querySelector('[data-act="resume"]'), w.state === "stuck");`,
+		`node.querySelector('[data-act="resume"]').classList.toggle("primary", !stuckOnTrust(w));`,
 		`send("POST", "/api/trust", { path: w.cwd })`,
 	} {
 		if !strings.Contains(app, want) {

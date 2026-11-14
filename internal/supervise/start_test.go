@@ -421,6 +421,35 @@ func TestStartDoesNotHoldTheLoop(t *testing.T) {
 	}
 }
 
+// Allow rescue on a server answers the same question, and the loop keeps
+// answering meanwhile too.
+func TestTrustFolderDoesNotHoldTheLoop(t *testing.T) {
+	sf := newStartFixture(t, true, func([]string) (string, error) { return "[]", nil })
+	entered, release := make(chan struct{}), make(chan struct{})
+	sf.acceptDoes = func(dir string) error {
+		close(entered)
+		<-release
+		sf.trust(t, dir)
+		return nil
+	}
+	s, _, cancel := newSup(t, sf.f)
+	defer cancel()
+	done := make(chan Result, 1)
+	go func() { done <- s.TrustFolder(sf.project, ViaPage) }()
+	<-entered
+	answered := make(chan Result, 1)
+	go func() { answered <- s.Unbabysit("1a2b3c4d-0000-4000-8000-00000000ffff", ViaPage) }()
+	select {
+	case <-answered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("the loop did not answer while the folder was being trusted")
+	}
+	close(release)
+	if res := <-done; !res.OK || !strings.Contains(res.Message, "trusts "+sf.project+" now") {
+		t.Fatalf("%+v", res)
+	}
+}
+
 // A trust that did not work and a start that did not happen are written to
 // Activity too.
 func TestStartFailuresAreInActivity(t *testing.T) {

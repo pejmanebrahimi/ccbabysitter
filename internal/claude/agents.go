@@ -59,7 +59,7 @@ func ParseAgents(out string) ([]AgentEntry, error) {
 // it says about it.
 func Listed(list []AgentEntry, id string) bool {
 	for _, a := range list {
-		if a.SessionID == id {
+		if strings.EqualFold(a.SessionID, id) {
 			return true
 		}
 	}
@@ -99,7 +99,7 @@ func JobOnAnother(list []AgentEntry, id, short string) (AgentEntry, bool) {
 // running any more.
 func RunningCopy(list []AgentEntry, id string) (AgentEntry, bool) {
 	for _, a := range list {
-		if a.SessionID != id || a.PID <= 0 || (a.Kind != "background" && a.Kind != "bg") {
+		if !strings.EqualFold(a.SessionID, id) || a.PID <= 0 || (a.Kind != "background" && a.Kind != "bg") {
 			continue
 		}
 		switch strings.ToLower(a.Status) {

@@ -95,14 +95,22 @@ func (s *Supervisor) noteSleep(ctx context.Context) {
 // woke notes that the computer woke at now from a sleep of gap, whether or
 // not it was kept awake: nothing is resumed for wakeHold, and the wait for
 // Claude Code to start a session again after an update, which counts only
-// time awake, is moved on by the sleep.
+// time awake, is moved on by the part of the sleep after the session went.
+// A session first seen gone in the pass that ends the sleep went during it
+// or after it, and nothing of the sleep counts for it.
 func (s *Supervisor) woke(now time.Time, gap time.Duration) {
 	s.wokeAt = now
+	slept := now.Add(-gap)
 	for id, note := range s.versions {
-		if !note.goneAt.IsZero() {
-			note.asleep += gap
-			s.versions[id] = note
+		if note.goneAt.IsZero() || !note.goneAt.Before(now) {
+			continue
 		}
+		from := note.goneAt
+		if from.Before(slept) {
+			from = slept
+		}
+		note.asleep += now.Sub(from)
+		s.versions[id] = note
 	}
 }
 

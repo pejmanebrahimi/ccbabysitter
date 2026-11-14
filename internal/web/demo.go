@@ -262,7 +262,7 @@ func (d *DemoEngine) seed(now time.Time) {
 			id: demoStuckID, name: "data-sync", cwd: "~/projects/data-sync",
 			host: claude.HostTerminal, entrypoint: "cli", status: "idle", warning: supervise.UntrustedWarning("~/projects/data-sync"),
 			watched: true, originHost: claude.HostTerminal, promiseState: "paused", watchedSince: now.Add(-90 * time.Minute),
-			paused: true, pauseReason: "three failed resumes in five minutes: Resume did not start: Workspace not trusted",
+			paused: true, pauseReason: supervise.UntrustedPause + ": Resume did not start: Workspace not trusted.",
 			stats: claude.Stats{Model: "claude-haiku-4-5", Turns: 4, InputTokens: 5_200, OutputTokens: 800},
 		},
 		{
@@ -682,7 +682,9 @@ func (d *DemoEngine) Start(string, bool, supervise.Via) supervise.Result {
 // in the folder for the person to answer Claude Code there, and opens
 // nothing.
 func (d *DemoEngine) TrustFolder(dir string, _ supervise.Via) supervise.Result {
-	if !strings.HasPrefix(dir, "/") {
+	// The demo's folders are written from the home folder, as its cards
+	// show them.
+	if !strings.HasPrefix(dir, "/") && !strings.HasPrefix(dir, "~/") {
 		return supervise.Result{Message: "Give the folder's full path, starting with /."}
 	}
 	d.log.Info(dir, "opened Terminal with Claude Code running, to give it its one-time OK for this folder")

@@ -175,8 +175,10 @@
       <li><code>it could not be brought back and is not running anywhere. Press Allow rescue on its card, or run ...</code></li>
       <li><code>its folder is trusted now</code></li>
       <li><code>bringing it back in the background</code></li>
+      <li><code>its session runs again</code></li>
+      <li><code>babysitting it where it runs</code></li>
     </ul>
-    <p>Starting the session again in the background failed, and the line says why. A folder Claude Code does not trust stays that way until you give the OK, so CC Babysitter stops at the first refusal. Until then the session is stuck and runs nowhere. Press <strong>Allow rescue</strong> on its card, or run <code>ccbabysitter trust</code> with the folder, and the session comes back by itself within seconds. Where it can, it ends with "Run by hand:" and the command to start the session yourself. For the usual reasons, see the entries on <a href="#wont-come-back">a folder that is not trusted</a>, <a href="#not-logged-in">logging in</a> and <a href="#no-cli">the CLI</a>.</p>
+    <p>Starting the session again in the background failed, and the line says why. A folder Claude Code does not trust stays that way until you give the OK, so CC Babysitter stops at the first refusal. Until then the session is stuck and runs nowhere. Press <strong>Allow rescue</strong> on its card, or run <code>ccbabysitter trust</code> with the folder, and the session comes back by itself within seconds. If you open the session in its app instead, it is babysat there again as before. Where it can, it ends with "Run by hand:" and the command to start the session yourself. For the usual reasons, see the entries on <a href="#wont-come-back">a folder that is not trusted</a>, <a href="#not-logged-in">logging in</a> and <a href="#no-cli">the CLI</a>.</p>
     <p>Claude Code sometimes starts a resume as a new copy of the session instead. CC Babysitter stops and removes that copy with <code>claude stop</code> and <code>claude rm</code>, and tries once more without flags. When it cannot, the line gives the commands to run by hand. After three failures in five minutes the session is <a href="#stuck">stuck</a>.</p>
 
     <h2 id="desktop-says-background">Claude Desktop says the session is running in the background</h2>
@@ -237,7 +239,7 @@
     <ul class="msgs">
       <li><code>Claude Code is not logged in on this machine ...</code></li>
     </ul>
-    <p>A Claude Code CLI that is not logged in reaches neither the model nor Remote Control, so a session started now could do nothing. The page shows this note, and <strong>New session</strong> and <code>ccbabysitter start</code> start nothing. Run <code>claude</code> once on this machine and log in, then try again.</p>
+    <p>A Claude Code CLI that is not logged in reaches neither the model nor Remote Control, so a session started now could do nothing. The page shows this note, and <strong>New session</strong> and <code>ccbabysitter start</code> start nothing. Run <code>claude auth login</code> on this machine, then try again.</p>
 
     <h2 id="no-cli">The Claude Code CLI cannot be used</h2>
     <ul class="msgs">

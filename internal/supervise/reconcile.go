@@ -413,22 +413,30 @@ const trustRecheck = 10 * time.Second
 // terminal, or with Allow rescue. Each is let go of its pause and its
 // failures, so this pass resumes it, and Activity says why.
 func (s *Supervisor) unstickTrusted() bool {
-	now := s.deps.Now()
-	if !s.trustRecheckAt.IsZero() && now.Sub(s.trustRecheckAt) < trustRecheck {
-		return false
-	}
+	// A session stuck on the trust that runs again, as when the person
+	// opened it in its app, is watched there as before, on every pass.
+	changed := false
 	var stuck []*state.Watch
 	for i := range s.st.Watches {
-		if w := &s.st.Watches[i]; w.Paused && strings.HasPrefix(w.PauseReason, UntrustedPause) {
-			stuck = append(stuck, w)
+		w := &s.st.Watches[i]
+		if !w.Paused || !strings.HasPrefix(w.PauseReason, UntrustedPause) {
+			continue
 		}
+		if len(s.snap.All(w.SessionID)) > 0 {
+			w.Paused, w.PauseReason, w.Failures = false, "", nil
+			delete(s.backoffUntil, w.SessionID)
+			s.logAuto(sessionLabel(w.Name, w.SessionID), "its session runs again", "babysitting it where it runs")
+			changed = true
+			continue
+		}
+		stuck = append(stuck, w)
 	}
-	if len(stuck) == 0 {
-		return false
+	now := s.deps.Now()
+	if len(stuck) == 0 || (!s.trustRecheckAt.IsZero() && now.Sub(s.trustRecheckAt) < trustRecheck) {
+		return changed
 	}
 	s.trustRecheckAt = now
 	trust := s.trustNow()
-	changed := false
 	for _, w := range stuck {
 		if trusted, known := trust.Trusted(w.Cwd); !known || !trusted {
 			continue

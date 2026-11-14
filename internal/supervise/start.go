@@ -19,7 +19,7 @@ const StartRefusedWithDisplay = "Starting a session from here is for a machine w
 // StartNotLoggedIn is the answer to starting a session while the claude
 // CLI is not logged in, when it could reach neither the model nor Remote
 // Control. It is the page's own note about the login, word for word.
-const StartNotLoggedIn = "Claude Code is not logged in on this machine. Run `claude` once and log in."
+const StartNotLoggedIn = "Claude Code is not logged in on this machine. Run `claude auth login` here."
 
 // startedWait is how long a session Start started is waited for, to be
 // babysat when it shows up, before it is no longer looked for.

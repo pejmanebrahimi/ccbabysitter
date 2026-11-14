@@ -174,6 +174,21 @@ func TestTheUpdateWaitCountsOnlyAwakeTime(t *testing.T) {
 	}
 }
 
+// A session first seen gone after a long sleep went during or after it:
+// only the sleep after it went counts as not awake, so the wait is a
+// minute of being awake, not the length of the sleep.
+func TestASessionGoneAfterASleepWaitsOnlyAMinute(t *testing.T) {
+	u := newUpgradeFixture(t, outdated)
+	wake := 8 * time.Hour
+	for at := wake; at <= wake+wakeHold+upgradeWait+20*time.Second; at += 10 * time.Second {
+		u.s.reconcileForTest(u.snap(at, false))
+	}
+	// The snapshots never show it back, so it may be resumed more than once.
+	if n := u.resumes(); n == 0 {
+		t.Fatalf("not resumed a minute or two after the wake: %v", u.f.r.CallList())
+	}
+}
+
 // Just after the computer wakes, Claude Code may not list a session that
 // runs yet, so a session that seems gone then is not resumed until the
 // computer has been awake for wakeHold.

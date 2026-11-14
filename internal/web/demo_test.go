@@ -338,6 +338,24 @@ func TestDemoShowsOneBackgroundCardPerOrigin(t *testing.T) {
 	}
 }
 
+// The stuck card is stuck on the trust as the engine says it now, and its
+// Allow rescue works for the folder the card shows.
+func TestDemoAllowRescue(t *testing.T) {
+	d, _ := newTestDemo(t)
+	var stuck supervise.WatchView
+	for _, w := range d.View().Watches {
+		if w.SessionID == demoStuckID {
+			stuck = w
+		}
+	}
+	if !strings.HasPrefix(stuck.PauseReason, supervise.UntrustedPause+": ") {
+		t.Fatalf("the stuck card's reason: %q", stuck.PauseReason)
+	}
+	if res := d.TrustFolder(stuck.Cwd, supervise.ViaPage); !res.OK {
+		t.Fatalf("Allow rescue on the stuck card: %+v", res)
+	}
+}
+
 // Open in a terminal answers as the real engine would, and opens nothing.
 func TestDemoOpenTerminal(t *testing.T) {
 	d, _ := newTestDemo(t)

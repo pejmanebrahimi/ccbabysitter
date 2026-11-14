@@ -50,8 +50,10 @@ func (s *Supervisor) fallbackWarning(cwd string, app claude.Host) string {
 
 // askForTrust asks the stats worker to look at the CLI's settings file
 // again when the reading held is old. The file can be large and the CLI
-// rewrites it often, so it is never read on the loop: until the first
-// answer is back nothing is known, and no warning is claimed.
+// rewrites it often, so the warnings never read it on the loop: until the
+// first answer is back nothing is known, and no warning is claimed. Only a
+// watch stuck on the trust, and Allow rescue, read it on the loop, at most
+// every trustRecheck.
 func (s *Supervisor) askForTrust() {
 	if s.trustInFlight {
 		return

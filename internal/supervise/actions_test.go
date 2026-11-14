@@ -366,6 +366,30 @@ func TestNotRunningMarksAScheduledTaskRun(t *testing.T) {
 	}
 }
 
+// The Not running list caps the conversations and the scheduled task runs
+// apart, so many runs never push the conversations off it.
+func TestNotRunningCapsRunsApart(t *testing.T) {
+	f := newFixture(t, nil)
+	s := New(*f.d)
+	for i := 0; i < pastMax+5; i++ {
+		s.past = append(s.past, claude.PastSession{ID: fmt.Sprintf("aaaaaaaa-0000-4000-8000-%012d", i), ScheduledTask: true})
+	}
+	for i := 0; i < 3; i++ {
+		s.past = append(s.past, claude.PastSession{ID: fmt.Sprintf("bbbbbbbb-0000-4000-8000-%012d", i)})
+	}
+	runs, talks := 0, 0
+	for _, p := range s.pastViews(map[string]bool{}) {
+		if p.ScheduledTask {
+			runs++
+		} else {
+			talks++
+		}
+	}
+	if runs != pastMax || talks != 3 {
+		t.Fatalf("want %d runs and 3 conversations, got %d and %d", pastMax, runs, talks)
+	}
+}
+
 // Conversations from the last two weeks that run nowhere are listed, with
 // the command that picks one up again; a live one is not.
 func TestNotRunningListsRecentConversations(t *testing.T) {

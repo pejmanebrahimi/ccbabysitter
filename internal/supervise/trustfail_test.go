@@ -156,3 +156,33 @@ func TestTrustFolderRefusesOrSkips(t *testing.T) {
 		t.Fatalf("the home folder was trusted: %+v", res)
 	}
 }
+
+// A watch stuck because its folder is not trusted is not stuck any more
+// once its session runs again in its app, as when the person opens it
+// there: it is watched as before, without a resume, and Activity says so.
+func TestAStuckSessionOpenedAgainInItsAppIsWatchedAgain(t *testing.T) {
+	id := "5b5b5b5b-0000-4000-8000-000000000009"
+	f := newFixture(t, func([]string) (string, error) { return "[]", nil })
+	f.writeTranscript(t, "/home/dev/ws", id)
+	s := New(*f.d)
+	s.addWatchForTest(state.Watch{SessionID: id, ShortID: "5b5b5b5b", Name: "demo-a3", Cwd: "/home/dev/ws",
+		OriginHost: claude.HostDesktop, PromiseState: "inplace", HasSavedOptions: true,
+		Paused: true, PauseReason: UntrustedPause + ": Resume did not start: Workspace not trusted."})
+	s.reconcileForTest(observe.Snapshot{At: time.Now(), Sessions: []claude.Session{{ID: id, ShortID: "5b5b5b5b", Host: claude.HostDesktop}}})
+	w, _ := s.watchForTest(id)
+	if w.Paused || w.PauseReason != "" {
+		t.Fatalf("still stuck while it runs in its app: %+v", w)
+	}
+	if n := countCalls(f, "--bg --resume "); n != 0 {
+		t.Fatalf("resumed a session that runs: %v", f.r.CallList())
+	}
+	said := false
+	for _, e := range f.d.Log.Recent(20, "") {
+		if e.Automatic && e.Reason == "its session runs again" {
+			said = true
+		}
+	}
+	if !said {
+		t.Fatalf("Activity does not say why: %v", f.d.Log.Recent(20, ""))
+	}
+}

@@ -770,9 +770,9 @@
   }
 
   /* stuckOnTrust reports whether a babysat session is stuck because Claude
-     Code does not trust its folder. Its card offers Allow rescue in place
-     of Try again: once the folder is trusted, the session comes back by
-     itself. */
+     Code does not trust its folder. Its card offers Allow rescue first,
+     before Try again: once the folder is trusted, the session comes back
+     by itself. */
   function stuckOnTrust(w) {
     return w.state === "stuck" && (w.pauseReason || "").indexOf("Claude Code does not trust this folder") === 0;
   }
@@ -862,7 +862,10 @@
     show(node.querySelector('[data-act="unbabysit"]'), !!w.canUnbabysit && w.state !== "stuck");
     show(node.querySelector('[data-act="stop"]'), !!w.canStop && !rescued);
     show(node.querySelector('[data-act="trust"]'), allowRescue(w));
-    show(node.querySelector('[data-act="resume"]'), w.state === "stuck" && !stuckOnTrust(w));
+    /* Try again stays on every stuck card, as ccbabysitter retry does; on
+       one stuck on the trust, Allow rescue is the main button. */
+    show(node.querySelector('[data-act="resume"]'), w.state === "stuck");
+    node.querySelector('[data-act="resume"]').classList.toggle("primary", !stuckOnTrust(w));
     show(node.querySelector('[data-act="forget"]'), !!w.canUnbabysit && w.state === "stuck");
     markBusy(node, w.sessionId);
   }

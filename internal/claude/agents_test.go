@@ -105,4 +105,12 @@ func TestJobOnAnother(t *testing.T) {
 	if _, ok := JobOnAnother([]AgentEntry{row}, id, ""); ok {
 		t.Fatal("no short id finds nothing")
 	}
+	// RunningCopy and Listed read a session id in any case too, so they
+	// and JobOnAnother never disagree about which session a row runs.
+	if _, ok := RunningCopy([]AgentEntry{same}, id); !ok {
+		t.Fatal("RunningCopy misses the watch's own session written in upper case")
+	}
+	if !Listed([]AgentEntry{same}, id) {
+		t.Fatal("Listed misses the session written in upper case")
+	}
 }

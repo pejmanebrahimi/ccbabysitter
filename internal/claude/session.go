@@ -165,11 +165,11 @@ func isShortID(s string) bool {
 	return true
 }
 
-// capRunes returns s cut to at most n runes, never splitting one in half.
 // SessionName is a session name from the CLI as CC Babysitter keeps it:
 // cut to the length a name read from a session file may have.
 func SessionName(s string) string { return capRunes(s, maxNameRunes) }
 
+// capRunes returns s cut to at most n runes, never splitting one in half.
 func capRunes(s string, n int) string {
 	count := 0
 	for i := range s {
