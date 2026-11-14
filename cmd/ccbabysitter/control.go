@@ -136,7 +136,7 @@ type controlArgs struct {
 var controlCommands = map[string]bool{
 	"status": true, "list": true, "show": true, "babysit": true, "unbabysit": true,
 	"retry": true, "stop": true, "activity": true, "settings": true, "quit": true,
-	"open": true, "start": true,
+	"open": true, "start": true, "trust": true,
 }
 
 func isControlCommand(name string) bool { return controlCommands[name] }
@@ -220,9 +220,9 @@ func parseControlArgs(name string, args []string) (controlArgs, error) {
 		if len(pos) != 1 {
 			return controlArgs{}, fmt.Errorf("%s needs one session", name)
 		}
-	case "start":
+	case "start", "trust":
 		if len(pos) != 1 {
-			return controlArgs{}, errors.New("start needs one folder")
+			return controlArgs{}, fmt.Errorf("%s needs one folder", name)
 		}
 	case "activity":
 		if len(pos) > 1 {
@@ -318,6 +318,16 @@ func runControl(name string, args []string, env controlEnv) int {
 			res.Message += " Run it again with --trust to trust it."
 		}
 		return env.printResult(a.json, res, res.ShortID)
+	}
+
+	// trust needs no session either: it names the folder Claude Code is
+	// asked to trust, so sessions stuck there can be brought back.
+	if name == "trust" {
+		res, err := c.TrustFolder(ctx, fullPath(a.pos[0]))
+		if err != nil {
+			return env.failErr(a.json, false, "", err)
+		}
+		return env.printResult(a.json, res, "")
 	}
 
 	// open decides whether there is a display where it runs, as a plain

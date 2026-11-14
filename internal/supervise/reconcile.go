@@ -57,6 +57,7 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 	// result as a failure of the session rather than of the timing.
 	resumesLeft := 1
 	waiting := 0
+	changed = s.unstickTrusted() || changed
 	// The list is copied because acting on a watch can change the list, and
 	// an action reads the watch back out of the live state by id.
 	for _, w := range append([]state.Watch(nil), s.st.Watches...) {
@@ -286,8 +287,8 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	// is stuck at once, and Activity says it runs nowhere now.
 	if trustRefused(res.Message) {
 		cur.Paused = true
-		cur.PauseReason = untrustedPause + ": " + res.Message
-		s.logAuto(label, untrustedPause, "it could not be brought back and is not running anywhere. Give Claude Code its one-time OK for "+w.Cwd+", then press Try again.")
+		cur.PauseReason = UntrustedPause + ": " + res.Message
+		s.logAuto(label, UntrustedPause, "it could not be brought back and is not running anywhere. Press Allow rescue on its card, or run ccbabysitter trust "+w.Cwd+", and it comes back by itself.")
 		return true, true
 	}
 	if ShouldPauseForFailures(cur.Failures, now) {
@@ -380,9 +381,47 @@ func (s *Supervisor) adoptRunningCopy(w state.Watch, row claude.AgentEntry) bool
 	return true
 }
 
-// untrustedPause is the reason a watch is stuck when the claude CLI refused
+// UntrustedPause is the reason a watch is stuck when the claude CLI refused
 // to resume it because it does not trust the session's folder.
-const untrustedPause = "Claude Code does not trust this folder"
+const UntrustedPause = "Claude Code does not trust this folder"
+
+// trustRecheck is how often the trust of the folders of watches stuck for
+// it is read again, to bring them back once the person gave the OK.
+const trustRecheck = 10 * time.Second
+
+// unstickTrusted brings back the watches stuck because the claude CLI did
+// not trust their folder, once it does: the person answered Yes in a
+// terminal, or with Allow rescue. Each is let go of its pause and its
+// failures, so this pass resumes it, and Activity says why.
+func (s *Supervisor) unstickTrusted() bool {
+	now := s.deps.Now()
+	if !s.trustRecheckAt.IsZero() && now.Sub(s.trustRecheckAt) < trustRecheck {
+		return false
+	}
+	var stuck []*state.Watch
+	for i := range s.st.Watches {
+		if w := &s.st.Watches[i]; w.Paused && strings.HasPrefix(w.PauseReason, UntrustedPause) {
+			stuck = append(stuck, w)
+		}
+	}
+	if len(stuck) == 0 {
+		return false
+	}
+	s.trustRecheckAt = now
+	trust := s.trustNow()
+	changed := false
+	for _, w := range stuck {
+		if trusted, known := trust.Trusted(w.Cwd); !known || !trusted {
+			continue
+		}
+		w.Paused, w.PauseReason, w.Failures = false, "", nil
+		delete(s.backoffUntil, w.SessionID)
+		s.absent[w.SessionID] = AbsentSweepsRequired
+		s.logAuto(sessionLabel(w.Name, w.SessionID), "its folder is trusted now", "bringing it back in the background")
+		changed = true
+	}
+	return changed
+}
 
 // trustRefused reports whether a resume's answer is the CLI refusing to run
 // in a folder it does not trust.

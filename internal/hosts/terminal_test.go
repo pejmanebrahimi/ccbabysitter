@@ -291,3 +291,75 @@ func TestOpenAttachFindsCLIOutsidePath(t *testing.T) {
 		t.Fatalf("with no CLI anywhere: %v", err)
 	}
 }
+
+// OpenTrust opens the system's own terminal in a folder with the Claude
+// Code CLI running there, so the person can answer its question whether to
+// trust the folder. On macOS that is a script for Terminal, named so the
+// usual clean-up clears it too.
+func TestOpenTrustOnMacOS(t *testing.T) {
+	skipOnWindowsHost(t)
+	l, calls := fakeLauncher(t, "darwin", map[string]string{"claude": "/Users/dev/my tools/claude"})
+	app, err := l.OpenTrust("/Users/dev/my project")
+	if err != nil || app != "Terminal" || len(*calls) != 1 {
+		t.Fatalf("%q %v %+v", app, err, *calls)
+	}
+	script := (*calls)[0].args[2]
+	if ok, _ := filepath.Match(scriptPattern, filepath.Base(script)); !ok {
+		t.Fatalf("the script is not cleared like the others: %s", script)
+	}
+	body, err := os.ReadFile(script)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "#!/bin/sh\ncd '/Users/dev/my project' && exec '/Users/dev/my tools/claude'\n"; string(body) != want {
+		t.Fatalf("script:\n%s\nwant:\n%s", body, want)
+	}
+}
+
+// On Linux the first terminal found runs a shell that changes to the
+// folder and starts the CLI there.
+func TestOpenTrustOnLinux(t *testing.T) {
+	skipOnWindowsHost(t)
+	l, calls := fakeLauncher(t, "linux", map[string]string{"claude": "/home/dev/.local/bin/claude", "xterm": "/usr/bin/xterm"})
+	if app, err := l.OpenTrust("/home/dev/my project"); err != nil || app != "a terminal" {
+		t.Fatalf("%q %v", app, err)
+	}
+	got := append([]string{(*calls)[0].name}, (*calls)[0].args...)
+	want := []string{"/usr/bin/xterm", "-e", "sh", "-c", "cd '/home/dev/my project' && exec /home/dev/.local/bin/claude"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("started %q, want %q", got, want)
+	}
+}
+
+// On Windows the terminal starts in the folder, and a folder either shell
+// would misread is refused.
+func TestOpenTrustOnWindows(t *testing.T) {
+	cli := `C:\Users\dev\AppData\Local\Programs\claude\claude.exe`
+	l, calls := fakeLauncher(t, "windows", map[string]string{"claude": cli, "wt.exe": `C:\wt.exe`})
+	if app, err := l.OpenTrust(`C:\work\shop`); err != nil || app != "Windows Terminal" {
+		t.Fatalf("%q %v", app, err)
+	}
+	got := append([]string{(*calls)[0].name}, (*calls)[0].args...)
+	if want := []string{`C:\wt.exe`, "-d", `C:\work\shop`, cli}; strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("started %q, want %q", got, want)
+	}
+	l, calls = fakeLauncher(t, "windows", map[string]string{"claude": cli})
+	if _, err := l.OpenTrust(`C:\work\shop`); err != nil {
+		t.Fatal(err)
+	}
+	got = append([]string{(*calls)[0].name}, (*calls)[0].args...)
+	if want := []string{"cmd.exe", "/c", "start", "", "/D", `C:\work\shop`, cli}; strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("started %q, want %q", got, want)
+	}
+	if _, err := l.OpenTrust(`C:\work\a&b`); err == nil {
+		t.Fatal("a folder cmd.exe would misread was handed over")
+	}
+}
+
+// A folder that is not a full path is never handed to a terminal.
+func TestOpenTrustRefusesARelativeFolder(t *testing.T) {
+	l, calls := fakeLauncher(t, "linux", map[string]string{"claude": "/usr/bin/claude", "xterm": "/usr/bin/xterm"})
+	if _, err := l.OpenTrust("project"); err == nil || len(*calls) != 0 {
+		t.Fatalf("%v %+v", err, *calls)
+	}
+}

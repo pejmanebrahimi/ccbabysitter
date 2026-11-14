@@ -30,6 +30,7 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter retry S         try again on a babysat session that is stuck
   ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
   ccbabysitter start PATH      on a machine with no display, start a babysat session in PATH
+  ccbabysitter trust PATH      let Claude Code run on its own in PATH, so stuck sessions come back
   ccbabysitter activity [S]    what CC Babysitter did and why, newest first
   ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
   ccbabysitter open            open the page in your browser, printing no key
@@ -319,6 +320,23 @@ With --json: {"schema":1,"ok":true,"message":"...","session":"SHORT ID"}.
 ok is false when it was refused, with exit code 1 and the reason in message, and
 needsTrust is true when Claude Code does not trust PATH and --trust was not given.`,
 		`  ccbabysitter start /srv/shop-api --trust
+`),
+	"trust": controlPage(
+		"ccbabysitter trust PATH",
+		`Gives Claude Code its one-time OK to run on its own in the folder PATH, as the
+page's Allow rescue does. A babysat session there that could not be brought back
+because Claude Code does not trust the folder comes back by itself soon after.
+PATH is read as start reads it. When Claude Code trusts PATH already, trust says
+so and does nothing. On a machine with a display, trust opens a terminal in PATH
+with Claude Code running: answer Yes to its question, then type /exit. On a
+machine with no display, trust answers that question with Yes itself; this works
+on Linux, and elsewhere trust gives the one-time command to run instead.`,
+		"",
+		`Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {"schema":1,"ok":true,"message":"..."}. ok is false when it was
+refused, with exit code 1 and the reason in message.`,
+		`  ccbabysitter trust /srv/shop-api
 `),
 	"open": controlPage(
 		"ccbabysitter open",

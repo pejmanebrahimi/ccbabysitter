@@ -102,7 +102,7 @@
       <li><code>Background can't start in the home folder.</code></li>
     </ul>
     <p>CC Babysitter brings a session back in the background with the <code>claude</code> CLI, which runs on its own only in a folder it trusts. Inside a git repository the CLI takes that trust only from the repository's own folder. Claude Desktop also accepts a trusted folder above it, so a session that works in Desktop can still be refused in the background. A git worktree takes the trust from any folder above it. The CLI never starts a background session in your home folder.</p>
-    <p>For the trust, run the command the card shows in a terminal and answer Yes before you exit, and the warning goes away within seconds. For the home folder, start the session in a project folder instead.</p>
+    <p>For the trust, press <strong>Allow rescue</strong> on the card, or run <code>ccbabysitter trust</code> with the folder. On a computer with a display, it opens a terminal in the folder with Claude Code running: answer Yes, then type <code>/exit</code>. On a server, CC Babysitter answers Yes for you. You can also run the command the card shows in a terminal yourself. The warning goes away within seconds. For the home folder, start the session in a project folder instead.</p>
 
     <h2 id="remote-control-off">Remote Control is off</h2>
     <ul class="msgs">
@@ -171,9 +171,11 @@
       <li><code>resume forked a copy</code></li>
       <li><code>stopped and removed copy ...</code></li>
       <li><code>Claude Code does not trust this folder</code></li>
-      <li><code>it could not be brought back and is not running anywhere. Give Claude Code its one-time OK for ...</code></li>
+      <li><code>it could not be brought back and is not running anywhere. Press Allow rescue on its card, or run ccbabysitter trust ...</code></li>
+      <li><code>its folder is trusted now</code></li>
+      <li><code>bringing it back in the background</code></li>
     </ul>
-    <p>Starting the session again in the background failed, and the line says why. A folder Claude Code does not trust stays that way until you give the OK, so CC Babysitter stops at the first refusal. Until then the session is stuck and runs nowhere; afterwards, press <strong>Try again</strong>. Where it can, it ends with "Run by hand:" and the command to start the session yourself. For the usual reasons, see the entries on <a href="#wont-come-back">a folder that is not trusted</a>, <a href="#not-logged-in">logging in</a> and <a href="#no-cli">the CLI</a>.</p>
+    <p>Starting the session again in the background failed, and the line says why. A folder Claude Code does not trust stays that way until you give the OK, so CC Babysitter stops at the first refusal. Until then the session is stuck and runs nowhere. Press <strong>Allow rescue</strong> on its card, or run <code>ccbabysitter trust</code> with the folder, and the session comes back by itself within seconds. Where it can, it ends with "Run by hand:" and the command to start the session yourself. For the usual reasons, see the entries on <a href="#wont-come-back">a folder that is not trusted</a>, <a href="#not-logged-in">logging in</a> and <a href="#no-cli">the CLI</a>.</p>
     <p>Claude Code sometimes starts a resume as a new copy of the session instead. CC Babysitter stops and removes that copy with <code>claude stop</code> and <code>claude rm</code>, and tries once more without flags. When it cannot, the line gives the commands to run by hand. After three failures in five minutes the session is <a href="#stuck">stuck</a>.</p>
 
     <h2 id="desktop-says-background">Claude Desktop says the session is running in the background</h2>

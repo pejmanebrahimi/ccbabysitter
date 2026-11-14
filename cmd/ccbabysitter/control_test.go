@@ -56,6 +56,11 @@ func (e *ctlEngine) ResumeWatch(id string, v supervise.Via) supervise.Result {
 	return e.act("retry", id, v)
 }
 func (e *ctlEngine) OpenTerminal(string) supervise.Result { return supervise.Result{} }
+func (e *ctlEngine) TrustFolder(dir string, v supervise.Via) supervise.Result {
+	e.calls = append(e.calls, fmt.Sprintf("trust %s %s", dir, v))
+	return supervise.Result{OK: true, Message: "Claude Code trusts " + dir + " now."}
+}
+
 func (e *ctlEngine) Start(dir string, trust bool, v supervise.Via) supervise.Result {
 	e.calls = append(e.calls, fmt.Sprintf("start %s trust=%v %s", dir, trust, v))
 	if dir == fullPath("/srv/new") && !trust {
@@ -212,6 +217,22 @@ func TestStopNeedsYes(t *testing.T) {
 	}
 	if e.calls[0] != "stop "+cID4+" cli" {
 		t.Fatalf("calls = %q", e.calls)
+	}
+}
+
+// trust takes one folder and sends it as a full path, as the page's Allow
+// rescue does.
+func TestTrustCommand(t *testing.T) {
+	env, e, _ := testEnv(t)
+	dir := fullPath("/srv/shop-api")
+	if code, out, _ := runCmd(t, env, "trust", "/srv/shop-api"); code != 0 || !strings.Contains(out, "Claude Code trusts "+dir+" now.") {
+		t.Fatalf("trust = %d, %q", code, out)
+	}
+	if got := strings.Join(e.calls, "|"); got != "trust "+dir+" cli" {
+		t.Fatalf("calls %q", got)
+	}
+	if code, _, errOut := runCmd(t, env, "trust"); code != exitUsage || !strings.Contains(errOut, "trust needs one folder") {
+		t.Fatalf("trust with no folder = %d, %q", code, errOut)
 	}
 }
 

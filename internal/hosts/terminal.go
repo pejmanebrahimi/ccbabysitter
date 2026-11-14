@@ -123,26 +123,78 @@ func (l *TerminalLauncher) OpenAttach(short string) (string, error) {
 	}
 }
 
-// openMacTerminal writes the attach command into an executable script in
-// this program's own folder and asks Terminal to open it. Scripts left by
-// earlier calls are cleared away first once they are over a minute old.
-func (l *TerminalLauncher) openMacTerminal(cli, short string) error {
+// OpenTrust opens the operating system's own terminal in dir with the
+// Claude Code CLI running there, so the person can answer its question
+// whether to trust the folder, and returns the name of what it opened. dir
+// must be a full path. On Windows, where cmd.exe and Windows Terminal read
+// the command line for themselves, a folder or CLI path either would
+// misread is refused.
+func (l *TerminalLauncher) OpenTrust(dir string) (string, error) {
+	if !absFor(l.OS, dir) {
+		return "", errors.New("that is not a full path to a folder")
+	}
+	cli, ok := claude.Locator{OS: l.OS, LookPath: l.LookPath, Getenv: l.Getenv, IsExecutable: l.IsExecutable}.Find()
+	if !ok {
+		return "", errors.New("the Claude Code CLI was not found")
+	}
+	run := "cd " + ShellQuote(dir) + " && exec " + ShellQuote(cli)
+	switch l.OS {
+	case "darwin":
+		return "Terminal", l.openMacScript("attach-trust-*.command", run)
+	case "windows":
+		if strings.ContainsAny(cli, windowsUnsafe) || strings.ContainsAny(dir, windowsUnsafe) {
+			return "", errors.New("the folder or the path to the Claude Code CLI has characters a Windows command line would misread")
+		}
+		if wt, err := l.LookPath("wt.exe"); err == nil {
+			return "Windows Terminal", l.Start(wt, "-d", dir, cli)
+		}
+		return "a terminal", l.Start("cmd.exe", "/c", "start", "", "/D", dir, cli)
+	default:
+		for _, term := range linuxTerminals {
+			if path, err := l.LookPath(term.name); err == nil {
+				return "a terminal", l.Start(path, term.flag, "sh", "-c", run)
+			}
+		}
+		return "", errors.New("no terminal program was found on PATH")
+	}
+}
+
+// absFor reports whether dir is a full path on the system goos, which is
+// not always the one this program runs on in a test.
+func absFor(goos, dir string) bool {
+	if goos == "windows" {
+		return len(dir) >= 3 && ((dir[0] >= 'A' && dir[0] <= 'Z') || (dir[0] >= 'a' && dir[0] <= 'z')) && dir[1] == ':' && (dir[2] == '\\' || dir[2] == '/')
+	}
+	return strings.HasPrefix(dir, "/")
+}
+
+// openMacScript writes run into an executable script in this program's
+// own folder, named by pattern, and asks Terminal to open it. Scripts left
+// by earlier calls are cleared away first once they are over a minute old.
+func (l *TerminalLauncher) openMacScript(pattern, run string) error {
 	if err := os.MkdirAll(l.Dir, 0o700); err != nil {
 		return err
 	}
 	l.clearOldScripts()
-	f, err := os.CreateTemp(l.Dir, "attach-"+short+"-*.command")
+	f, err := os.CreateTemp(l.Dir, pattern)
 	if err != nil {
 		return err
 	}
 	path := f.Name()
-	_, werr := f.WriteString("#!/bin/sh\nexec " + ShellQuote(cli) + " attach " + short + "\n")
+	_, werr := f.WriteString("#!/bin/sh\n" + run + "\n")
 	cerr := f.Close()
 	if err := errors.Join(werr, cerr, os.Chmod(path, 0o700)); err != nil {
 		_ = os.Remove(path)
 		return err
 	}
 	return l.Start("open", "-a", "Terminal", path)
+}
+
+// openMacTerminal writes the attach command into an executable script in
+// this program's own folder and asks Terminal to open it. Scripts left by
+// earlier calls are cleared away first once they are over a minute old.
+func (l *TerminalLauncher) openMacTerminal(cli, short string) error {
+	return l.openMacScript("attach-"+short+"-*.command", "exec "+ShellQuote(cli)+" attach "+short)
 }
 
 // clearOldScripts removes the scripts in Dir that are older than a minute.

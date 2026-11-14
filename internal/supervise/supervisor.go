@@ -171,7 +171,10 @@ type Supervisor struct {
 	trust         claude.Trust
 	trustAt       time.Time
 	trustInFlight bool
-	lastCounted   time.Time
+	// trustRecheckAt is when the folders of watches stuck for trust were
+	// last looked at again.
+	trustRecheckAt time.Time
+	lastCounted    time.Time
 	// autostartAt is when the login item was last looked at.
 	autostartAt time.Time
 	firstPass   bool

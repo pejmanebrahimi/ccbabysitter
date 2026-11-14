@@ -462,6 +462,7 @@ func serve(ctx context.Context, opts serveOptions, stdout io.Writer) int {
 			AutostartInstalled: autostartInstalled,
 			AutostartNote:      autostartNote,
 			OpenTerminal:       terminal.OpenAttach,
+			OpenTrustTerminal:  terminal.OpenTrust,
 			TerminalName:       terminal.Name,
 			AcceptTrust: func(ctx context.Context, dir string) error {
 				return claude.AcceptTrust(ctx, "", dir)

@@ -30,8 +30,8 @@ func TestEveryCommandInTheUsageHasHelp(t *testing.T) {
 			t.Errorf("no help page for %s", f[1])
 		}
 	}
-	if seen != 17 {
-		t.Errorf("found %d commands in the usage, want 17", seen)
+	if seen != 18 {
+		t.Errorf("found %d commands in the usage, want 18", seen)
 	}
 }
 

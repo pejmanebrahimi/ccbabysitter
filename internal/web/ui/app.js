@@ -718,6 +718,21 @@
     show(f(node, "model").parentNode, !!stats.model);
   }
 
+  /* stuckOnTrust reports whether a babysat session is stuck because Claude
+     Code does not trust its folder. Its card offers Allow rescue in place
+     of Try again: once the folder is trusted, the session comes back by
+     itself. */
+  function stuckOnTrust(w) {
+    return w.state === "stuck" && (w.pauseReason || "").indexOf("Claude Code does not trust this folder") === 0;
+  }
+
+  /* allowRescue reports whether a card offers Allow rescue: its session is
+     stuck on the trust, or its warning says it would be if its app
+     closed. */
+  function allowRescue(w) {
+    return stuckOnTrust(w) || (w.fallbackWarning || "").indexOf("Won't come back if its app closes. Claude Code needs") === 0;
+  }
+
   /* stateLines is what a card says about where its session is, in words. */
   function stateLines(w) {
     if (w.state === "starting") {
@@ -792,7 +807,8 @@
 
     show(node.querySelector('[data-act="unbabysit"]'), !!w.canUnbabysit && w.state !== "stuck");
     show(node.querySelector('[data-act="stop"]'), !!w.canStop && !rescued);
-    show(node.querySelector('[data-act="resume"]'), w.state === "stuck");
+    show(node.querySelector('[data-act="trust"]'), allowRescue(w));
+    show(node.querySelector('[data-act="resume"]'), w.state === "stuck" && !stuckOnTrust(w));
     show(node.querySelector('[data-act="forget"]'), !!w.canUnbabysit && w.state === "stuck");
     markBusy(node, w.sessionId);
   }
@@ -1802,6 +1818,9 @@
       }
       if (act === "resume") {
         run(id, act, function () { return send("POST", "/api/sessions/" + id + "/resume-watch", {}); });
+      }
+      if (act === "trust") {
+        run(id, act, function () { return send("POST", "/api/trust", { path: w.cwd }); });
       }
       if (act === "stop") { openStop(id); }
       if (act === "back") { openBack(id); }

@@ -117,6 +117,11 @@ type Deps struct {
 	// to it. The CLI records the trust itself. It may be nil where there is
 	// no way to answer it.
 	AcceptTrust func(ctx context.Context, dir string) error
+	// OpenTrustTerminal opens the system's own terminal in dir with the
+	// claude CLI running, for the person to answer its question whether to
+	// trust the folder, as hosts.TerminalLauncher.OpenTrust does, and
+	// returns the name of what it opened. Nil where none can be opened.
+	OpenTrustTerminal func(dir string) (string, error)
 
 	// URL is the address this program is serving its page on, passed
 	// straight through to the view for display. The layer that owns the

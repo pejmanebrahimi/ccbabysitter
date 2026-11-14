@@ -96,32 +96,9 @@ func (s *Supervisor) planStart(dir string, trust bool, plan *startPlan) Result {
 	if !s.env.Headless {
 		return Result{Message: StartRefusedWithDisplay}
 	}
-	dir = strings.TrimSpace(dir)
-	switch {
-	case dir == "":
-		return Result{Message: "Name the folder to start the session in."}
-	case !filepath.IsAbs(dir):
-		return Result{Message: "Give the folder's full path, starting with /."}
-	}
-	dir = filepath.Clean(dir)
-	info, err := os.Stat(dir)
-	switch {
-	case err != nil:
-		return Result{Message: "There is no folder at " + dir + "."}
-	case !info.IsDir():
-		return Result{Message: dir + " is a file, not a folder."}
-	}
-	// Claude Code records trust under a folder's real path, so a folder
-	// reached through a link is checked, trusted and started by its own.
-	if real, err := filepath.EvalSymlinks(dir); err == nil {
-		dir = real
-	}
-	home := realPath(s.deps.Home)
-	switch {
-	case home != "" && dir == home:
-		return Result{Message: "Claude Code does not start background sessions in the home folder. Choose a project folder."}
-	case filepath.Dir(dir) == dir || (home != "" && holds(dir, home)):
-		return Result{Message: dir + " holds your home folder. Choose a project folder."}
+	dir, res, ok := s.projectFolder(dir)
+	if !ok {
+		return res
 	}
 	plan.dir = dir
 	plan.loggedOut = s.env.CLILoggedIn == hosts.LoginNo
@@ -135,6 +112,39 @@ func (s *Supervisor) planStart(dir string, trust bool, plan *startPlan) Result {
 		plan.trust = true
 	}
 	return Result{OK: true}
+}
+
+// projectFolder checks that dir names a project folder a session may run
+// in, and returns it by its real path, or the reason it may not be used.
+func (s *Supervisor) projectFolder(dir string) (string, Result, bool) {
+	dir = strings.TrimSpace(dir)
+	switch {
+	case dir == "":
+		return "", Result{Message: "Name the folder to start the session in."}, false
+	case !filepath.IsAbs(dir):
+		return "", Result{Message: "Give the folder's full path, starting with /."}, false
+	}
+	dir = filepath.Clean(dir)
+	info, err := os.Stat(dir)
+	switch {
+	case err != nil:
+		return "", Result{Message: "There is no folder at " + dir + "."}, false
+	case !info.IsDir():
+		return "", Result{Message: dir + " is a file, not a folder."}, false
+	}
+	// Claude Code records trust under a folder's real path, so a folder
+	// reached through a link is checked, trusted and started by its own.
+	if real, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = real
+	}
+	home := realPath(s.deps.Home)
+	switch {
+	case home != "" && dir == home:
+		return "", Result{Message: "Claude Code does not start background sessions in the home folder. Choose a project folder."}, false
+	case filepath.Dir(dir) == dir || (home != "" && holds(dir, home)):
+		return "", Result{Message: dir + " holds your home folder. Choose a project folder."}, false
+	}
+	return dir, Result{}, true
 }
 
 // holds reports whether the folder dir has inside path, at any depth.

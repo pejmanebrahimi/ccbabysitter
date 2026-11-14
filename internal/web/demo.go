@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"hash/fnv"
+	"strings"
 	"sync"
 	"time"
 
@@ -667,6 +668,17 @@ func (d *DemoEngine) Stop(id string, via supervise.Via) supervise.Result {
 // none.
 func (d *DemoEngine) Start(string, bool, supervise.Via) supervise.Result {
 	return supervise.Result{Message: supervise.StartRefusedWithDisplay}
+}
+
+// TrustFolder answers as the real engine does on a Mac, opening a terminal
+// in the folder for the person to answer Claude Code there, and opens
+// nothing.
+func (d *DemoEngine) TrustFolder(dir string, _ supervise.Via) supervise.Result {
+	if !strings.HasPrefix(dir, "/") {
+		return supervise.Result{Message: "Give the folder's full path, starting with /."}
+	}
+	d.log.Info(dir, "opened Terminal with Claude Code running, to give it its one-time OK for this folder")
+	return supervise.Result{OK: true, Message: "Opened Terminal in " + dir + " with Claude Code running. Answer Yes to its question, then type /exit. Sessions stuck there come back by themselves."}
 }
 
 // OpenTerminal answers as the real engine does on a Mac for a session with

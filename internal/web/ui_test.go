@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"regexp"
@@ -2153,5 +2154,63 @@ func TestTheCardSaysNotResponding(t *testing.T) {
 	// The card says the wait the engine uses.
 	if !strings.Contains(app, "for "+strconv.Itoa(int(supervise.FrozenAfter/time.Minute))+" minutes") {
 		t.Fatalf("app.js does not say %v", supervise.FrozenAfter)
+	}
+}
+
+// A card whose folder Claude Code does not trust offers Allow rescue, when
+// it is stuck there or would be if its app closed. The button posts the
+// folder to /api/trust, and on a stuck card it stands in for Try again.
+// The check is run as the page runs it, when node is there to run it.
+func TestAllowRescueOnlyWhereTheFolderIsNotTrusted(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	if want := `<button class="b primary" data-act="trust" hidden>Allow rescue</button>`; !strings.Contains(index, want) {
+		t.Errorf("index.html does not contain %s", want)
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`show(node.querySelector('[data-act="trust"]'), allowRescue(w));`,
+		`show(node.querySelector('[data-act="resume"]'), w.state === "stuck" && !stuckOnTrust(w));`,
+		`send("POST", "/api/trust", { path: w.cwd })`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	fns := "function stuckOnTrust(w) {" + between(t, app, "function stuckOnTrust(w) {", "\n  }") + "\n}\n" +
+		"function allowRescue(w) {" + between(t, app, "function allowRescue(w) {", "\n  }") + "\n}\n"
+	warning, _ := json.Marshal(supervise.UntrustedWarning("/srv/shop-api"))
+	home, _ := json.Marshal(supervise.FallbackHome)
+	cases := []struct {
+		watch string
+		want  bool
+	}{
+		{`{state: "stuck", pauseReason: "` + supervise.UntrustedPause + `: Workspace not trusted"}`, true},
+		{`{state: "watching", fallbackWarning: ` + string(warning) + `}`, true},
+		{`{state: "watching", fallbackWarning: ` + string(home) + `}`, false},
+		{`{state: "stuck", pauseReason: "three starts failed in five minutes"}`, false},
+		{`{state: "stuck"}`, false},
+		{`{state: "watching", pauseReason: "` + supervise.UntrustedPause + `: x"}`, false},
+	}
+	var script strings.Builder
+	script.WriteString(fns)
+	for _, c := range cases {
+		fmt.Fprintf(&script, "console.log(allowRescue(%s));\n", c.watch)
+	}
+	out, err := exec.Command(node, "-e", script.String()).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	got := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(got) != len(cases) {
+		t.Fatalf("want %d lines from node, got %q", len(cases), out)
+	}
+	for i, c := range cases {
+		if got[i] != strconv.FormatBool(c.want) {
+			t.Errorf("allowRescue(%s) = %s, want %v", c.watch, got[i], c.want)
+		}
 	}
 }

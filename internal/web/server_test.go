@@ -58,6 +58,9 @@ func (f *fakeEngine) OpenTerminal(id string) supervise.Result {
 func (f *fakeEngine) Start(dir string, trust bool, via supervise.Via) supervise.Result {
 	return f.answer("start", fmt.Sprintf("%s trust=%v", dir, trust), via)
 }
+func (f *fakeEngine) TrustFolder(dir string, via supervise.Via) supervise.Result {
+	return f.answer("trust", dir, via)
+}
 func (f *fakeEngine) SetSettings(s state.Settings, via supervise.Via) supervise.Result {
 	f.via = via
 	f.calls = append(f.calls, "settings "+s.KeepAwakeMode)
@@ -216,6 +219,27 @@ func TestTheStartRoute(t *testing.T) {
 // pinned on its own like the stop and terminal routes.
 func TestTheStartRouteIsGuarded(t *testing.T) {
 	guardedRoute(t, "/api/start")
+}
+
+// Allow rescue takes the folder and nothing else, and a request without
+// it never reaches the engine. It answers Claude Code's trust question or
+// opens a terminal, so its guard is pinned on its own too.
+func TestTheTrustRoute(t *testing.T) {
+	ts, e, _ := newTS(t)
+	r := postJSON(t, ts.URL+"/api/trust", `{"path":"/srv/shop-api"}`)
+	if r.StatusCode != 200 || e.calls[len(e.calls)-1] != "trust /srv/shop-api" {
+		t.Fatal(r.StatusCode, e.calls)
+	}
+	before := len(e.calls)
+	for _, body := range []string{"", `{"path":"/srv/a","sudo":true}`, `not json`} {
+		if r := postJSON(t, ts.URL+"/api/trust", body); r.StatusCode != 400 {
+			t.Errorf("%q: status %d", body, r.StatusCode)
+		}
+	}
+	if len(e.calls) != before {
+		t.Fatalf("a bad request reached the engine: %v", e.calls[before:])
+	}
+	guardedRoute(t, "/api/trust")
 }
 
 // Stopping a background copy ends a running session and opening a terminal
