@@ -21,13 +21,13 @@ If CC Babysitter itself is not installed yet, the plugin gives you the one comma
 
 ## What it runs
 
-Without asking: `ccbabysitter version`, `ccbabysitter help`, `ccbabysitter list`, `ccbabysitter show`, `ccbabysitter activity`, `ccbabysitter babysit`, `ccbabysitter unbabysit`, `ccbabysitter retry` and `ccbabysitter open`.
+The plugin pre-approves no commands, so Claude Code asks you before each one, as it does for any command, until you choose "Yes, and don't ask again" for it.
 
-Claude Code asks you before each command the plugin runs by its full path, such as `~/.local/bin/ccbabysitter`. The plugin does that only when Claude Code cannot find `ccbabysitter` on its PATH yet, as right after an install, until Claude Code starts again.
+When you ask for it: `ccbabysitter version`, `ccbabysitter help`, `ccbabysitter list`, `ccbabysitter show`, `ccbabysitter activity`, `ccbabysitter babysit`, `ccbabysitter unbabysit`, `ccbabysitter retry` and `ccbabysitter open`.
 
 After asking you on a card: `ccbabysitter stop`, `ccbabysitter settings` changes, `ccbabysitter install`, `ccbabysitter uninstall` and `ccbabysitter quit`. It never runs `ccbabysitter reset`, and never installs anything.
 
-On macOS it also runs `pmset -g batt` without asking, to see whether the computer is a laptop, so it can mention that closing the lid makes the computer sleep. Its output has no serial number.
+On macOS it also runs `pmset -g batt`, to see whether the computer is a laptop, so it can mention that closing the lid makes the computer sleep. Its output has no serial number.
 
 When CC Babysitter is not installed or not running, the plugin shows you the command that installs or starts it, for you to run in your terminal app. It never runs that command itself.
 
@@ -58,7 +58,7 @@ CC Babysitter has no telemetry and no account, and collects nothing. The plugin'
 
 ## Tests
 
-The `evals` folder holds the plugin's test cases and a stand-in `ccbabysitter` script that only those tests use (`sh evals/run.sh`). Claude Code never loads them.
+The `evals` folder holds the plugin's test cases. They run against a stand-in `ccbabysitter` script that lives outside the plugin, in the repository's `scripts` folder (`sh scripts/plugin-evals.sh`). Claude Code never loads them.
 
 ## License
 

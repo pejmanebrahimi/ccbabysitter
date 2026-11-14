@@ -2,7 +2,7 @@
 name: babysit
 description: Keep a Claude Code session alive and reachable with CC Babysitter, and answer questions about CC Babysitter. Use when the person asks, in any language, to babysit this or another session, keep it alive, awake or reachable, stop babysitting, stop the background copy of a session that CC Babysitter brought back, check whether a session is babysat, open the CC Babysitter page, panel or dashboard, stop CC Babysitter for good or remove it, or asks how CC Babysitter works or what it did, such as why a session was restarted.
 argument-hint: "[session: a name, short id, or nothing for this session]"
-allowed-tools: Bash(ccbabysitter version) Bash(ccbabysitter version *) Bash(ccbabysitter help) Bash(ccbabysitter help *) Bash(ccbabysitter list *) Bash(ccbabysitter show *) Bash(ccbabysitter activity) Bash(ccbabysitter activity *) Bash(ccbabysitter babysit *) Bash(ccbabysitter unbabysit *) Bash(ccbabysitter retry *) Bash(ccbabysitter open) Bash(ccbabysitter open *) Bash(pmset -g batt) PowerShell(ccbabysitter version) PowerShell(ccbabysitter version *) PowerShell(ccbabysitter help) PowerShell(ccbabysitter help *) PowerShell(ccbabysitter list *) PowerShell(ccbabysitter show *) PowerShell(ccbabysitter activity) PowerShell(ccbabysitter activity *) PowerShell(ccbabysitter babysit *) PowerShell(ccbabysitter unbabysit *) PowerShell(ccbabysitter retry *) PowerShell(ccbabysitter open) PowerShell(ccbabysitter open *)
+allowed-tools: Read
 ---
 
 # Babysit with CC Babysitter
@@ -12,7 +12,7 @@ CC Babysitter is a separate program on this computer. For a session it babysits,
 ## Rules
 
 - Never run `ccbabysitter` with no command, `ccbabysitter status`, `ccbabysitter --foreground`, `ccbabysitter --no-open` or `ccbabysitter --demo`. Their output carries the page's key, which must never enter this chat. To show the page, use `ccbabysitter open`. When CC Babysitter's own answer tells the person to run `ccbabysitter status`, pass that on; do not run it.
-- Run each CC Babysitter command on its own and exactly as written here, with nothing added: no `;`, `&&`, `|`, `2>&1` or `echo`. The exit code shows in the result, and anything added makes the command ask for permission.
+- Run each CC Babysitter command on its own and exactly as written here, with nothing added: no `;`, `&&`, `|`, `2>&1` or `echo`. The exit code shows in the result, and anything added would keep a "don't ask again" the person gave for that command from covering it.
 - When you give the person a command to run, put it in its own code block in your reply, before any card. Never refer to a command you have not shown in that same reply, and never put it only on a card.
 - Ask the person with AskUserQuestion cards, never by asking them to type yes or no. Only where that tool is not available, ask the same question in plain words.
 - Ask on a card every time before `ccbabysitter stop`, `ccbabysitter settings NAME VALUE`, `ccbabysitter install`, `ccbabysitter uninstall --keep-files` and `ccbabysitter quit`. Never run `ccbabysitter reset` or `ccbabysitter uninstall` without `--keep-files`: both delete the saved state, and uninstall the program too. Explain what they delete and give the command for them to run.

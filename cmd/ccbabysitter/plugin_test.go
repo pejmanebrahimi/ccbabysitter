@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"image/png"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -348,11 +349,11 @@ func TestSkillNeverRunsAKeyedCommand(t *testing.T) {
 	}
 }
 
-// The skill pre-approves commands by bare name only. A grant by path names
-// a program outside the plugin folder, which the plugin directory's review
-// cannot read, so it holds the plugin for a reviewer; Claude Code asks
-// before such a command instead.
-func TestSkillGrantsNoCommandByPath(t *testing.T) {
+// Anthropic's plugin directory takes pre-approved tools beyond Read, Grep,
+// Glob and LS only from verified organizations, so the skill pre-approves
+// reading alone, with no path, and Claude Code asks before each command it
+// runs.
+func TestSkillPreApprovesOnlyReading(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -361,14 +362,47 @@ func TestSkillGrantsNoCommandByPath(t *testing.T) {
 	if m == nil {
 		t.Fatal("SKILL.md has no allowed-tools")
 	}
-	grants := regexp.MustCompile(`[A-Za-z]+\(([^)]*)\)`).FindAllStringSubmatch(m[1], -1)
-	if len(grants) == 0 {
-		t.Fatal("allowed-tools grants nothing")
-	}
-	for _, g := range grants {
-		if strings.ContainsAny(g[1], "/\\~$") {
-			t.Errorf("allowed-tools grants a command by path: %s", g[0])
+	allowed := map[string]bool{"Read": true, "Grep": true, "Glob": true, "LS": true}
+	for _, tool := range strings.Fields(m[1]) {
+		if !allowed[tool] {
+			t.Errorf("allowed-tools pre-approves %s; only Read, Grep, Glob and LS, with no path, are allowed", tool)
 		}
+	}
+}
+
+// Anthropic's plugin directory takes scripts and programs only from
+// verified organizations, so the plugin folder holds none: the evals'
+// runner and stand-in program live in scripts/.
+func TestPluginShipsNoScripts(t *testing.T) {
+	err := filepath.WalkDir(pluginDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			// Local eval results: gitignored, never shipped.
+			if path == filepath.Join(pluginDir, "evals", "results") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".sh", ".ps1", ".py", ".js", ".mjs", ".ts", ".exe":
+			t.Errorf("%s is a script or program", path)
+			return nil
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		head := make([]byte, 2)
+		if n, _ := f.Read(head); n == 2 && string(head) == "#!" {
+			t.Errorf("%s starts with #!", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -376,13 +410,13 @@ func TestSkillGrantsNoCommandByPath(t *testing.T) {
 // first on PATH. A path into the home folder would reach a real
 // ccbabysitter if the eval sandbox ever let it through.
 func TestEvalsNeverGrantARealBinary(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join(pluginDir, "evals", "run.sh"))
+	data, err := os.ReadFile(filepath.Join(repoRoot, "scripts", "plugin-evals.sh"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, grant := range regexp.MustCompile(`"Bash\(([^)]*)\)"`).FindAllStringSubmatch(string(data), -1) {
 		if strings.ContainsAny(grant[1], "~/$") {
-			t.Errorf("run.sh grants a command by path: %s", grant[0])
+			t.Errorf("plugin-evals.sh grants a command by path: %s", grant[0])
 		}
 	}
 }
