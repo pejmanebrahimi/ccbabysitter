@@ -170,8 +170,10 @@
       <li><code>Claude reported a copy with the same short id ...</code></li>
       <li><code>resume forked a copy</code></li>
       <li><code>stopped and removed copy ...</code></li>
+      <li><code>Claude Code does not trust this folder</code></li>
+      <li><code>it could not be brought back and is not running anywhere. Give Claude Code its one-time OK for ...</code></li>
     </ul>
-    <p>Starting the session again in the background failed. The line says why. Where it can, it ends with "Run by hand:" and the command to start the session yourself. For the usual reasons, see the entries on <a href="#wont-come-back">a folder that is not trusted</a>, <a href="#not-logged-in">logging in</a> and <a href="#no-cli">the CLI</a>.</p>
+    <p>Starting the session again in the background failed, and the line says why. A folder Claude Code does not trust stays that way until you give the OK, so CC Babysitter stops at the first refusal. Until then the session is stuck and runs nowhere; afterwards, press <strong>Try again</strong>. Where it can, it ends with "Run by hand:" and the command to start the session yourself. For the usual reasons, see the entries on <a href="#wont-come-back">a folder that is not trusted</a>, <a href="#not-logged-in">logging in</a> and <a href="#no-cli">the CLI</a>.</p>
     <p>Claude Code sometimes starts a resume as a new copy of the session instead. CC Babysitter stops and removes that copy with <code>claude stop</code> and <code>claude rm</code>, and tries once more without flags. When it cannot, the line gives the commands to run by hand. After three failures in five minutes the session is <a href="#stuck">stuck</a>.</p>
 
     <h2 id="desktop-says-background">Claude Desktop says the session is running in the background</h2>

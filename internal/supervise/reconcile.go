@@ -281,6 +281,15 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	s.backoffUntil[w.SessionID] = now.Add(s.deps.Backoff)
 	s.logAuto(label, reason, res.Message)
 	s.toldCause(reason)
+	// A folder the CLI does not trust stays untrusted until the person
+	// gives the one-time OK, so trying again changes nothing. The session
+	// is stuck at once, and Activity says it runs nowhere now.
+	if trustRefused(res.Message) {
+		cur.Paused = true
+		cur.PauseReason = untrustedPause + ": " + res.Message
+		s.logAuto(label, untrustedPause, "it could not be brought back and is not running anywhere. Give Claude Code its one-time OK for "+w.Cwd+", then press Try again.")
+		return true, true
+	}
 	if ShouldPauseForFailures(cur.Failures, now) {
 		cur.Paused = true
 		cur.PauseReason = "three failed resumes in five minutes: " + res.Message
@@ -369,6 +378,16 @@ func (s *Supervisor) adoptRunningCopy(w state.Watch, row claude.AgentEntry) bool
 	s.notedAlreadyLive(w.SessionID, res)
 	s.logAuto(sessionLabel(w.Name, w.SessionID), "session found running elsewhere", res.Message)
 	return true
+}
+
+// untrustedPause is the reason a watch is stuck when the claude CLI refused
+// to resume it because it does not trust the session's folder.
+const untrustedPause = "Claude Code does not trust this folder"
+
+// trustRefused reports whether a resume's answer is the CLI refusing to run
+// in a folder it does not trust.
+func trustRefused(msg string) bool {
+	return strings.Contains(strings.ToLower(msg), "workspace not trusted")
 }
 
 // removedCopyMemory is how long a copy a resume forked and removed is
