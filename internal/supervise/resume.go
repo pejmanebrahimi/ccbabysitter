@@ -108,17 +108,17 @@ func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSa
 	original := strings.ToLower(shortOf(id))
 	// A session handed back to its app is watched afresh, which forgets that
 	// it ran in the background before; the CLI's own job record remembers,
-	// along with whether those saved options turn Remote Control on.
-	savedRC := false
-	if !hasSaved {
-		if saved, rc := claude.SavedOptions(d.JobsDir, id); saved {
-			hasSaved, savedRC = true, rc
-		}
-	}
-	// Remote Control is expected when the resume asks for it, which it does
-	// only for a session that has never saved its own options, or when the
-	// options the session saved turn it on.
-	askedForRC := !hasSaved || savedRC
+	// along with whether those saved options turn Remote Control on. It is
+	// read even when the watch knows the options are saved, since only the
+	// record says what they are.
+	saved, savedRC := claude.SavedOptions(d.JobsDir, id)
+	// Remote Control is expected, and its bridge given the longer wait, when
+	// the resume asks for it, which it does only for a session that has
+	// never saved its own options, or when the saved options turn it on, or
+	// when there is no record to say they do not. Only a session known to
+	// have saved options without it is ever reported off.
+	askedForRC := !hasSaved || savedRC || !saved
+	hasSaved = hasSaved || saved
 
 	// Every copy stopped and removed here goes back with the result,
 	// whatever it is, so nothing adopts this program's own leftovers.
