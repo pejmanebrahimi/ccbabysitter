@@ -2,7 +2,6 @@
 name: babysit
 description: Keep a Claude Code session alive and reachable with CC Babysitter, and answer questions about CC Babysitter. Use when the person asks, in any language, to babysit this or another session, keep it alive, awake or reachable, stop babysitting, stop the background copy of a session that CC Babysitter brought back, check whether a session is babysat, open the CC Babysitter page, panel or dashboard, stop CC Babysitter for good or remove it, or asks how CC Babysitter works or what it did, such as why a session was restarted.
 argument-hint: "[session: a name, short id, or nothing for this session]"
-allowed-tools: Read
 ---
 
 # Babysit with CC Babysitter
@@ -11,8 +10,9 @@ CC Babysitter is a separate program on this computer. For a session it babysits,
 
 ## Rules
 
-- Never run `ccbabysitter` with no command, `ccbabysitter status`, `ccbabysitter --foreground`, `ccbabysitter --no-open` or `ccbabysitter --demo`. Their output carries the page's key, which must never enter this chat. To show the page, use `ccbabysitter open`. When CC Babysitter's own answer tells the person to run `ccbabysitter status`, pass that on; do not run it.
-- Run each CC Babysitter command on its own and exactly as written here, with nothing added: no `;`, `&&`, `|`, `2>&1` or `echo`. The exit code shows in the result, and anything added would keep a "don't ask again" the person gave for that command from covering it.
+- Never run `ccbabysitter` with no command, `ccbabysitter status`, `ccbabysitter --foreground`, `ccbabysitter --no-open` or `ccbabysitter --demo`. Their output carries the page's key, which must never enter this chat. To show the page, use `ccbabysitter open`. For the same reason, never read any file in CC Babysitter's state folder. When CC Babysitter's own answer tells the person to run `ccbabysitter status`, pass that on; do not run it.
+- Run each CC Babysitter command on its own and exactly as written here, with nothing added: no `;`, `&&`, `|`, `2>&1` or `echo`. The exit code shows in the result, and the person approves exactly the command they see.
+- Claude Code asks the person before each command you run. When they decline one, do not run it another way, for example by its full path: say what it would have done, and ask what they want.
 - When you give the person a command to run, put it in its own code block in your reply, before any card. Never refer to a command you have not shown in that same reply, and never put it only on a card.
 - Ask the person with AskUserQuestion cards, never by asking them to type yes or no. Only where that tool is not available, ask the same question in plain words.
 - Ask on a card every time before `ccbabysitter stop`, `ccbabysitter settings NAME VALUE`, `ccbabysitter install`, `ccbabysitter uninstall --keep-files` and `ccbabysitter quit`. Never run `ccbabysitter reset` or `ccbabysitter uninstall` without `--keep-files`: both delete the saved state, and uninstall the program too. Explain what they delete and give the command for them to run.
@@ -59,7 +59,7 @@ The session is the request's target, or this session when there is none: `ccbaby
 - `not-in-session`: this command does not run inside a Claude Code session, so ask on a card which session is meant, from `ccbabysitter list --json`, leaving out those with `notRunning` true: a session that is not running cannot be babysat.
 - Any other refusal (exit code 1): say CC Babysitter's reason in plain words, for example that a scheduled task run is never babysat.
 
-On success, say what it answered, including any warning, such as "Won't come back if its app closes" with its command, which you give exactly. On macOS (the platform Claude Code reports for this session), run `pmset -g batt`: if it lists an InternalBattery, this is a MacBook, so add that keeping it awake needs the lid open, or an external display.
+On success, say what it answered, including any warning, such as "Won't come back if its app closes" with its command, which you give exactly. On macOS (the platform Claude Code reports for this session), the first time in a conversation, say in one line that you check whether this is a laptop, then run `pmset -g batt`: if it lists an InternalBattery, this is a MacBook, so add that keeping it awake needs the lid open, or an external display.
 
 ## 5. The page
 

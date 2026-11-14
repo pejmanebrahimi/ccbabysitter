@@ -4,7 +4,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 ## 0.12.0 (2026-11-14)
 
-- Changed: the Claude Code plugin pre-approves no commands, so Claude Code asks before each `ccbabysitter` command it runs, as it does for any command, until you choose "Yes, and don't ask again" for it. Anthropic's plugin directory takes pre-approved commands only from verified organizations. CC Babysitter itself does not change.
+- Changed: the Claude Code plugin pre-approves nothing, so Claude Code asks before each `ccbabysitter` command it runs, as it does for other commands; "Yes, and don't ask again" covers a command in the project you are in. Anthropic's plugin directory takes pre-approved tools only from verified organizations. When the person declines a command, the plugin does not run it another way; it checks whether the computer is a laptop once in a conversation; and it never reads CC Babysitter's state folder. CC Babysitter itself does not change.
 - Changed: the plugin's eval runner and its stand-in `ccbabysitter` moved out of the plugin folder, to `scripts/plugin-evals.sh` and `scripts/plugin-evals-fake.sh`; the plugin folder now ships no scripts.
 
 ## 0.11.2 (2026-11-14)
