@@ -13,8 +13,7 @@ parent=/var/tmp
 [ -d /Users/Shared ] && parent=/Users/Shared
 bin=$(mktemp -d "$parent/ccb-evals.XXXXXX")
 trap 'rm -rf "$bin"' EXIT
-cp "$here/fake/ccbabysitter.sh" "$bin/ccbabysitter"
-chmod +x "$bin/ccbabysitter"
+cp "$here/fake/ccbabysitter" "$bin/ccbabysitter"
 path=$bin
 old_ifs=$IFS
 IFS=:
