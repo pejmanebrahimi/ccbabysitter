@@ -55,6 +55,50 @@ func TestPluginManifests(t *testing.T) {
 	}
 }
 
+// Anthropic's plugin directory reads the icon and the documentation and
+// support links from plugin.json for the plugin's listing. Claude Code
+// ignores them.
+func TestPluginListingFields(t *testing.T) {
+	var plugin struct {
+		Icon             string `json:"icon"`
+		DocumentationURL string `json:"documentationUrl"`
+		SupportURL       string `json:"supportUrl"`
+	}
+	readJSON(t, filepath.Join(pluginDir, ".claude-plugin", "plugin.json"), &plugin)
+	if plugin.Icon != "./.claude-plugin/icon.png" {
+		t.Errorf("icon is %q", plugin.Icon)
+	}
+	if _, err := os.Stat(filepath.Join(pluginDir, filepath.FromSlash(plugin.Icon))); err != nil {
+		t.Errorf("the icon: %v (site/images_test.go makes it: go test ./site -run TestImagesMatchTheArt -update)", err)
+	}
+	if plugin.DocumentationURL != "https://ccbabysitter.dev/docs/claude-code-plugin/" {
+		t.Errorf("documentationUrl is %q", plugin.DocumentationURL)
+	}
+	if plugin.SupportURL != "https://github.com/pejmanebrahimi/ccbabysitter/issues" {
+		t.Errorf("supportUrl is %q", plugin.SupportURL)
+	}
+	// The docs page the listing links to is the one the site builds.
+	if _, err := os.Stat(filepath.Join(repoRoot, "site", "docs", "claude-code-plugin", "index.html")); err != nil {
+		t.Errorf("documentationUrl points to a page the site does not have: %v", err)
+	}
+}
+
+// Whoever installs the plugin gets only the plugin folder, so it carries
+// the license itself, word for word the one at the top of the repository.
+func TestPluginCarriesTheLicense(t *testing.T) {
+	top, err := os.ReadFile(filepath.Join(repoRoot, "LICENSE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	own, err := os.ReadFile(filepath.Join(pluginDir, "LICENSE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(own) != string(top) {
+		t.Error("plugin/LICENSE differs from LICENSE; copy it: cp LICENSE plugin/LICENSE")
+	}
+}
+
 // updateReference rewrites the files made from others: the plugin's and
 // the docs' command references from the help pages, and the plugin's
 // how-it-works.md and the docs' How it works page from the README:

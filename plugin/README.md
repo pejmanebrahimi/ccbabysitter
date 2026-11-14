@@ -45,8 +45,19 @@ CC Babysitter reads Claude Code's own local files and never writes to them:
 
 ## Privacy
 
-Nothing is collected or sent anywhere: no telemetry, no account. CC Babysitter's page is served on `127.0.0.1` only. The only network use is downloading a release from GitHub when you install or update CC Babysitter.
+Nothing is collected or sent anywhere: no telemetry, no account. The plugin makes no network calls, and CC Babysitter's page is served on `127.0.0.1` only. The only network use is installing or updating CC Babysitter, with the command you run yourself: it downloads the install script from ccbabysitter.dev, then the release and its checksums from GitHub.
+
+## Help
+
+- How to use the plugin: https://ccbabysitter.dev/docs/claude-code-plugin/
+- Troubleshooting, with an entry for every warning: https://ccbabysitter.dev/docs/troubleshooting/
+- Report a problem or ask a question: https://github.com/pejmanebrahimi/ccbabysitter/issues
+- Report a vulnerability privately, as `SECURITY.md` says: https://github.com/pejmanebrahimi/ccbabysitter/security/advisories/new
 
 ## Tests
 
 The `evals` folder holds the plugin's test cases and a stand-in `ccbabysitter` script that only those tests use (`sh evals/run.sh`). Claude Code never loads them.
+
+## License
+
+MIT. See `LICENSE`.

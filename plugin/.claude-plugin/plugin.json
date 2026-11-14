@@ -2,10 +2,13 @@
   "name": "ccbabysitter",
   "displayName": "CC Babysitter",
   "version": "0.10.0",
-  "description": "Say \"babysit this session\": CC Babysitter keeps it alive and reachable if its app closes, and answers questions about what it did.",
+  "description": "Say \"babysit this session\" in Claude Code: CC Babysitter keeps it alive and reachable if its app closes, and says what it did. Works only in Claude Code, with CC Babysitter (a separate open-source program) on the same computer; the plugin gives the install command.",
   "author": { "name": "Pejman Ebrahimi", "url": "https://github.com/pejmanebrahimi" },
   "homepage": "https://ccbabysitter.dev",
   "repository": "https://github.com/pejmanebrahimi/ccbabysitter",
   "license": "MIT",
-  "keywords": ["babysit", "remote-control", "keep-alive", "sessions", "background"]
+  "keywords": ["babysit", "remote-control", "keep-alive", "sessions", "background"],
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://ccbabysitter.dev/docs/claude-code-plugin/",
+  "supportUrl": "https://github.com/pejmanebrahimi/ccbabysitter/issues"
 }

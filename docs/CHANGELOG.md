@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## Unreleased
+
+- Added: the Claude Code plugin carries what Anthropic's plugin directory reads for a listing: an icon made from the site's art, links to its docs page and to the issue tracker, and its own copy of the license, since whoever installs it gets only the plugin folder. Its description now says it works only in Claude Code, with CC Babysitter on the same computer, and its README says what installing CC Babysitter downloads, and where to get help.
+
 ## 0.10.0 (2026-11-14)
 
 - Fixed: a background session goes on under the same short id when a new conversation is started in it, as with /clear. CC Babysitter took the job, now running the new conversation, for the babysat earlier one: each time Claude Code replaced the job's process, it resumed the earlier conversation beside it, which forked two copies it then had to stop and remove, and on a server auto-babysit adopted one of those copies. Now babysitting follows the job to the conversation it runs, or lets the earlier one go when the new one is babysat already, and a copy CC Babysitter removed is never adopted (#130).
