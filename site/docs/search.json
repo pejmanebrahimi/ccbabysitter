@@ -415,7 +415,7 @@
   "url": "/docs/troubleshooting/#no-cli",
   "page": "Troubleshooting",
   "section": "The Claude Code CLI cannot be used",
-  "text": "The Claude Code CLI is not installed, so babysat sessions cannot be brought back agents --json did not answer ... CC Babysitter brings sessions back with the claude CLI. Install Claude Code, or make sure claude runs in a terminal of the same account. Before it brings a session back, CC Babysitter asks claude agents whether the session is running, so it never starts a second copy. An answer it cannot use counts as none: it starts nothing, and asks again on its next look."
+  "text": "The Claude Code CLI is not installed, so babysat sessions cannot be brought back agents --json did not answer ... CC Babysitter brings sessions back with the claude CLI. Install Claude Code, or make sure claude runs in a terminal of the same account. Before it brings a session back, CC Babysitter asks claude agents whether the session is running, so it never starts a second copy. An answer it cannot use counts as none: it starts nothing, and asks again on its next look. Activity says so once, however long the CLI goes without answering, and says agents --json answers again. when it answers."
  },
  {
   "url": "/docs/troubleshooting/#page-key",

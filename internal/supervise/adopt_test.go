@@ -1,6 +1,8 @@
 package supervise
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -221,17 +223,18 @@ func TestAResumeSaysWhatClaudeListed(t *testing.T) {
 		if n := countCalls(f, "--bg --resume "); n != 1 {
 			t.Fatalf("%s: %v", c.agents, f.r.CallList())
 		}
-		n := 0
+		// The line is for whoever reads log.txt, not for Activity.
 		for _, e := range f.d.Log.Recent(50, "demo-a4") {
 			if strings.HasPrefix(e.Message, "resuming: ") {
-				n++
-				if e.Message != c.want {
-					t.Errorf("said %q, want %q", e.Message, c.want)
-				}
+				t.Errorf("Activity has %q", e.Message)
 			}
 		}
-		if n != 1 {
-			t.Errorf("%s: said %d times, want once", c.agents, n)
+		data, err := os.ReadFile(filepath.Join(f.logDir, "log.txt"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n := strings.Count(string(data), "demo-a4: resuming: "); n != 1 || !strings.Contains(string(data), "demo-a4: "+c.want+"\n") {
+			t.Errorf("%s: log.txt says it %d times, want %q once:\n%s", c.agents, n, c.want, data)
 		}
 	}
 }

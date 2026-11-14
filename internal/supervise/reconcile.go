@@ -227,7 +227,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if s.daemonBusy(w) {
 		return false, false
 	}
-	s.logInfo(label, "resuming: "+agentsSeen(list, w.SessionID, w.ShortID))
+	s.deps.Log.Debug(label, "resuming: "+agentsSeen(list, w.SessionID, w.ShortID))
 	// A shutdown between the check above and the resume below would leave a
 	// resume that was cut short looking exactly like a session that refused
 	// to come back. Nothing is recorded in that case, so a service that is

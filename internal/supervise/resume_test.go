@@ -31,12 +31,15 @@ type fixture struct {
 
 	p *procs.Fake
 	r *claude.FakeRunner
+	// logDir holds log.txt, which has the debugging lines Activity leaves
+	// out.
+	logDir string
 }
 
 func newFixture(t *testing.T, respond func(args []string) (string, error)) *fixture {
-	f := &fixture{p: procs.NewFake()}
+	f := &fixture{p: procs.NewFake(), logDir: t.TempDir()}
 	f.r = claude.NewFakeRunner(respond)
-	log, err := state.NewLog(t.TempDir())
+	log, err := state.NewLog(f.logDir)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -40,3 +40,29 @@ func TestLogWritesActivityAndRolls(t *testing.T) {
 		t.Fatalf("%+v", last)
 	}
 }
+
+// A debugging line goes to log.txt only: Activity and its subscribers never
+// see it.
+func TestDebugLinesStayOutOfActivity(t *testing.T) {
+	dir := t.TempDir()
+	l, err := NewLog(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch, cancel := l.Subscribe()
+	defer cancel()
+	l.Debug("demo-a1", "resuming: agents listed nothing for this session")
+	l.Info("", "after")
+	if e := <-ch; e.Message != "after" {
+		t.Fatalf("a subscriber got %+v", e)
+	}
+	for _, e := range l.Recent(10, "") {
+		if e.Level == "DEBUG" {
+			t.Fatalf("Activity has %+v", e)
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "log.txt"))
+	if err != nil || !strings.Contains(string(data), "DEBUG demo-a1: resuming: agents listed nothing for this session") {
+		t.Fatalf("log.txt: %q %v", data, err)
+	}
+}
