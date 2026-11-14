@@ -110,30 +110,80 @@ func TestAdoptingARunningCopyIsSaidOnce(t *testing.T) {
 	}
 }
 
-// A running copy Claude lists under the short id the watch already knows
-// is the watch's own, whatever session id it reports, and is not resumed
-// beside.
-func TestFallbackAdoptsARunningCopyWithTheKnownShortID(t *testing.T) {
+// A background job keeps its short id when the conversation in it changes,
+// as after /clear. When the job the watch knows runs another conversation,
+// the watched one is not resumed beside it, which forks a copy every time:
+// babysitting follows the job to the conversation it runs now, and Activity
+// says so.
+func TestAWatchFollowsItsJobToItsNewConversation(t *testing.T) {
 	id := "3c3c3c3c-0000-4000-8000-000000000003"
+	next := "99999999-0000-4000-8000-000000000003"
 	f := newFixture(t, func(args []string) (string, error) {
 		if strings.Join(args, " ") == "agents --json" {
-			return `[{"pid":9,"id":"4d4d4d4d","kind":"background","status":"idle","sessionId":"99999999-0000-4000-8000-000000000003"}]`, nil
+			return `[{"pid":9,"id":"4d4d4d4d","kind":"background","status":"idle","sessionId":"` + next + `","name":"next one"}]`, nil
+		}
+		return "backgrounded \u00b7 5e5e5e5e", nil
+	})
+	f.writeTranscript(t, "/home/dev/ws", id)
+	s := New(*f.d)
+	s.addWatchForTest(state.Watch{SessionID: id, ShortID: "4d4d4d4d", Name: "first one", Cwd: "/home/dev/ws",
+		OriginHost: claude.HostBackground, PromiseState: "inplace", HasSavedOptions: true})
+	at := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	for i := 1; i <= 3; i++ {
+		s.reconcileForTest(observe.Snapshot{At: at.Add(time.Duration(i) * time.Second)})
+	}
+	if n := countCalls(f, "--bg --resume "); n != 0 {
+		t.Fatalf("the earlier conversation was resumed beside the job: %v", f.r.CallList())
+	}
+	if _, ok := s.watchForTest(id); ok {
+		t.Fatal("the earlier conversation is still babysat")
+	}
+	w, ok := s.watchForTest(next)
+	if !ok || w.ShortID != "4d4d4d4d" || w.Cwd != "/home/dev/ws" {
+		t.Fatalf("babysitting did not follow the job: %+v %v", w, ok)
+	}
+	said := false
+	for _, e := range f.d.Log.Recent(20, "") {
+		if strings.Contains(e.Message, "now runs another conversation") {
+			said = true
+		}
+	}
+	if !said {
+		t.Fatalf("Activity does not say the job moved on: %v", f.d.Log.Recent(20, ""))
+	}
+}
+
+// When the conversation the job runs now is babysat already, the earlier
+// conversation's watch is simply let go, with a line, and nothing is
+// resumed.
+func TestAWatchWhoseJobRunsAnotherBabysatConversationIsLetGo(t *testing.T) {
+	id := "3c3c3c3c-0000-4000-8000-000000000004"
+	next := "99999999-0000-4000-8000-000000000004"
+	f := newFixture(t, func(args []string) (string, error) {
+		if strings.Join(args, " ") == "agents --json" {
+			return `[{"pid":9,"id":"4d4d4d4d","kind":"background","status":"idle","sessionId":"` + next + `"}]`, nil
 		}
 		return "backgrounded \u00b7 5e5e5e5e", nil
 	})
 	f.writeTranscript(t, "/home/dev/ws", id)
 	s := New(*f.d)
 	s.addWatchForTest(state.Watch{SessionID: id, ShortID: "4d4d4d4d", Cwd: "/home/dev/ws",
-		OriginHost: claude.HostDesktop, PromiseState: "inplace", HasSavedOptions: true})
+		OriginHost: claude.HostBackground, PromiseState: "inplace", HasSavedOptions: true})
+	s.addWatchForTest(state.Watch{SessionID: next, ShortID: "4d4d4d4d", Cwd: "/home/dev/ws",
+		OriginHost: claude.HostBackground, PromiseState: "inplace", HasSavedOptions: true})
 	at := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
-	for i := 1; i <= 2; i++ {
-		s.reconcileForTest(observe.Snapshot{At: at.Add(time.Duration(i) * time.Second)})
+	running := []claude.Session{{ID: next, ShortID: "4d4d4d4d", PID: 9, Host: claude.HostBackground, Cwd: "/home/dev/ws"}}
+	for i := 1; i <= 3; i++ {
+		s.reconcileForTest(observe.Snapshot{At: at.Add(time.Duration(i) * time.Second), Sessions: running})
 	}
 	if n := countCalls(f, "--bg --resume "); n != 0 {
-		t.Fatalf("a running copy with the watch's short id is never resumed beside: %v", f.r.CallList())
+		t.Fatalf("the earlier conversation was resumed beside the job: %v", f.r.CallList())
 	}
-	if w, _ := s.watchForTest(id); w.ShortID != "4d4d4d4d" || w.PromiseState != "fallback" {
-		t.Fatalf("%+v", w)
+	if _, ok := s.watchForTest(id); ok {
+		t.Fatal("the earlier conversation is still babysat")
+	}
+	if _, ok := s.watchForTest(next); !ok {
+		t.Fatal("the conversation the job runs is no longer babysat")
 	}
 }
 

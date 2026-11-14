@@ -188,6 +188,9 @@ type Supervisor struct {
 	// babysat session's Claude Code version, to leave a background session
 	// to Claude Code while it starts it again on a new version.
 	versions map[string]versionNote
+	// removedCopies are the copies resumes forked and then stopped and
+	// removed, by short id, with when, so auto-babysit never adopts one.
+	removedCopies map[string]time.Time
 	// stopped is every background session whose copy Stop ended without
 	// handing it back to an app, by session id, so its Not running row can
 	// offer the command that starts it again. It is only kept in memory.
@@ -246,6 +249,7 @@ func New(d Deps) *Supervisor {
 		trouble:       newCopyTrouble(),
 		handedBack:    map[string]handBack{},
 		versions:      map[string]versionNote{},
+		removedCopies: map[string]time.Time{},
 		stopped:       map[string]stoppedCopy{},
 		startedAt:     d.Now(),
 	}

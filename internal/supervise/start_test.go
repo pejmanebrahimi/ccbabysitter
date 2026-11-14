@@ -14,6 +14,7 @@ import (
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
 	"ccbabysitter.dev/ccbabysitter/internal/hosts"
 	"ccbabysitter.dev/ccbabysitter/internal/observe"
+	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
 
 // startFixture is a supervisor on a machine with no display, with a
@@ -291,6 +292,46 @@ func TestStartedSessionShowingUpLateIsStillBabysat(t *testing.T) {
 	sf.s.reconcileForTest(sf.f.d.Obs.Current())
 	if _, ok := sf.s.watchForTest(id); !ok {
 		t.Fatal("a session that showed up late was not babysat")
+	}
+}
+
+// On a server with "Babysit every new background session" on, a copy a
+// resume forked shows up as a new background session for a moment while
+// it is stopped and removed. It is CC Babysitter's own leftover, not a
+// session someone started, so it is never adopted.
+func TestARemovedForkedCopyIsNotAdopted(t *testing.T) {
+	id := "1a2b3c4d-0000-4000-8000-000000000001"
+	copyID := "7a7a7a7a-0000-4000-8000-000000000001"
+	sf := newStartFixture(t, true, func(args []string) (string, error) {
+		a := strings.Join(args, " ")
+		switch {
+		case a == "agents --json":
+			return "[]", nil
+		case strings.HasPrefix(a, "--bg --resume") && strings.Contains(a, "--remote-control"):
+			return "note: started a copy as 7a7a7a7a.\nbackgrounded \u00b7 7a7a7a7a", nil
+		case strings.HasPrefix(a, "--bg --resume"):
+			return "backgrounded \u00b7 1a2b3c4d \u00b7 shop-api", nil
+		}
+		return "", nil
+	})
+	sf.f.writeTranscript(t, sf.project, id)
+	sf.s.st.Settings.AutoBabysit = true
+	sf.s.reconcileForTest(observe.Snapshot{At: time.Now()})
+	sf.s.addWatchForTest(state.Watch{SessionID: id, ShortID: "1a2b3c4d", Cwd: sf.project,
+		OriginHost: claude.HostBackground, PromiseState: "inplace"})
+	at := time.Now()
+	for i := 1; i <= 3; i++ {
+		sf.s.reconcileForTest(observe.Snapshot{At: at.Add(time.Duration(i) * time.Second)})
+	}
+	if n := countCalls(sf.f, "rm 7a7a7a7a"); n != 1 {
+		t.Fatalf("the forked copy was not removed: %v", sf.f.r.CallList())
+	}
+	sf.s.reconcileForTest(observe.Snapshot{At: at.Add(4 * time.Second), Sessions: []claude.Session{
+		{ID: id, ShortID: "1a2b3c4d", PID: 21, Host: claude.HostBackground, Cwd: sf.project},
+		{ID: copyID, ShortID: "7a7a7a7a", PID: 22, Host: claude.HostBackground, Cwd: sf.project},
+	}})
+	if _, ok := sf.s.watchForTest(copyID); ok {
+		t.Fatal("the removed copy was adopted as a new session")
 	}
 }
 

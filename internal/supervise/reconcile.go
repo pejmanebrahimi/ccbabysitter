@@ -199,6 +199,12 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if running, ok := claude.RunningCopy(list, w.SessionID, w.ShortID); ok {
 		return s.adoptRunningCopy(w, running), false
 	}
+	// The job the watch knew runs another conversation now. Resuming the
+	// watched one beside it forks a copy every time, and it is not the one
+	// the person is using.
+	if job, ok := claude.JobOnAnother(list, w.SessionID, w.ShortID); ok {
+		return s.followJob(w, job), false
+	}
 	if claude.Listed(list, w.SessionID) {
 		return false, false
 	}
@@ -215,6 +221,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
 	s.announce(w.SessionID, reason)
 	short, res := s.deps.resumeBackground(ctx, w.SessionID, w.Name, w.Cwd, w.HasSavedOptions)
+	s.noteRemovedCopies(res.RemovedCopies)
 	cur := s.find(w.SessionID)
 	if cur == nil {
 		return false, true
@@ -361,6 +368,50 @@ func (s *Supervisor) adoptRunningCopy(w state.Watch, row claude.AgentEntry) bool
 	}
 	s.notedAlreadyLive(w.SessionID, res)
 	s.logAuto(sessionLabel(w.Name, w.SessionID), "session found running elsewhere", res.Message)
+	return true
+}
+
+// removedCopyMemory is how long a copy a resume forked and removed is
+// remembered, so it is not adopted while it still shows as a session.
+const removedCopyMemory = 10 * time.Minute
+
+// noteRemovedCopies remembers the copies a resume forked and then stopped
+// and removed, by short id.
+func (s *Supervisor) noteRemovedCopies(shorts []string) {
+	for _, short := range shorts {
+		s.removedCopies[strings.ToLower(short)] = s.deps.Now()
+	}
+}
+
+// jobMovedOn is the reason given when a babysat conversation's background
+// job runs another conversation now.
+const jobMovedOn = "the background job runs another conversation now"
+
+// followJob deals with a watch whose background job runs another
+// conversation now, job: babysitting follows the job to that conversation,
+// which is the one the person is using, unless it is babysat already, and
+// then this watch is let go. Either way the watched conversation is not
+// resumed, and Activity says what happened.
+func (s *Supervisor) followJob(w state.Watch, job claude.AgentEntry) bool {
+	cur := s.find(w.SessionID)
+	if cur == nil {
+		return false
+	}
+	label := sessionLabel(w.Name, w.SessionID)
+	short := strings.ToLower(job.ID)
+	if s.find(job.SessionID) != nil {
+		s.removeWatch(w.SessionID)
+		s.logAuto(label, jobMovedOn, "its background job "+short+" now runs another conversation, which is babysat already, so this one is no longer babysat")
+		return true
+	}
+	next := *cur
+	next.SessionID = job.SessionID
+	next.Name = logField(job.Name)
+	next.Failures = nil
+	s.removeWatch(w.SessionID)
+	s.st.Watches = append(s.st.Watches, next)
+	s.seen[job.SessionID] = true
+	s.logAuto(label, jobMovedOn, "its background job "+short+" now runs another conversation, so babysitting follows it there")
 	return true
 }
 
@@ -644,12 +695,20 @@ func (s *Supervisor) autoBabysit(snap observe.Snapshot) bool {
 			delete(s.started, short)
 		}
 	}
+	for short, at := range s.removedCopies {
+		if s.deps.Now().Sub(at) > removedCopyMemory {
+			delete(s.removedCopies, short)
+		}
+	}
 	if s.firstPass && s.st.Settings.AutoBabysit && s.env.Headless {
 		for _, sn := range snap.Sessions {
 			if sn.Host != claude.HostBackground || s.seen[sn.ID] || s.find(sn.ID) != nil {
 				continue
 			}
 			if _, mine := s.started[sn.ShortID]; mine {
+				continue
+			}
+			if _, leftover := s.removedCopies[sn.ShortID]; leftover {
 				continue
 			}
 			s.st.Watches = append(s.st.Watches, newWatch(sn, s.deps.Now()))

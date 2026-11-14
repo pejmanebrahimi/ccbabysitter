@@ -72,16 +72,22 @@ func TestRunningCopy(t *testing.T) {
 			t.Errorf("%s: got %+v %v, want %v", c.name, row, ok, c.want)
 		}
 	}
-	// A running copy is also known by the short id the watch already
-	// holds, whatever session id it reports, in either case.
+	// A running copy that does not say its session is also known by the
+	// short id the watch already holds, in either case. One that names
+	// another session is that session's job, even under this short id: a
+	// background job keeps its id when the conversation in it changes.
+	unnamed := AgentEntry{PID: 9, ID: "4D4D4D4D", Kind: "background", Status: "idle"}
+	if _, ok := RunningCopy([]AgentEntry{unnamed}, id, "4d4d4d4d"); !ok {
+		t.Error("a running copy with the watch's short id and no session is the watch's copy")
+	}
+	if _, ok := RunningCopy([]AgentEntry{unnamed}, id, "5e5e5e5e"); ok {
+		t.Error("a copy with another short id is not")
+	}
 	other := AgentEntry{PID: 9, ID: "4D4D4D4D", SessionID: "11111111-2222-4333-8444-555555555501", Kind: "background", Status: "idle"}
-	if _, ok := RunningCopy([]AgentEntry{other}, id, "4d4d4d4d"); !ok {
-		t.Error("a running copy with the watch's short id is the watch's copy")
+	if _, ok := RunningCopy([]AgentEntry{other}, id, "4d4d4d4d"); ok {
+		t.Error("a job under the watch's short id that runs another session is not the watch's copy")
 	}
-	if _, ok := RunningCopy([]AgentEntry{other}, id, "5e5e5e5e"); ok {
-		t.Error("a copy with another short id and another session is not")
-	}
-	stopped := other
+	stopped := unnamed
 	stopped.Status = "stopped"
 	if _, ok := RunningCopy([]AgentEntry{stopped}, id, "4d4d4d4d"); ok {
 		t.Error("a stopped copy is not running")

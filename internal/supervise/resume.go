@@ -96,7 +96,7 @@ func (d *Deps) stopCopyOrRefuse(ctx context.Context, copyID, id, cwd, original s
 // recovers once from a forked copy, and never leaves a copy behind: the
 // copy is always stopped and removed, whether the recovery succeeds or a
 // second fork forces an honest failure.
-func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSaved bool) (string, Result) {
+func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSaved bool) (short string, res Result) {
 	if !claude.ValidID(id) {
 		return "", Result{Message: "That is not a valid session id."}
 	}
@@ -120,6 +120,11 @@ func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSa
 	// options the session saved turn it on.
 	askedForRC := !hasSaved || savedRC
 
+	// Every copy stopped and removed here goes back with the result,
+	// whatever it is, so nothing adopts this program's own leftovers.
+	var removed []string
+	defer func() { res.RemovedCopies = removed }()
+
 	out, runErr := d.Runner.Run(ctx, cwd, hosts.BackgroundResumeArgs(id, hasSaved)...)
 	recovered := false
 	if rawCopy, ok := claude.ParseCopy(out); ok {
@@ -130,6 +135,7 @@ func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSa
 		d.Log.Auto(sessionLabel(name, id), "resume forked a copy", "stopped and removed copy "+copyID+", retrying without flags")
 		out, runErr = d.Runner.Run(ctx, cwd, hosts.BackgroundResumeArgs(id, true)...)
 		recovered = true
+		removed = append(removed, copyID)
 		if rawCopy2, again := claude.ParseCopy(out); again {
 			copy2 := strings.ToLower(rawCopy2)
 			if res, ok := d.stopCopyOrRefuse(ctx, copy2, id, cwd, original); !ok {
@@ -138,6 +144,7 @@ func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSa
 			// Two forks in a row means the CLI would not wake this session at
 			// all, which is what it does when the session is running
 			// somewhere already.
+			removed = append(removed, copy2)
 			if short, res, live := d.alreadyRunning(id); live {
 				return short, res
 			}

@@ -376,6 +376,12 @@
   "text": "session found running elsewhere the session is already running in ... session open in ... babysitting it in ... CC Babysitter was about to bring a session back and found it already running, in an app or as a background copy. It never starts a second copy of a session, so it went back to watching it where it runs. \"Session open in\" is the other way round. The background copy is gone, and the session is open in an app again, after Back to Desktop or because the app restored it. It is babysat there. Nothing needs doing in either case."
  },
  {
+  "url": "/docs/troubleshooting/#job-moved-on",
+  "page": "Troubleshooting",
+  "section": "A background session now runs another conversation",
+  "text": "the background job runs another conversation now its background job ... A background session goes on under the same short id when you start a new conversation in it, for example with /clear. CC Babysitter then babysits the conversation the session runs now, the one you are using, and lets the earlier one go. When the new conversation is babysat already, the earlier one is simply let go. Nothing is resumed, so no copy is forked. To babysit the earlier conversation again, resume it and press Babysit."
+ },
+ {
   "url": "/docs/troubleshooting/#extra-copies",
   "page": "Troubleshooting",
   "section": "More than one background copy",

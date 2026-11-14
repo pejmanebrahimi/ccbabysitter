@@ -212,6 +212,10 @@ type Result struct {
 	// claude CLI does not trust its folder yet, and the person has not said
 	// to trust it. Asking again with trust set answers the CLI's question.
 	NeedsTrust bool `json:"needsTrust,omitempty"`
+	// RemovedCopies are the short ids of the copies a resume forked and
+	// then stopped and removed. They are this program's own leftovers, not
+	// sessions someone started, so nothing adopts them. Never sent out.
+	RemovedCopies []string `json:"-"`
 }
 
 // defaults fills in every duration and the clock that was left at its zero
