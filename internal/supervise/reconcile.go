@@ -181,6 +181,11 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if s.justWoke() {
 		return false, false
 	}
+	// Claude Desktop may still be quitting to update, or coming back, and
+	// what it does next is the reason the rescue gives.
+	if s.settlingDesktop(w) {
+		return false, false
+	}
 	// Claude saves a conversation only once something has been said in it,
 	// so a session closed before that has nothing to start again from, and
 	// no amount of trying would change it. Its babysitting ends here rather
@@ -232,6 +237,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 		return false, false
 	}
 
+	s.decideDesktopCause(w.SessionID)
 	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
 	s.announce(w.SessionID, reason)
 	short, res := s.deps.resumeBackground(ctx, w.SessionID, w.Name, w.Cwd, w.HasSavedOptions)

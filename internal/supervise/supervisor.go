@@ -135,6 +135,7 @@ type Supervisor struct {
 	// computer restarted since the run before this one.
 	lastHost         map[string]claude.Host
 	causes           map[string]string
+	wentAt           map[string]time.Time // when each was first seen gone, for causes
 	announced        map[string]bool
 	desktopVersion   string
 	desktopVersionAt time.Time
@@ -238,6 +239,7 @@ func New(d Deps) *Supervisor {
 		absent:        map[string]int{},
 		lastHost:      map[string]claude.Host{},
 		causes:        map[string]string{},
+		wentAt:        map[string]time.Time{},
 		liveness:      map[string]Liveness{},
 		livenessAt:    map[string]time.Time{},
 		notResponding: map[string]bool{},
