@@ -444,6 +444,45 @@ func TestResumeBackgroundRefusesCopyThatLooksLikeAnUpperCaseOriginal(t *testing.
 	}
 }
 
+// When the retry without flags forks a copy too and the session turns out
+// to be running already, Activity names the second copy as well as the
+// first, and both go back with the result.
+func TestResumeBackgroundNamesBothCopies(t *testing.T) {
+	id := "77777777-0000-4000-8000-000000000001"
+	f := newFixture(t, nil)
+	tries := 0
+	f.r.SetRespond(func(args []string) (string, error) {
+		if !strings.HasPrefix(strings.Join(args, " "), "--bg --resume") {
+			return "", nil
+		}
+		tries++
+		if tries == 2 {
+			f.p.SetAlive(7, true)
+			f.addFile(bgSession(7, id, "b"))
+			return "note: started a copy as bbccddee.\nbackgrounded \u00b7 bbccddee", nil
+		}
+		return "note: started a copy as aabbccdd.\nbackgrounded \u00b7 aabbccdd", nil
+	})
+	_, res := f.d.resumeBackground(context.Background(), id, "n", "/home/dev/ws", false)
+	if !res.OK || res.AlreadyLiveIn != claude.HostBackground {
+		t.Fatalf("%+v", res)
+	}
+	if got := strings.Join(res.RemovedCopies, " "); got != "aabbccdd bbccddee" {
+		t.Fatalf("removed copies %q", got)
+	}
+	named := map[string]bool{}
+	for _, e := range f.d.Log.Recent(20, "") {
+		for _, c := range []string{"aabbccdd", "bbccddee"} {
+			if strings.Contains(e.Message, "stopped and removed copy "+c) {
+				named[c] = true
+			}
+		}
+	}
+	if !named["aabbccdd"] || !named["bbccddee"] {
+		t.Fatalf("Activity names %v: %v", named, f.d.Log.Recent(20, ""))
+	}
+}
+
 // A resume the CLI refuses because the session is running already is not a
 // failure of anything. Starting a second copy would be the one outcome
 // nobody wants, so the answer is to say where it is running.

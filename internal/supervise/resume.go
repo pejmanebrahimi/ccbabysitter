@@ -145,6 +145,7 @@ func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSa
 			// all, which is what it does when the session is running
 			// somewhere already.
 			removed = append(removed, copy2)
+			d.Log.Auto(sessionLabel(name, id), "resume forked a copy", "stopped and removed copy "+copy2+" too, from the try without flags")
 			if short, res, live := d.alreadyRunning(id); live {
 				return short, res
 			}

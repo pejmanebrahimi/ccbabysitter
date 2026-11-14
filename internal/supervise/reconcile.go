@@ -175,6 +175,12 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if until, ok := s.backoffUntil[w.SessionID]; ok && s.deps.Now().Before(until) {
 		return false, false
 	}
+	// Just after the computer wakes, Claude Code's list can miss a session
+	// that runs, and Claude Code may still be starting sessions again
+	// itself, so a resume would fork a copy. It waits a moment.
+	if s.justWoke() {
+		return false, false
+	}
 	// Claude saves a conversation only once something has been said in it,
 	// so a session closed before that has nothing to start again from, and
 	// no amount of trying would change it. Its babysitting ends here rather
@@ -207,6 +213,13 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 		return s.followJob(w, job), false
 	}
 	if claude.Listed(list, w.SessionID) {
+		return false, false
+	}
+	// While Claude Code's daemon is still stopping the job, or has only just
+	// started and not loaded its jobs yet, a resume starts a copy instead of
+	// waking the job. The daemon is done within seconds, so the watch waits
+	// for a later pass.
+	if s.daemonBusy(w) {
 		return false, false
 	}
 	s.logInfo(label, "resuming: "+agentsSeen(list, w.SessionID, w.ShortID))
@@ -1021,6 +1034,22 @@ func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
 		}
 	}
 	return s.knownCause(id)
+}
+
+// daemonBusy reports whether the CLI daemon's log says it is, right now,
+// still stopping the job of w's session, under the short id the watch
+// knows or the session's own, or has only just started.
+func (s *Supervisor) daemonBusy(w state.Watch) bool {
+	if s.deps.DaemonLog == "" {
+		return false
+	}
+	now := s.deps.Now()
+	for _, sh := range []string{strings.ToLower(w.ShortID), strings.ToLower(shortOf(w.SessionID))} {
+		if claude.DaemonBusy(s.deps.DaemonLog, sh, now) {
+			return true
+		}
+	}
+	return false
 }
 
 // idleWords says a duration the way a person would: whole hours as hours,

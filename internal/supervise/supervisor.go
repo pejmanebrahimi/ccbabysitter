@@ -144,8 +144,11 @@ type Supervisor struct {
 	// slept a sleep of the computer not yet named in Activity, and sleepers
 	// the lines about sleeps still being written.
 	idleSince time.Time
-	slept     *sleepSpan
-	sleepers  sync.WaitGroup
+	// wokeAt is when the computer last woke from a sleep, seen as a long
+	// wait between passes. Nothing is resumed for wakeHold after it.
+	wokeAt   time.Time
+	slept    *sleepSpan
+	sleepers sync.WaitGroup
 	// statsInFlight names the sessions the worker has been asked about and
 	// has not answered for yet, so the same read is never queued twice.
 	statsInFlight map[string]bool

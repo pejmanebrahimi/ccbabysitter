@@ -36,7 +36,9 @@ func TestAStuckSessionComesBackOnceItsFolderIsTrusted(t *testing.T) {
 		t.Fatalf("resumed before the folder was trusted: %v", sf.f.r.CallList())
 	}
 	sf.trust(t, sf.project)
-	sf.s.deps.Now = func() time.Time { return time.Now().Add(time.Minute) }
+	// The folder is looked at again at most every trustRecheck; the test
+	// does not wait that out.
+	sf.s.trustRecheckAt = time.Time{}
 	for i := 2; i <= 5; i++ {
 		sf.s.reconcileForTest(observe.Snapshot{At: at.Add(time.Duration(i) * time.Second)})
 	}
