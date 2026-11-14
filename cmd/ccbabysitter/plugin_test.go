@@ -64,6 +64,7 @@ func TestPluginListingFields(t *testing.T) {
 		Icon             string `json:"icon"`
 		DocumentationURL string `json:"documentationUrl"`
 		SupportURL       string `json:"supportUrl"`
+		PrivacyPolicyURL string `json:"privacyPolicyUrl"`
 	}
 	readJSON(t, filepath.Join(pluginDir, ".claude-plugin", "plugin.json"), &plugin)
 	if plugin.Icon != "./.claude-plugin/icon.png" {
@@ -91,6 +92,17 @@ func TestPluginListingFields(t *testing.T) {
 	}
 	if plugin.SupportURL != "https://github.com/pejmanebrahimi/ccbabysitter/issues" {
 		t.Errorf("supportUrl is %q", plugin.SupportURL)
+	}
+	// The privacy link is the plugin README's own Privacy section.
+	if plugin.PrivacyPolicyURL != "https://github.com/pejmanebrahimi/ccbabysitter/blob/main/plugin/README.md#privacy" {
+		t.Errorf("privacyPolicyUrl is %q", plugin.PrivacyPolicyURL)
+	}
+	readme, err := os.ReadFile(filepath.Join(pluginDir, "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sectionsOf(string(readme))["Privacy"] == "" {
+		t.Error("privacyPolicyUrl points to a Privacy section the plugin README does not have")
 	}
 	// The docs page the listing links to is the one the site builds.
 	if _, err := os.Stat(filepath.Join(repoRoot, "site", "docs", "claude-code-plugin", "index.html")); err != nil {

@@ -10,5 +10,6 @@
   "keywords": ["babysit", "remote-control", "keep-alive", "sessions", "background"],
   "icon": "./.claude-plugin/icon.png",
   "documentationUrl": "https://ccbabysitter.dev/docs/claude-code-plugin/",
-  "supportUrl": "https://github.com/pejmanebrahimi/ccbabysitter/issues"
+  "supportUrl": "https://github.com/pejmanebrahimi/ccbabysitter/issues",
+  "privacyPolicyUrl": "https://github.com/pejmanebrahimi/ccbabysitter/blob/main/plugin/README.md#privacy"
 }
