@@ -122,7 +122,7 @@ func TestAWatchFollowsItsJobToItsNewConversation(t *testing.T) {
 	next := "99999999-0000-4000-8000-000000000003"
 	f := newFixture(t, func(args []string) (string, error) {
 		if strings.Join(args, " ") == "agents --json" {
-			return `[{"pid":9,"id":"4d4d4d4d","kind":"background","status":"idle","sessionId":"` + next + `","name":"next one"}]`, nil
+			return `[{"pid":9,"id":"4d4d4d4d","kind":"background","status":"idle","sessionId":"` + next + `","name":"next one","cwd":"/home/dev/other"}]`, nil
 		}
 		return "backgrounded \u00b7 5e5e5e5e", nil
 	})
@@ -141,7 +141,8 @@ func TestAWatchFollowsItsJobToItsNewConversation(t *testing.T) {
 		t.Fatal("the earlier conversation is still babysat")
 	}
 	w, ok := s.watchForTest(next)
-	if !ok || w.ShortID != "4d4d4d4d" || w.Cwd != "/home/dev/ws" {
+	// The watch takes the job's own name, as written, and its folder.
+	if !ok || w.ShortID != "4d4d4d4d" || w.Cwd != "/home/dev/other" || w.Name != "next one" {
 		t.Fatalf("babysitting did not follow the job: %+v %v", w, ok)
 	}
 	said := false

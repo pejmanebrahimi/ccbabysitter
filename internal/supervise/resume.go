@@ -113,11 +113,11 @@ func (d *Deps) resumeBackground(ctx context.Context, id, name, cwd string, hasSa
 	// record says what they are.
 	saved, savedRC := claude.SavedOptions(d.JobsDir, id)
 	// Remote Control is expected, and its bridge given the longer wait, when
-	// the resume asks for it, which it does only for a session that has
-	// never saved its own options, or when the saved options turn it on, or
-	// when there is no record to say they do not. Only a session known to
-	// have saved options without it is ever reported off.
-	askedForRC := !hasSaved || savedRC || !saved
+	// the record's saved options turn it on, or when there is no record: a
+	// session with no saved options is resumed asking for it, and one whose
+	// record is missing cannot be said to lack it. Only a session whose
+	// record shows saved options without it is ever reported off.
+	askedForRC := savedRC || !saved
 	hasSaved = hasSaved || saved
 
 	// Every copy stopped and removed here goes back with the result,

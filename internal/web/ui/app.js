@@ -589,11 +589,13 @@
      nothing out of an otherwise non-empty list still just says so. */
   function renderBabysatEmpty(view, all, watches) {
     setText($("#babysat-count"), watches.length);
-    var none = all.length === 0;
-    show($("#watches-empty"), !none && watches.length === 0);
+    /* While searching, the hero's next step would be about sessions the
+       search hides, so the area says what the other lists say. */
+    var hero = all.length === 0 && !state.search;
+    show($("#watches-empty"), !hero && watches.length === 0);
     setText($("#watches-empty"), "Nothing matches.");
-    show($("#watches-hero"), none);
-    if (none) { fillBabysatHero(view); }
+    show($("#watches-hero"), hero);
+    if (hero) { fillBabysatHero(view); }
   }
 
   /* The command that starts a background session on a server, with Remote

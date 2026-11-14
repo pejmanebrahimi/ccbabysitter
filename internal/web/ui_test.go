@@ -2012,6 +2012,10 @@ func TestASearchThatMatchesNothingCanBeCleared(t *testing.T) {
 		`show($("#clear-search"), !!state.search && watches.length + sessions.length + scheduled.length + past.length + pastScheduled.length === 0);`,
 		`$("#clear-search").addEventListener("click", clearSearch);`,
 		`"No Claude Code sessions are running. Press New session above to start one."`,
+		// While searching, the Babysat area says the same, never the
+		// hero's next step about sessions the search hides.
+		`var hero = all.length === 0 && !state.search;`,
+		`show($("#watches-empty"), !hero && watches.length === 0);`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)

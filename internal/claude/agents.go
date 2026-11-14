@@ -76,7 +76,7 @@ func JobOnAnother(list []AgentEntry, id, short string) (AgentEntry, bool) {
 		return AgentEntry{}, false
 	}
 	for _, a := range list {
-		if !strings.EqualFold(a.ID, short) || a.SessionID == "" || a.SessionID == id {
+		if !strings.EqualFold(a.ID, short) || a.SessionID == "" || strings.EqualFold(a.SessionID, id) {
 			continue
 		}
 		if a.PID <= 0 || (a.Kind != "background" && a.Kind != "bg") || !ValidID(a.SessionID) {

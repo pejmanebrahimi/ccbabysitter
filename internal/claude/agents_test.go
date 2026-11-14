@@ -1,6 +1,9 @@
 package claude
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 const agentsOut = `[
   {"pid": 120, "cwd": "C:\\a", "kind": "interactive", "startedAt": 1, "sessionId": "11111111-2222-4333-8444-555555555501", "name": "demo-a1"},
@@ -81,5 +84,25 @@ func TestRunningCopy(t *testing.T) {
 	}
 	if Listed(nil, id) || !Listed([]AgentEntry{{SessionID: id, Kind: "interactive"}}, id) {
 		t.Error("Listed reports whether any row names the session")
+	}
+}
+
+// JobOnAnother finds the job a watch knew, by its short id in any case,
+// when it runs another conversation, and not when it runs the watch's own,
+// however the session id is written.
+func TestJobOnAnother(t *testing.T) {
+	id := "22222222-2222-4333-8444-5555555555bb"
+	other := "33333333-2222-4333-8444-5555555555cc"
+	row := AgentEntry{PID: 9, ID: "4D4D4D4D", SessionID: other, Kind: "background", Status: "idle"}
+	if got, ok := JobOnAnother([]AgentEntry{row}, id, "4d4d4d4d"); !ok || got != row {
+		t.Fatal("the job runs another conversation")
+	}
+	same := row
+	same.SessionID = strings.ToUpper(id)
+	if _, ok := JobOnAnother([]AgentEntry{same}, id, "4d4d4d4d"); ok {
+		t.Fatal("the job runs the watch's own conversation, written in upper case")
+	}
+	if _, ok := JobOnAnother([]AgentEntry{row}, id, ""); ok {
+		t.Fatal("no short id finds nothing")
 	}
 }

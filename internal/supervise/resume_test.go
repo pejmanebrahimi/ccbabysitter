@@ -362,6 +362,28 @@ func TestResumeBackgroundWithoutAJobRecordNeverSaysOff(t *testing.T) {
 	}
 }
 
+// A watch that does not know of saved options, such as one handed back to
+// its app, still learns them from the job record, and the resume, which
+// then asks for nothing, says off when they leave Remote Control off.
+func TestResumeBackgroundSaysOffForAFreshWatchWithSavedOptions(t *testing.T) {
+	id := "88888888-0000-4000-8000-000000000001"
+	f := newFixture(t, nil)
+	writeJobRecord(t, f.d.JobsDir, id, `"--model","sonnet"`)
+	f.r.SetRespond(func([]string) (string, error) {
+		f.p.SetAlive(11, true)
+		f.addFile(bgSession(11, id, ""))
+		return "note: woke session 88888888 with its saved options.\nbackgrounded \u00b7 88888888", nil
+	})
+	f.d.SettleTimeout = 50 * time.Millisecond
+	short, res := f.d.resumeBackground(context.Background(), id, "n", "/home/dev/ws", false)
+	if !res.OK || !strings.HasSuffix(res.Message, "Remote Control is off: attach with `claude attach "+short+"` and type /rc.") {
+		t.Fatalf("%+v", res)
+	}
+	if calls := strings.Join(f.r.CallList(), "\n"); strings.Contains(calls, "--remote-control") {
+		t.Fatalf("the resume asked for Remote Control: %s", calls)
+	}
+}
+
 // Off is said only of a session whose job record shows saved options
 // without Remote Control, once it was seen without a bridge.
 func TestResumeBackgroundRemoteControlOff(t *testing.T) {

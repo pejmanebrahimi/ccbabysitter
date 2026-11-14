@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ccbabysitter.dev/ccbabysitter/internal/claude"
+	"ccbabysitter.dev/ccbabysitter/internal/hosts"
 	"ccbabysitter.dev/ccbabysitter/internal/observe"
 	"ccbabysitter.dev/ccbabysitter/internal/state"
 )
@@ -89,7 +90,8 @@ func TestAnUntrustedFolderStopsTheRescueAtOnce(t *testing.T) {
 	}
 	said := false
 	for _, e := range f.d.Log.Recent(20, "") {
-		if e.Automatic && strings.Contains(e.Message, "not running anywhere") {
+		// The command it gives quotes the folder, ready to paste.
+		if e.Automatic && strings.Contains(e.Message, "not running anywhere") && strings.Contains(e.Message, hosts.TrustFolderCommand("/home/dev/ws")+", ") {
 			said = true
 		}
 	}

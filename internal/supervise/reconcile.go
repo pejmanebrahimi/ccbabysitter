@@ -307,7 +307,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if trustRefused(res.Message) {
 		cur.Paused = true
 		cur.PauseReason = UntrustedPause + ": " + res.Message
-		s.logAuto(label, UntrustedPause, "it could not be brought back and is not running anywhere. Press Allow rescue on its card, or run ccbabysitter trust "+w.Cwd+", and it comes back by itself.")
+		s.logAuto(label, UntrustedPause, "it could not be brought back and is not running anywhere. Press Allow rescue on its card, or run "+hosts.TrustFolderCommand(w.Cwd)+", and it comes back by itself.")
 		return true, true
 	}
 	if ShouldPauseForFailures(cur.Failures, now) {
@@ -483,7 +483,14 @@ func (s *Supervisor) followJob(w state.Watch, job claude.AgentEntry) bool {
 	}
 	next := *cur
 	next.SessionID = job.SessionID
-	next.Name = logField(job.Name)
+	// The job's own name and folder are the conversation's now; one the
+	// list leaves out keeps what the watch knew.
+	if name := claude.SessionName(job.Name); name != "" {
+		next.Name = name
+	}
+	if job.Cwd != "" {
+		next.Cwd = job.Cwd
+	}
 	next.Failures = nil
 	s.removeWatch(w.SessionID)
 	s.st.Watches = append(s.st.Watches, next)
