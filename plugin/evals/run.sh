@@ -14,6 +14,7 @@ parent=/var/tmp
 bin=$(mktemp -d "$parent/ccb-evals.XXXXXX")
 trap 'rm -rf "$bin"' EXIT
 cp "$here/fake/ccbabysitter.sh" "$bin/ccbabysitter"
+chmod +x "$bin/ccbabysitter"
 path=$bin
 old_ifs=$IFS
 IFS=:
