@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"image/png"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -68,8 +69,22 @@ func TestPluginListingFields(t *testing.T) {
 	if plugin.Icon != "./.claude-plugin/icon.png" {
 		t.Errorf("icon is %q", plugin.Icon)
 	}
-	if _, err := os.Stat(filepath.Join(pluginDir, filepath.FromSlash(plugin.Icon))); err != nil {
+	// The directory takes a square PNG of 512 to 2048 pixels, under 2 MB.
+	iconPath := filepath.Join(pluginDir, filepath.FromSlash(plugin.Icon))
+	if f, err := os.Open(iconPath); err != nil {
 		t.Errorf("the icon: %v (site/images_test.go makes it: go test ./site -run TestImagesMatchTheArt -update)", err)
+	} else {
+		cfg, err := png.DecodeConfig(f)
+		fi, statErr := f.Stat()
+		f.Close()
+		switch {
+		case err != nil:
+			t.Errorf("the icon is not a PNG: %v", err)
+		case cfg.Width != cfg.Height || cfg.Width < 512 || cfg.Width > 2048:
+			t.Errorf("the icon is %dx%d, want a square of 512 to 2048 pixels", cfg.Width, cfg.Height)
+		case statErr != nil || fi.Size() >= 2<<20:
+			t.Errorf("the icon must be under 2 MB")
+		}
 	}
 	if plugin.DocumentationURL != "https://ccbabysitter.dev/docs/claude-code-plugin/" {
 		t.Errorf("documentationUrl is %q", plugin.DocumentationURL)
@@ -103,6 +118,26 @@ func TestPluginSaysWhereItWorksAndWhatItConnectsTo(t *testing.T) {
 	for _, want := range []string{"`127.0.0.1`", "Anthropic", "ccbabysitter.dev", "https://github.com/pejmanebrahimi/ccbabysitter/releases"} {
 		if !strings.Contains(privacy, want) {
 			t.Errorf("the README's Privacy section does not name %s", want)
+		}
+	}
+	// The install scripts are what the plugin's install command runs, so
+	// every host they reach, and the releases they download, is named.
+	for _, script := range []string{"install.sh", "install.ps1"} {
+		body, err := os.ReadFile(filepath.Join(repoRoot, "scripts", script))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range regexp.MustCompile(`https://([a-zA-Z0-9.-]+)`).FindAllStringSubmatch(string(body), -1) {
+			if !strings.Contains(privacy, m[1]) {
+				t.Errorf("%s reaches %s, which the README's Privacy section does not name", script, m[1])
+			}
+		}
+		repo := regexp.MustCompile(`(?m)^\s*(?:REPO_URL=|\$repoUrl = )["']([^"']+)["']`).FindStringSubmatch(string(body))
+		if repo == nil {
+			t.Fatalf("%s sets no repository address", script)
+		}
+		if !strings.Contains(privacy, repo[1]+"/releases") {
+			t.Errorf("%s downloads from %s/releases, which the README's Privacy section does not name", script, repo[1])
 		}
 	}
 	links := regexp.MustCompile(`https://ccbabysitter\.dev/docs/([a-z-]+)/`).FindAllStringSubmatch(string(data), -1)

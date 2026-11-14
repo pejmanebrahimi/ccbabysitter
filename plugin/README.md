@@ -45,7 +45,7 @@ CC Babysitter reads Claude Code's own local files and never writes to them:
 
 ## Privacy
 
-CC Babysitter has no telemetry and no account, and collects nothing. The plugin's commands talk only to CC Babysitter on `127.0.0.1`, where its page is served too. A session CC Babysitter starts again is an ordinary Claude Code session, which connects to Anthropic as any session does. The only downloads are installing and updating CC Babysitter, with a command you run yourself; the plugin shows it when CC Babysitter is not installed. That command fetches the install script from ccbabysitter.dev, then the release and its `checksums.txt` from https://github.com/pejmanebrahimi/ccbabysitter/releases.
+CC Babysitter has no telemetry and no account, and collects nothing. The plugin's commands talk only to CC Babysitter on `127.0.0.1`, where its page is served too. A session CC Babysitter starts or brings back is an ordinary Claude Code session that connects to Anthropic, usually with Remote Control on, so you can reach it from your Claude account. The only downloads are installing and updating CC Babysitter, with a command you run yourself; the plugin shows it when CC Babysitter is not installed. That command fetches the install script from ccbabysitter.dev, then the release and its `checksums.txt` from https://github.com/pejmanebrahimi/ccbabysitter/releases.
 
 ## Help
 
