@@ -4,7 +4,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 
 ## 0.11.1 (2026-11-14)
 
-- Changed: the Claude Code plugin's description, which Anthropic's plugin directory shows on its listing, now leads with what babysitting is for: walk away from a session and still reach it from your phone if its app closes or crashes, and on a server keep babysat sessions through SSH drops and reboots. It still says the plugin works only in Claude Code, with CC Babysitter installed.
+- Changed: the Claude Code plugin's description, which Anthropic's plugin directory shows on its listing, now leads with what babysitting is for: walk away from a session and still reach it from your phone if its app closes or crashes, and on a server keep babysat sessions through SSH drops and reboots. It still says the plugin works only in Claude Code, and now also that, when CC Babysitter isn't installed yet, the plugin gives you the one command to install it.
 
 ## 0.11.0 (2026-11-14)
 
