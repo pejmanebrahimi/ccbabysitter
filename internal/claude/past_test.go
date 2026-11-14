@@ -64,6 +64,25 @@ func TestListPastFindsRecentTranscriptsNewestFirst(t *testing.T) {
 	}
 }
 
+// A conversation that is a Claude Desktop scheduled task's run says so, by
+// its first prompt, so the Not running list can keep the runs apart.
+func TestListPastTellsAScheduledTaskRun(t *testing.T) {
+	projects := t.TempDir()
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	const (
+		run   = "11111111-2222-4333-8444-555555555511"
+		plain = "22222222-2222-4333-8444-555555555512"
+	)
+	writeTranscriptAt(t, projects, "-home-dev-ws", run,
+		`{"type":"user","cwd":"/home/dev/ws","message":{"role":"user","content":"<scheduled-task name=\"daily-report\">\nWrite the report.\n</scheduled-task>"}}`+"\n", now.Add(-time.Hour))
+	writeTranscriptAt(t, projects, "-home-dev-ws", plain,
+		`{"type":"user","cwd":"/home/dev/ws","message":{"role":"user","content":"hi"}}`+"\n", now.Add(-time.Minute))
+	got := ListPast(projects, now.Add(-14*24*time.Hour), 30, nil)
+	if len(got) != 2 || got[0].ID != plain || got[0].ScheduledTask || got[1].ID != run || !got[1].ScheduledTask {
+		t.Fatalf("%+v", got)
+	}
+}
+
 // A transcript with no conversation in it, an empty file or one with no
 // message, has nothing to resume, so it is left out, and it does not take
 // a place from one that does.

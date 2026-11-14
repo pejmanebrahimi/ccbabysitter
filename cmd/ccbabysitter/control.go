@@ -668,10 +668,13 @@ func (env controlEnv) printList(asJSON bool, v supervise.View) int {
 	}
 	// A Claude Desktop scheduled task's run is never babysat, so runs are
 	// listed apart, after the other sessions, and the conversations that
-	// are not running come last, as on the page.
-	var others, runs, past []client.Session
+	// are not running come after them, then the runs that are not running,
+	// as on the page.
+	var others, runs, past, pastRuns []client.Session
 	for _, s := range sessions {
 		switch {
+		case s.NotRunning && s.ScheduledTask:
+			pastRuns = append(pastRuns, s)
 		case s.NotRunning:
 			past = append(past, s)
 		case s.ScheduledTask:
@@ -701,6 +704,7 @@ func (env controlEnv) printList(asJSON bool, v supervise.View) int {
 	section("", others)
 	section("Scheduled task runs, never babysat:", runs)
 	section("Not running:", past)
+	section("Scheduled task runs, not running:", pastRuns)
 	return 0
 }
 

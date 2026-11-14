@@ -103,8 +103,9 @@ ccbabysitter list
 Lists every Claude Code session on this machine, babysat or not, running or not.
 Sessions that are not babysat come first, then the babysat ones. Runs of a Claude
 Desktop scheduled task follow, under their own heading, since they are never
-babysat: Desktop starts the task again on its schedule. Last come the page's Not
-running conversations from the last two weeks, under their own heading. show gives
+babysat: Desktop starts the task again on its schedule. Then come the page's Not
+running conversations from the last two weeks, under their own heading, and last the
+runs that are not running, under theirs. show gives
 the commands that start one again: Attach for a background session that was
 stopped, which is the one the page offers, and Resume.
 
@@ -130,12 +131,14 @@ Text: a header, then one line per session, columns separated by two spaces:
   FOLDER   the folder it works in
 Scheduled task runs follow, after an empty line when other sessions come first,
 under the line "Scheduled task runs, never babysat:", with the same columns, then the
-conversations that are not running, under the line "Not running:". With no sessions
+conversations that are not running, under the line "Not running:", then the runs that
+are not running, under "Scheduled task runs, not running:". With no sessions
 running it says: No Claude Code sessions are running.
 
 With --json: {"schema":1,"sessions":[...]}, an empty array when there are none.
 A scheduled task's run is in the same array, with scheduledTask true, and so is a
-conversation that is not running, with notRunning true.
+conversation that is not running, with notRunning true. A run that is not running
+has both.
 Each session has the fields shown by ccbabysitter help show, and the same names.
 In JSON, state is watching, background, starting or stuck, and is left out when the
 session is not babysat. The text says in background for background.

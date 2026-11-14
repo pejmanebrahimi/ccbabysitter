@@ -18,6 +18,9 @@ type PastSession struct {
 	Name         string
 	Cwd          string
 	LastActivity time.Time
+	// ScheduledTask reports whether the conversation is a run of a Claude
+	// Desktop scheduled task, by its first prompt.
+	ScheduledTask bool
 }
 
 // pastEdgeBytes is how much of each end of a transcript is read for its
@@ -95,7 +98,8 @@ func ListPast(projectsDir string, since time.Time, max int, skip map[string]bool
 		if !said {
 			continue
 		}
-		out = append(out, PastSession{ID: f.id, Name: name, Cwd: cwd, LastActivity: f.mod})
+		run, _ := ScheduledRun(f.path)
+		out = append(out, PastSession{ID: f.id, Name: name, Cwd: cwd, LastActivity: f.mod, ScheduledTask: run})
 	}
 	return out
 }

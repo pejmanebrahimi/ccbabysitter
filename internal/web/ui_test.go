@@ -1473,7 +1473,7 @@ func TestHandedBackRowsAreBadgedAndCounted(t *testing.T) {
 			t.Errorf("app.js does not contain %s", want)
 		}
 	}
-	if strings.Contains(app, "sect-past") {
+	if strings.Contains(app, `"#sect-past"`) {
 		t.Error("the page must never open or close the Not running section itself")
 	}
 	css := readUI(t, "ui/app.css")
@@ -1984,6 +1984,38 @@ func TestThePageCanQuit(t *testing.T) {
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("app.js has no %q", want)
+		}
+	}
+}
+
+// Scheduled task runs that run nowhere are kept out of Not running too, in
+// a folded section of their own after it that only shows when there is
+// one, with the same row and buttons.
+func TestScheduledTaskRunsAreKeptOutOfNotRunning(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	for _, want := range []string{
+		`<details class="sect" id="sect-past-scheduled" hidden>`,
+		`<summary><h2>Scheduled task runs, not running</h2><span class="n" id="past-scheduled-count">0</span></summary>`,
+		`<div class="rows" id="past-scheduled"></div>`,
+	} {
+		if !strings.Contains(index, want) {
+			t.Errorf("index.html does not contain %s", want)
+		}
+	}
+	if strings.Index(index, `id="sect-past-scheduled"`) < strings.Index(index, `id="sect-past"`) {
+		t.Error("the runs that are not running come after Not running")
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`var past = allPast.filter(function (p) { return !p.scheduledTask; });`,
+		`var pastScheduled = allPast.filter(function (p) { return !!p.scheduledTask; });`,
+		`show($("#sect-past-scheduled"), pastScheduled.length > 0);`,
+		`sync($("#past-scheduled"), pastScheduled, function (p) { return p.id; },`,
+		`onAction($("#past-scheduled"), onPastAction);`,
+		`$$("#past [data-when], #past-scheduled [data-when]")`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
 		}
 	}
 }

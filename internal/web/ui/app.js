@@ -519,7 +519,11 @@
        a section that only shows when there is one. */
     var sessions = listed.filter(function (s) { return !s.scheduledTask; });
     var scheduled = listed.filter(function (s) { return !!s.scheduledTask; });
-    var past = (view.notRunning || []).filter(function (p) { return matches(p.name, p.cwd, p.shortId); });
+    var allPast = (view.notRunning || []).filter(function (p) { return matches(p.name, p.cwd, p.shortId); });
+    /* So are the runs that are not running, which would otherwise push
+       the conversations down. */
+    var past = allPast.filter(function (p) { return !p.scheduledTask; });
+    var pastScheduled = allPast.filter(function (p) { return !!p.scheduledTask; });
 
     renderBabysatEmpty(view, view.watches || [], watches);
     section("#running-count", "#sessions-empty", sessions.length);
@@ -527,6 +531,8 @@
       setText($("#sessions-empty"), "Only scheduled task runs are running.");
     }
     section("#past-count", "#past-empty", past.length);
+    show($("#sect-past-scheduled"), pastScheduled.length > 0);
+    setText($("#past-scheduled-count"), String(pastScheduled.length));
     show($("#sect-scheduled"), scheduled.length > 0);
     setText($("#scheduled-count"), String(scheduled.length));
     /* The section stays as the person left it, closed at first, and its
@@ -544,6 +550,8 @@
     sync($("#scheduled"), scheduled, function (s) { return s.id; },
       function () { return clone("#tpl-session"); }, fillSession);
     sync($("#past"), past, function (p) { return p.id; },
+      function () { return clone("#tpl-past"); }, fillPast);
+    sync($("#past-scheduled"), pastScheduled, function (p) { return p.id; },
       function () { return clone("#tpl-past"); }, fillPast);
     state.firstRender = false;
 
@@ -1072,7 +1080,7 @@
   function pastCommand(p) { return p.attachCmd || p.resumeCmd || ""; }
 
   function tickTimes() {
-    $$("#past [data-when]").forEach(function (node) { setText(f(node, "when"), fmtAgo(node.dataset.when)); });
+    $$("#past [data-when], #past-scheduled [data-when]").forEach(function (node) { setText(f(node, "when"), fmtAgo(node.dataset.when)); });
     window.setTimeout(tickTimes, 30000);
   }
 
@@ -1849,12 +1857,14 @@
     }
     onAction($("#sessions"), onSessionAction);
     onAction($("#scheduled"), onSessionAction);
-    onAction($("#past"), function (act, id) {
+    function onPastAction(act, id) {
       var p = pastById(id);
       if (!p) { return; }
       if (act === "copy-cmd") { copyText(pastCommand(p)); }
       if (act === "copy-ssh") { copyText(p.sshAttachCmd || ""); }
-    });
+    }
+    onAction($("#past"), onPastAction);
+    onAction($("#past-scheduled"), onPastAction);
     $('[data-act="copy-start"]', $("#watches-hero")).addEventListener("click", function () {
       copyText(START_CMD);
     });

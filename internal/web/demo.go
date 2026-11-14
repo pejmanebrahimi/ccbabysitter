@@ -308,17 +308,19 @@ func (d *DemoEngine) seed(now time.Time) {
 		name, cwd string
 		handed    claude.Host
 		stopped   bool
+		scheduled bool
 	}{
-		{"landing-page", "~/projects/landing-page", claude.HostVSCode, false},
-		{"nightly-etl", "~/projects/etl", "", true},
-		{"", "~/scratch", "", false},
-		{"billing-fix", "~/projects/billing", "", false},
+		{"landing-page", "~/projects/landing-page", claude.HostVSCode, false, false},
+		{"nightly-etl", "~/projects/etl", "", true, false},
+		{"", "~/scratch", "", false, false},
+		{"billing-fix", "~/projects/billing", "", false, false},
+		{"daily-digest", "~/projects/notes", "", false, true},
 	} {
 		id := demoNewID(900 + i)
 		pv := supervise.PastView{
 			ID: id, ShortID: demoShortID(id), Name: p.name, Cwd: p.cwd,
 			LastActivity: now.Add(-time.Duration(2+i*30) * time.Hour), ResumeCmd: hosts.ResumeCommandIn(p.cwd, id),
-			HandedBackTo: p.handed,
+			HandedBackTo: p.handed, ScheduledTask: p.scheduled,
 		}
 		// A background session whose copy was stopped from the page is
 		// started again with its attach command, as the real engine says.

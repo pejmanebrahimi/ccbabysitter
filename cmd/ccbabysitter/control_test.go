@@ -997,6 +997,24 @@ func TestNotRunningSessionsAreListedAndShown(t *testing.T) {
 	}
 }
 
+// Scheduled task runs that are not running are listed last, apart from the
+// conversations that are not running, as on the page.
+func TestListKeepsScheduledRunsOutOfNotRunning(t *testing.T) {
+	env, e, _ := testEnv(t)
+	idE := "eeeeeeee-5555-4555-8555-eeeeeeeeeeee"
+	idF := "ffffffff-6666-4666-8666-ffffffffffff"
+	e.view.NotRunning = []supervise.PastView{
+		{ID: idE, ShortID: "eeeeeeee", Name: "old", Cwd: "/srv/old"},
+		{ID: idF, ShortID: "ffffffff", Name: "daily-report", Cwd: "/srv/old", ScheduledTask: true},
+	}
+	_, out, _ := runCmd(t, env, "list")
+	i := strings.Index(out, "Not running:\n")
+	j := strings.Index(out, "Scheduled task runs, not running:\n")
+	if i < 0 || j < i || !strings.Contains(out[i:j], "eeeeeeee") || strings.Contains(out[i:j], "ffffffff") || !strings.Contains(out[j:], "ffffffff") {
+		t.Fatalf("list:\n%s", out)
+	}
+}
+
 // A background session stopped from the command line is found by the
 // short id stop answered with, its Activity is found by the name it had,
 // and the commands that act on a running session say what to do instead.

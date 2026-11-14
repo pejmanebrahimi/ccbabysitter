@@ -30,6 +30,9 @@ type PastView struct {
 	Cwd          string    `json:"cwd"`
 	LastActivity time.Time `json:"lastActivity"`
 	ResumeCmd    string    `json:"resumeCmd"`
+	// ScheduledTask reports whether the conversation is a run of a Claude
+	// Desktop scheduled task. The page lists those runs apart.
+	ScheduledTask bool `json:"scheduledTask,omitempty"`
 	// HandedBackTo is the app the session was handed back to from the
 	// background in the last day, desktop, vscode or terminal, and empty
 	// for every other conversation.
@@ -180,6 +183,7 @@ func (s *Supervisor) pastViews(watched map[string]bool) []PastView {
 		pv := PastView{
 			ID: p.ID, ShortID: shortOf(p.ID), Name: p.Name, Cwd: p.Cwd,
 			LastActivity: p.LastActivity, ResumeCmd: hosts.ResumeCommandIn(p.Cwd, p.ID),
+			ScheduledTask: p.ScheduledTask,
 		}
 		if hb, ok := s.handedBack[p.ID]; ok && now.Sub(hb.at) < handBackFor {
 			pv.HandedBackTo = hb.to

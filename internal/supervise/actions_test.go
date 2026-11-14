@@ -342,6 +342,30 @@ func TestTheFallbackWarning(t *testing.T) {
 	}
 }
 
+// A Claude Desktop scheduled task's run that runs nowhere is listed as one,
+// so the page can keep the runs apart from the conversations.
+func TestNotRunningMarksAScheduledTaskRun(t *testing.T) {
+	run := "22222222-2222-4333-8444-5555555555b2"
+	f := newFixture(t, func([]string) (string, error) { return "[]", nil })
+	dir := filepath.Join(f.d.ProjectsDir, claude.Slug("/home/dev/api"))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := `{"type":"user","cwd":"/home/dev/api","message":{"role":"user","content":"<scheduled-task name=\"daily\">x</scheduled-task>"}}` + "\n"
+	if err := os.WriteFile(filepath.Join(dir, run+".jsonl"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.d.Obs.RefreshNow()
+	s, _, cancel := newSup(t, f)
+	defer cancel()
+	if !waitFor(t, f, func() bool { return len(s.View().NotRunning) == 1 }) {
+		t.Fatalf("%+v", s.View().NotRunning)
+	}
+	if p := s.View().NotRunning[0]; p.ID != run || !p.ScheduledTask {
+		t.Fatalf("%+v", p)
+	}
+}
+
 // Conversations from the last two weeks that run nowhere are listed, with
 // the command that picks one up again; a live one is not.
 func TestNotRunningListsRecentConversations(t *testing.T) {

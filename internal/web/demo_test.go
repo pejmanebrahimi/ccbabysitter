@@ -73,7 +73,8 @@ func TestDemoShowsEveryState(t *testing.T) {
 	if byID[demoOtherID].Actionable {
 		t.Fatal("the other program's session must not be actionable")
 	}
-	if len(v.NotRunning) != 4 {
+	// The last is a scheduled task's run, which the page lists apart.
+	if len(v.NotRunning) != 5 || !v.NotRunning[4].ScheduledTask {
 		t.Fatalf("%+v", v.NotRunning)
 	}
 	attach := 0
@@ -165,7 +166,7 @@ func TestDemoActionsFollowTheState(t *testing.T) {
 		t.Fatalf("%+v", res)
 	}
 	v := d.View()
-	if len(v.NotRunning) != 5 || v.NotRunning[0].ID != demoCarriedID {
+	if len(v.NotRunning) != 6 || v.NotRunning[0].ID != demoCarriedID {
 		t.Fatalf("a stopped session goes to the top of Not running: %+v", v.NotRunning)
 	}
 	if res := d.Unbabysit(demoStuckID, supervise.ViaPage); !res.OK {
