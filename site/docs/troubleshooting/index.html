@@ -84,6 +84,7 @@
         <li><a href="#page-not-running">The page lost CC Babysitter</a></li>
         <li><a href="#state">Saved state could not be read or saved</a></li>
         <li><a href="#keep-awake">The computer may sleep</a></li>
+        <li><a href="#macos-notices">macOS names ccbabysitter in a notice</a></li>
         <li><a href="#file-watcher">Sessions are noticed more slowly</a></li>
         <li><a href="#page-stopped">The page stopped updating</a></li>
       </ul>
@@ -283,6 +284,14 @@
       <li><code>the system refused the keep-awake request</code></li>
     </ul>
     <p>CC Babysitter asks the system to stay awake while a session is babysat. The system said no. Babysat sessions are still brought back when their app closes. But the computer may sleep, and nobody can reach a sleeping computer. CC Babysitter asks again each time it looks, and Activity says it is keeping the computer awake once the system agrees.</p>
+
+    <h2 id="macos-notices">macOS names ccbabysitter in a notice</h2>
+    <ul class="msgs">
+      <li><code>"ccbabysitter" wants access to control ...</code></li>
+      <li><code>"ccbabysitter" was prevented from modifying apps on your Mac</code></li>
+    </ul>
+    <p>These come from macOS, not from CC Babysitter, and they are about what a session did. macOS charges what a program does to the app at the top of the chain that started it. When CC Babysitter brings a session back, it starts Claude Code's background service. So that service counts as ccbabysitter, and so do the sessions it runs and every program they start. A session that runs a tool driving another app asks for Automation. A program a session started that tries to update an app, such as a browser updating itself, is stopped by App Management.</p>
+    <p>Allowing a notice gives the permission to ccbabysitter, and through it to every session it brought back. Leaving it off is safe: only that session's tool fails, and CC Babysitter itself works as before. You can change your answer later in System Settings, under Privacy &amp; Security.</p>
 
     <h2 id="file-watcher">Sessions are noticed more slowly</h2>
     <ul class="msgs">

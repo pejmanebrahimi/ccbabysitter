@@ -65,7 +65,8 @@ var troublePageNotes = []string{
 
 // troubleElsewhere are quotes on the page that are not CC Babysitter's
 // own: what Claude Desktop says.
-var troubleElsewhere = []string{"That session is running in the background"}
+var troubleElsewhere = []string{"That session is running in the background",
+	`"ccbabysitter" wants access to control`, `"ccbabysitter" was prevented from modifying apps on your Mac`}
 
 // pkgSource is one package's syntax: its files, constants and functions.
 type pkgSource struct {

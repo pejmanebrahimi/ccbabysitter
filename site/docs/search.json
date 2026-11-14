@@ -442,6 +442,12 @@
   "text": "the system refused the keep-awake request CC Babysitter asks the system to stay awake while a session is babysat. The system said no. Babysat sessions are still brought back when their app closes. But the computer may sleep, and nobody can reach a sleeping computer. CC Babysitter asks again each time it looks, and Activity says it is keeping the computer awake once the system agrees."
  },
  {
+  "url": "/docs/troubleshooting/#macos-notices",
+  "page": "Troubleshooting",
+  "section": "macOS names ccbabysitter in a notice",
+  "text": "\"ccbabysitter\" wants access to control ... \"ccbabysitter\" was prevented from modifying apps on your Mac These come from macOS, not from CC Babysitter, and they are about what a session did. macOS charges what a program does to the app at the top of the chain that started it. When CC Babysitter brings a session back, it starts Claude Code's background service. So that service counts as ccbabysitter, and so do the sessions it runs and every program they start. A session that runs a tool driving another app asks for Automation. A program a session started that tries to update an app, such as a browser updating itself, is stopped by App Management. Allowing a notice gives the permission to ccbabysitter, and through it to every session it brought back. Leaving it off is safe: only that session's tool fails, and CC Babysitter itself works as before. You can change your answer later in System Settings, under Privacy \u0026 Security."
+ },
+ {
   "url": "/docs/troubleshooting/#file-watcher",
   "page": "Troubleshooting",
   "section": "Sessions are noticed more slowly",
