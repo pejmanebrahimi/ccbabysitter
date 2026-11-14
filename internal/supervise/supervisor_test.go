@@ -65,6 +65,25 @@ func newSupWith(t *testing.T, f *fixture, pw *fakePower) (*Supervisor, *fakePowe
 	s := New(*f.d)
 	ctx, cancel := context.WithCancel(context.Background())
 	go s.Run(ctx)
+	// Until Run takes over, an action runs inline, and Run's own first pass,
+	// over whatever the observer holds, would then land after the test's
+	// first steps instead of before them. On a busy machine that pass could
+	// see a session the test had just resumed as gone again. Waiting for the
+	// loop makes every test start the way it does on an idle machine: once
+	// the loop runs, an action waits behind that first pass.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		s.mu.Lock()
+		started := s.phase != phaseNew
+		s.mu.Unlock()
+		if started {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the reconcile loop did not start")
+		}
+		time.Sleep(time.Millisecond)
+	}
 	// The loop writes to the log and to the state folder, and both live in
 	// temporary directories the fixture had created for it. Waiting for the
 	// loop to finish before those directories are removed is what keeps a
