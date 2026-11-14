@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"image/png"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -52,6 +53,117 @@ func TestPluginManifests(t *testing.T) {
 	}
 	if plugin.Version != buildinfo.Version {
 		t.Fatalf("plugin version %s, CC Babysitter %s: the release bumps both", plugin.Version, buildinfo.Version)
+	}
+}
+
+// Anthropic's plugin directory reads the icon and the documentation and
+// support links from plugin.json for the plugin's listing. Claude Code
+// ignores them.
+func TestPluginListingFields(t *testing.T) {
+	var plugin struct {
+		Icon             string `json:"icon"`
+		DocumentationURL string `json:"documentationUrl"`
+		SupportURL       string `json:"supportUrl"`
+	}
+	readJSON(t, filepath.Join(pluginDir, ".claude-plugin", "plugin.json"), &plugin)
+	if plugin.Icon != "./.claude-plugin/icon.png" {
+		t.Errorf("icon is %q", plugin.Icon)
+	}
+	// The directory takes a square PNG of 512 to 2048 pixels, under 2 MB.
+	iconPath := filepath.Join(pluginDir, filepath.FromSlash(plugin.Icon))
+	if f, err := os.Open(iconPath); err != nil {
+		t.Errorf("the icon: %v (site/images_test.go makes it: go test ./site -run TestImagesMatchTheArt -update)", err)
+	} else {
+		cfg, err := png.DecodeConfig(f)
+		fi, statErr := f.Stat()
+		f.Close()
+		switch {
+		case err != nil:
+			t.Errorf("the icon is not a PNG: %v", err)
+		case cfg.Width != cfg.Height || cfg.Width < 512 || cfg.Width > 2048:
+			t.Errorf("the icon is %dx%d, want a square of 512 to 2048 pixels", cfg.Width, cfg.Height)
+		case statErr != nil || fi.Size() >= 2<<20:
+			t.Errorf("the icon must be under 2 MB")
+		}
+	}
+	if plugin.DocumentationURL != "https://ccbabysitter.dev/docs/claude-code-plugin/" {
+		t.Errorf("documentationUrl is %q", plugin.DocumentationURL)
+	}
+	if plugin.SupportURL != "https://github.com/pejmanebrahimi/ccbabysitter/issues" {
+		t.Errorf("supportUrl is %q", plugin.SupportURL)
+	}
+	// The docs page the listing links to is the one the site builds.
+	if _, err := os.Stat(filepath.Join(repoRoot, "site", "docs", "claude-code-plugin", "index.html")); err != nil {
+		t.Errorf("documentationUrl points to a page the site does not have: %v", err)
+	}
+}
+
+// A listing in the directory also shows on claude.ai and in Cowork, so the
+// description says where the plugin works; and the README, which the
+// listing shows, names everything the plugin and CC Babysitter connect to
+// and download. Every docs link in the README is a page the site has.
+func TestPluginSaysWhereItWorksAndWhatItConnectsTo(t *testing.T) {
+	var plugin struct{ Description string }
+	readJSON(t, filepath.Join(pluginDir, ".claude-plugin", "plugin.json"), &plugin)
+	for _, want := range []string{"Works only in Claude Code", "CC Babysitter"} {
+		if !strings.Contains(plugin.Description, want) {
+			t.Errorf("the description does not say %q", want)
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(pluginDir, "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	privacy := sectionsOf(string(data))["Privacy"]
+	for _, want := range []string{"`127.0.0.1`", "Anthropic", "ccbabysitter.dev", "https://github.com/pejmanebrahimi/ccbabysitter/releases"} {
+		if !strings.Contains(privacy, want) {
+			t.Errorf("the README's Privacy section does not name %s", want)
+		}
+	}
+	// The install scripts are what the plugin's install command runs, so
+	// every host they reach, and the releases they download, is named.
+	for _, script := range []string{"install.sh", "install.ps1"} {
+		body, err := os.ReadFile(filepath.Join(repoRoot, "scripts", script))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range regexp.MustCompile(`https://([a-zA-Z0-9.-]+)`).FindAllStringSubmatch(string(body), -1) {
+			if !strings.Contains(privacy, m[1]) {
+				t.Errorf("%s reaches %s, which the README's Privacy section does not name", script, m[1])
+			}
+		}
+		repo := regexp.MustCompile(`(?m)^\s*(?:REPO_URL=|\$repoUrl = )["']([^"']+)["']`).FindStringSubmatch(string(body))
+		if repo == nil {
+			t.Fatalf("%s sets no repository address", script)
+		}
+		if !strings.Contains(privacy, repo[1]+"/releases") {
+			t.Errorf("%s downloads from %s/releases, which the README's Privacy section does not name", script, repo[1])
+		}
+	}
+	links := regexp.MustCompile(`https://ccbabysitter\.dev/docs/([a-z-]+)/`).FindAllStringSubmatch(string(data), -1)
+	if len(links) < 2 {
+		t.Fatalf("the README links %d docs pages, want the plugin's page and troubleshooting", len(links))
+	}
+	for _, m := range links {
+		if _, err := os.Stat(filepath.Join(repoRoot, "site", "docs", m[1], "index.html")); err != nil {
+			t.Errorf("the README links %s, which the site does not have", m[0])
+		}
+	}
+}
+
+// Whoever installs the plugin gets only the plugin folder, so it carries
+// the license itself, word for word the one at the top of the repository.
+func TestPluginCarriesTheLicense(t *testing.T) {
+	top, err := os.ReadFile(filepath.Join(repoRoot, "LICENSE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	own, err := os.ReadFile(filepath.Join(pluginDir, "LICENSE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(own) != string(top) {
+		t.Error("plugin/LICENSE differs from LICENSE; copy it: cp LICENSE plugin/LICENSE")
 	}
 }
 
@@ -221,6 +333,30 @@ func TestSkillNeverRunsAKeyedCommand(t *testing.T) {
 	}
 	if !rule {
 		t.Error("the rule against keyed commands is gone")
+	}
+}
+
+// The skill pre-approves commands by bare name only. A grant by path names
+// a program outside the plugin folder, which the plugin directory's review
+// cannot read, so it holds the plugin for a reviewer; Claude Code asks
+// before such a command instead.
+func TestSkillGrantsNoCommandByPath(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^allowed-tools: (.*)$`).FindStringSubmatch(string(data))
+	if m == nil {
+		t.Fatal("SKILL.md has no allowed-tools")
+	}
+	grants := regexp.MustCompile(`[A-Za-z]+\(([^)]*)\)`).FindAllStringSubmatch(m[1], -1)
+	if len(grants) == 0 {
+		t.Fatal("allowed-tools grants nothing")
+	}
+	for _, g := range grants {
+		if strings.ContainsAny(g[1], "/\\~$") {
+			t.Errorf("allowed-tools grants a command by path: %s", g[0])
+		}
 	}
 }
 

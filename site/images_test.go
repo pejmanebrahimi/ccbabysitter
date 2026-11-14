@@ -165,6 +165,9 @@ func TestImagesMatchTheArt(t *testing.T) {
 		"favicon-32.png":       encode(t, icon(grid, cols, 32, 2, nil)),
 		"apple-touch-icon.png": encode(t, icon(grid, cols, 180, 10, &paper)),
 		"favicon.svg":          faviconSVG(grid, cols),
+		// The Claude Code plugin's icon, which Anthropic's plugin directory
+		// shows on its listing: a square PNG of 512 to 2048 pixels.
+		"../plugin/.claude-plugin/icon.png": encode(t, icon(grid, cols, 512, 28, &paper)),
 	}
 	for name, b := range want {
 		if *update {
