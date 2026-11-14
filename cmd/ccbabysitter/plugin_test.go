@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"image/png"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -303,11 +306,10 @@ func TestSkillNamesOnlyRealCommands(t *testing.T) {
 	}
 }
 
-// The skill never runs anything whose output carries the page's key:
-// allowed-tools never lets it run status, a plain ccbabysitter or
-// --foreground, and its text names them only in the rule that forbids
-// them, and a plain ccbabysitter only as something the person runs in
-// their terminal app.
+// The skill never runs anything whose output carries the page's key: its
+// text names status, a plain ccbabysitter and --foreground only in the rule
+// that forbids them, and a plain ccbabysitter only as something the person
+// runs in their terminal app.
 func TestSkillNeverRunsAKeyedCommand(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
 	if err != nil {
@@ -322,7 +324,7 @@ func TestSkillNeverRunsAKeyedCommand(t *testing.T) {
 			t.Errorf("allowed-tools lets the skill run %q", bad)
 		}
 	}
-	for _, want := range []string{"name: babysit", "description:", "allowed-tools:", "argument-hint:"} {
+	for _, want := range []string{"name: babysit", "description:", "argument-hint:"} {
 		if !strings.Contains(front, want) {
 			t.Errorf("frontmatter has no %q", want)
 		}
@@ -348,27 +350,82 @@ func TestSkillNeverRunsAKeyedCommand(t *testing.T) {
 	}
 }
 
-// The skill pre-approves commands by bare name only. A grant by path names
-// a program outside the plugin folder, which the plugin directory's review
-// cannot read, so it holds the plugin for a reviewer; Claude Code asks
-// before such a command instead.
-func TestSkillGrantsNoCommandByPath(t *testing.T) {
+// The skill pre-approves nothing. Anthropic's plugin directory takes
+// pre-approved tools beyond Read, Grep, Glob and LS only from verified
+// organizations, and a pre-approved Read would let the turn that runs the
+// skill read CC Babysitter's state folder, page key included, without a
+// prompt. So Claude Code asks before every command and every read outside
+// the working directory, and the skill says what to do when the person
+// declines.
+func TestSkillPreApprovesNothing(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := regexp.MustCompile(`(?m)^allowed-tools: (.*)$`).FindStringSubmatch(string(data))
-	if m == nil {
-		t.Fatal("SKILL.md has no allowed-tools")
+	front, body, ok := strings.Cut(strings.TrimPrefix(string(data), "---\n"), "\n---\n")
+	if !ok {
+		t.Fatal("SKILL.md has no frontmatter")
 	}
-	grants := regexp.MustCompile(`[A-Za-z]+\(([^)]*)\)`).FindAllStringSubmatch(m[1], -1)
-	if len(grants) == 0 {
-		t.Fatal("allowed-tools grants nothing")
-	}
-	for _, g := range grants {
-		if strings.ContainsAny(g[1], "/\\~$") {
-			t.Errorf("allowed-tools grants a command by path: %s", g[0])
+	for _, key := range []string{"allowed-tools", "allowed_tools", "allowedTools"} {
+		if strings.Contains(front, key) {
+			t.Errorf("the frontmatter has %s", key)
 		}
+	}
+	for _, want := range []string{
+		"never read any file in CC Babysitter's state folder",
+		"When they decline one, do not run it another way",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("SKILL.md does not say %q", want)
+		}
+	}
+}
+
+// Anthropic's plugin directory takes scripts and programs only from
+// verified organizations, so the plugin folder holds none: the evals'
+// runner and stand-in program live in scripts/.
+func TestPluginShipsNoScripts(t *testing.T) {
+	err := filepath.WalkDir(pluginDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			// Local eval results: gitignored, never shipped.
+			if path == filepath.Join(pluginDir, "evals", "results") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".sh", ".bash", ".zsh", ".ps1", ".bat", ".cmd", ".py", ".js", ".cjs", ".mjs", ".ts", ".exe":
+			t.Errorf("%s is a script or program", path)
+			return nil
+		}
+		if runtime.GOOS != "windows" {
+			if info, err := d.Info(); err == nil && info.Mode()&0o111 != 0 {
+				t.Errorf("%s is executable", path)
+			}
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		head := make([]byte, 4)
+		n, _ := f.Read(head)
+		head = head[:n]
+		for _, magic := range [][]byte{
+			[]byte("#!"), []byte("\x7fELF"), []byte("MZ"),
+			{0xfe, 0xed, 0xfa, 0xce}, {0xfe, 0xed, 0xfa, 0xcf}, {0xce, 0xfa, 0xed, 0xfe}, {0xcf, 0xfa, 0xed, 0xfe}, {0xca, 0xfe, 0xba, 0xbe},
+		} {
+			if bytes.HasPrefix(head, magic) {
+				t.Errorf("%s starts like a script or program (%q)", path, magic)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -376,13 +433,17 @@ func TestSkillGrantsNoCommandByPath(t *testing.T) {
 // first on PATH. A path into the home folder would reach a real
 // ccbabysitter if the eval sandbox ever let it through.
 func TestEvalsNeverGrantARealBinary(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join(pluginDir, "evals", "run.sh"))
+	data, err := os.ReadFile(filepath.Join(repoRoot, "scripts", "plugin-evals.sh"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, grant := range regexp.MustCompile(`"Bash\(([^)]*)\)"`).FindAllStringSubmatch(string(data), -1) {
+	grants := regexp.MustCompile(`["']Bash\(([^)]*)\)["']`).FindAllStringSubmatch(string(data), -1)
+	if len(grants) == 0 {
+		t.Fatal("plugin-evals.sh grants no commands, so this checks nothing")
+	}
+	for _, grant := range grants {
 		if strings.ContainsAny(grant[1], "~/$") {
-			t.Errorf("run.sh grants a command by path: %s", grant[0])
+			t.Errorf("plugin-evals.sh grants a command by path: %s", grant[0])
 		}
 	}
 }
