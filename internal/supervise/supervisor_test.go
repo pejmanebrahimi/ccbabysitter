@@ -77,6 +77,24 @@ func newSupWith(t *testing.T, f *fixture, pw *fakePower) (*Supervisor, *fakePowe
 			t.Error("the reconcile loop did not stop")
 		}
 	})
+	// The supervisor is handed over only once Run has made its own first
+	// pass, over whatever the observer holds. Until Run takes over, an
+	// action runs inline; once it has, an action waits behind that pass, so
+	// the empty action below returns only after it.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		s.mu.Lock()
+		started := s.phase != phaseNew
+		s.mu.Unlock()
+		if started {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the reconcile loop did not start")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	s.ask(func(context.Context) Result { return Result{OK: true} })
 	return s, pw, cancel
 }
 
