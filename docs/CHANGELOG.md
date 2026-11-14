@@ -2,7 +2,7 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
-## Unreleased
+## 0.12.0 (2026-11-14)
 
 - Changed: the Claude Code plugin pre-approves no commands, so Claude Code asks before each `ccbabysitter` command it runs, as it does for any command, until you choose "Yes, and don't ask again" for it. Anthropic's plugin directory takes pre-approved commands only from verified organizations. CC Babysitter itself does not change.
 - Changed: the plugin's eval runner and its stand-in `ccbabysitter` moved out of the plugin folder, to `scripts/plugin-evals.sh` and `scripts/plugin-evals-fake.sh`; the plugin folder now ships no scripts.
