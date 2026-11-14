@@ -208,7 +208,7 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if !answered {
 		return false, false
 	}
-	if running, ok := claude.RunningCopy(list, w.SessionID, w.ShortID); ok {
+	if running, ok := claude.RunningCopy(list, w.SessionID); ok {
 		return s.adoptRunningCopy(w, running), false
 	}
 	// The job the watch knew runs another conversation now. Resuming the

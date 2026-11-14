@@ -534,6 +534,9 @@
       setText($("#sessions-empty"), "Only scheduled task runs are running.");
     }
     section("#past-count", "#past-empty", past.length);
+    if (!state.search && past.length === 0 && pastScheduled.length > 0) {
+      setText($("#past-empty"), "Only scheduled task runs are not running.");
+    }
     show($("#sect-past-scheduled"), pastScheduled.length > 0);
     /* A search that matches nothing anywhere offers to clear it. */
     show($("#clear-search"), !!state.search && watches.length + sessions.length + scheduled.length + past.length + pastScheduled.length === 0);

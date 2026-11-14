@@ -92,17 +92,14 @@ func JobOnAnother(list []AgentEntry, id, short string) (AgentEntry, bool) {
 }
 
 // RunningCopy returns the row of a background session that is running
-// and is a copy of the session id, or goes by the short id already known
-// for it without naming another session, if list holds one. short may be
-// empty. A row with no process, or one that says it has stopped, is a copy
-// that is not running any more.
-func RunningCopy(list []AgentEntry, id, short string) (AgentEntry, bool) {
+// and runs the session id, if list holds one. It goes by the session id
+// alone, never the short id: a background job keeps its short id when the
+// conversation in it changes, and then runs that other conversation. A row
+// with no process, or one that says it has stopped, is a copy that is not
+// running any more.
+func RunningCopy(list []AgentEntry, id string) (AgentEntry, bool) {
 	for _, a := range list {
-		// The short id counts only for a row that does not name another
-		// session: a background job keeps its id when the conversation in
-		// it changes, and then runs that other conversation, not this one.
-		ours := a.SessionID == id || (short != "" && a.SessionID == "" && strings.EqualFold(a.ID, short))
-		if !ours || a.PID <= 0 || (a.Kind != "background" && a.Kind != "bg") {
+		if a.SessionID != id || a.PID <= 0 || (a.Kind != "background" && a.Kind != "bg") {
 			continue
 		}
 		switch strings.ToLower(a.Status) {

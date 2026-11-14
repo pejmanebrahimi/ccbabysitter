@@ -2105,6 +2105,8 @@ func TestScheduledTaskRunsAreKeptOutOfNotRunning(t *testing.T) {
 		`show($("#sect-past-scheduled"), pastScheduled.length > 0);`,
 		`sync($("#past-scheduled"), pastScheduled, function (p) { return p.id; },`,
 		`onAction($("#past-scheduled"), onPastAction);`,
+		// With only runs not running, Not running does not claim nothing.
+		`"Only scheduled task runs are not running."`,
 		`$$("#past [data-when], #past-scheduled [data-when]")`,
 	} {
 		if !strings.Contains(app, want) {

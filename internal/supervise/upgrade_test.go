@@ -165,6 +165,13 @@ func TestTheUpdateWaitCountsOnlyAwakeTime(t *testing.T) {
 	if n := u.resumes(); n != 1 {
 		t.Fatalf("not resumed once the wait was over: %v", u.f.r.CallList())
 	}
+	// The sleep does not count toward how recent the exit was either, so
+	// the rescue still names the update.
+	if u.lines(func(e state.Entry) bool {
+		return e.Automatic && e.Reason == "Claude Code updated from 2.1.295 to 2.1.296" && strings.HasPrefix(e.Message, "resumed as background")
+	}) != 1 {
+		t.Fatalf("the rescue after the sleep does not give the update: %v", u.f.d.Log.Recent(20, ""))
+	}
 }
 
 // Just after the computer wakes, Claude Code may not list a session that
@@ -256,7 +263,10 @@ func TestTheUpdateReasonIsOnlyForARecentExit(t *testing.T) {
 	u := newUpgradeFixture(t, outdated)
 	u.goneFor(2)
 	got := ""
-	u.s.reconcileForTest(u.snap(retireWindow+time.Minute, false))
+	// Awake all along: passes closer together than sleptAfter.
+	for at := 30 * time.Second; at <= retireWindow+time.Minute; at += 30 * time.Second {
+		u.s.reconcileForTest(u.snap(at, false))
+	}
 	u.s.ask(func(context.Context) Result {
 		got = u.s.exitReason(u.id, "1a2b3c4d", time.Time{})
 		return Result{OK: true}

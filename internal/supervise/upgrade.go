@@ -78,7 +78,7 @@ func (s *Supervisor) outdatedBy(w state.Watch, installed string) (was, now strin
 		return "", "", false
 	}
 	note := s.versions[w.SessionID]
-	if note.goneAt.IsZero() || s.deps.Now().Sub(note.goneAt) > retireWindow {
+	if note.goneAt.IsZero() || s.deps.Now().Sub(note.goneAt)-note.asleep > retireWindow {
 		return "", "", false
 	}
 	if !olderVersion(note.version, installed) {
@@ -185,7 +185,7 @@ func (s *Supervisor) noteVersions(snap observe.Snapshot) {
 		if len(snap.All(w.SessionID)) > 0 {
 			note = versionNote{version: running[w.SessionID]}
 		} else if note.goneAt.IsZero() {
-			note.goneAt = s.deps.Now()
+			note.goneAt = s.deps.Now().Round(0)
 		}
 		s.versions[w.SessionID] = note
 	}
