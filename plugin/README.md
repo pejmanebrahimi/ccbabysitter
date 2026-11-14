@@ -23,6 +23,8 @@ If CC Babysitter itself is not installed yet, the plugin gives you the one comma
 
 Without asking: `ccbabysitter version`, `ccbabysitter help`, `ccbabysitter list`, `ccbabysitter show`, `ccbabysitter activity`, `ccbabysitter babysit`, `ccbabysitter unbabysit`, `ccbabysitter retry` and `ccbabysitter open`.
 
+Claude Code asks you before each command the plugin runs by its full path, such as `~/.local/bin/ccbabysitter`. The plugin does that only when Claude Code cannot find `ccbabysitter` on its PATH yet, as right after an install, until Claude Code starts again.
+
 After asking you on a card: `ccbabysitter stop`, `ccbabysitter settings` changes, `ccbabysitter install`, `ccbabysitter uninstall` and `ccbabysitter quit`. It never runs `ccbabysitter reset`, and never installs anything.
 
 On macOS it also runs `pmset -g batt` without asking, to see whether the computer is a laptop, so it can mention that closing the lid makes the computer sleep. Its output has no serial number.
@@ -39,7 +41,7 @@ CC Babysitter reads Claude Code's own local files and never writes to them:
 
 - the session files in `~/.claude/sessions`: each session's id, folder, name and process;
 - the transcripts in `~/.claude/projects`: token and turn counts, the model and the session's title. It reads no message content, except the first characters of a session's first message, to tell a run of a Claude Desktop scheduled task from an ordinary session, and it keeps nothing of it;
-- Claude Code's settings in `~/.claude.json`, to see whether a folder is trusted;
+- Claude Code's settings in `~/.claude.json`: only whether each folder is trusted, nothing else;
 - the background job records in `~/.claude/jobs`, when bringing a babysat session back: only whether it ran in the background before, and whether its saved options turn Remote Control on;
 - the end of the background daemon's log, `~/.claude/daemon.log`, when a babysat session ends: only whether Claude Code stopped it for being idle.
 

@@ -5,6 +5,7 @@ Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 publish
 ## Unreleased
 
 - Added: the Claude Code plugin carries what Anthropic's plugin directory reads for a listing: an icon made from the site's art, links to its docs page and to the issue tracker, and its own copy of the license, since whoever installs it gets only the plugin folder. Its description now says it works only in Claude Code, with CC Babysitter on the same computer, and its README says what the plugin and CC Babysitter connect to, what installing CC Babysitter downloads, and where to get help (#141).
+- Changed: the Claude Code plugin no longer pre-approves `ccbabysitter` by its full path. Right after an install, until Claude Code starts again with the new PATH, the plugin runs it that way, and Claude Code now asks before each such command (#141).
 
 ## 0.10.0 (2026-11-14)
 

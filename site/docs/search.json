@@ -31,7 +31,7 @@
   "url": "/docs/claude-code-plugin/#asks-first",
   "page": "Use CC Babysitter from Claude Code",
   "section": "What it asks before doing",
-  "text": "Babysitting, unbabysitting, trying a stuck session again, and opening the page happen right away. So do the commands that only read, such as listing sessions or reading the activity log. The first time in a conversation, it may also offer to open the page. It asks you on a card before it stops a background copy, changes a setting or quits CC Babysitter. It also asks before it sets CC Babysitter up as a service on Linux, or stops it and turns off start at login. It never resets CC Babysitter or removes it completely: for those it explains what they delete and gives you the command to run yourself."
+  "text": "Babysitting, unbabysitting, trying a stuck session again, and opening the page happen right away. So do the commands that only read, such as listing sessions or reading the activity log. The first time in a conversation, it may also offer to open the page. Right after you install CC Babysitter, Claude Code may not find it on its PATH until Claude Code starts again. The plugin then runs it by its full path, and Claude Code asks you before each of those commands. It asks you on a card before it stops a background copy, changes a setting or quits CC Babysitter. It also asks before it sets CC Babysitter up as a service on Linux, or stops it and turns off start at login. It never resets CC Babysitter or removes it completely: for those it explains what they delete and gives you the command to run yourself."
  },
  {
   "url": "/docs/claude-code-plugin/#remove",

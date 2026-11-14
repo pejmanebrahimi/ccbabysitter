@@ -336,6 +336,30 @@ func TestSkillNeverRunsAKeyedCommand(t *testing.T) {
 	}
 }
 
+// The skill pre-approves commands by bare name only. A grant by path names
+// a program outside the plugin folder, which the plugin directory's review
+// cannot read, so it holds the plugin for a reviewer; Claude Code asks
+// before such a command instead.
+func TestSkillGrantsNoCommandByPath(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(pluginDir, "skills", "babysit", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^allowed-tools: (.*)$`).FindStringSubmatch(string(data))
+	if m == nil {
+		t.Fatal("SKILL.md has no allowed-tools")
+	}
+	grants := regexp.MustCompile(`[A-Za-z]+\(([^)]*)\)`).FindAllStringSubmatch(m[1], -1)
+	if len(grants) == 0 {
+		t.Fatal("allowed-tools grants nothing")
+	}
+	for _, g := range grants {
+		if strings.ContainsAny(g[1], "/\\~$") {
+			t.Errorf("allowed-tools grants a command by path: %s", g[0])
+		}
+	}
+}
+
 // The eval runner grants only commands by bare name, which find the fake
 // first on PATH. A path into the home folder would reach a real
 // ccbabysitter if the eval sandbox ever let it through.
