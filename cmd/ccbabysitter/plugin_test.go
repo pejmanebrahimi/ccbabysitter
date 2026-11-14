@@ -83,6 +83,39 @@ func TestPluginListingFields(t *testing.T) {
 	}
 }
 
+// A listing in the directory also shows on claude.ai and in Cowork, so the
+// description says where the plugin works; and the README, which the
+// listing shows, names everything the plugin and CC Babysitter connect to
+// and download. Every docs link in the README is a page the site has.
+func TestPluginSaysWhereItWorksAndWhatItConnectsTo(t *testing.T) {
+	var plugin struct{ Description string }
+	readJSON(t, filepath.Join(pluginDir, ".claude-plugin", "plugin.json"), &plugin)
+	for _, want := range []string{"Works only in Claude Code", "CC Babysitter"} {
+		if !strings.Contains(plugin.Description, want) {
+			t.Errorf("the description does not say %q", want)
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(pluginDir, "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	privacy := sectionsOf(string(data))["Privacy"]
+	for _, want := range []string{"`127.0.0.1`", "Anthropic", "ccbabysitter.dev", "https://github.com/pejmanebrahimi/ccbabysitter/releases"} {
+		if !strings.Contains(privacy, want) {
+			t.Errorf("the README's Privacy section does not name %s", want)
+		}
+	}
+	links := regexp.MustCompile(`https://ccbabysitter\.dev/docs/([a-z-]+)/`).FindAllStringSubmatch(string(data), -1)
+	if len(links) < 2 {
+		t.Fatalf("the README links %d docs pages, want the plugin's page and troubleshooting", len(links))
+	}
+	for _, m := range links {
+		if _, err := os.Stat(filepath.Join(repoRoot, "site", "docs", m[1], "index.html")); err != nil {
+			t.Errorf("the README links %s, which the site does not have", m[0])
+		}
+	}
+}
+
 // Whoever installs the plugin gets only the plugin folder, so it carries
 // the license itself, word for word the one at the top of the repository.
 func TestPluginCarriesTheLicense(t *testing.T) {
