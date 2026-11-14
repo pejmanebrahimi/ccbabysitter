@@ -2,7 +2,7 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
-## Unreleased
+## 0.11.0 (2026-11-14)
 
 - Added: the Claude Code plugin carries what Anthropic's plugin directory reads for a listing: an icon made from the site's art, links to its docs page and to the issue tracker, and its own copy of the license, since whoever installs it gets only the plugin folder. Its description now says it works only in Claude Code, with CC Babysitter on the same computer, and its README says what the plugin and CC Babysitter connect to, what installing CC Babysitter downloads, and where to get help (#141).
 - Changed: the Claude Code plugin no longer pre-approves `ccbabysitter` by its full path. Right after an install, until Claude Code starts again with the new PATH, the plugin runs it that way, and Claude Code now asks before each such command (#141).
