@@ -1,7 +1,7 @@
 {
   "name": "ccbabysitter",
   "displayName": "CC Babysitter",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "Babysit a session and walk away: if its app closes or crashes, CC Babysitter brings it back with Remote Control, still reachable from your phone. On a server, babysat sessions survive SSH drops and reboots. Works only in Claude Code; if CC Babysitter isn't installed yet, the plugin gives you the one command to install it.",
   "author": { "name": "Pejman Ebrahimi", "url": "https://github.com/pejmanebrahimi" },
   "homepage": "https://ccbabysitter.dev",
@@ -10,5 +10,6 @@
   "keywords": ["babysit", "remote-control", "keep-alive", "sessions", "background"],
   "icon": "./.claude-plugin/icon.png",
   "documentationUrl": "https://ccbabysitter.dev/docs/claude-code-plugin/",
-  "supportUrl": "https://github.com/pejmanebrahimi/ccbabysitter/issues"
+  "supportUrl": "https://github.com/pejmanebrahimi/ccbabysitter/issues",
+  "privacyPolicyUrl": "https://github.com/pejmanebrahimi/ccbabysitter/blob/main/plugin/README.md#privacy"
 }

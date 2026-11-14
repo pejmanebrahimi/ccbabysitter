@@ -2,6 +2,10 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
+## 0.11.2 (2026-11-14)
+
+- Added: the Claude Code plugin's manifest links its privacy statement, the Privacy section of the plugin README, for Anthropic's plugin directory to show on its listing.
+
 ## 0.11.1 (2026-11-14)
 
 - Changed: the Claude Code plugin's description, which Anthropic's plugin directory shows on its listing, now leads with what babysitting is for: walk away from a session and still reach it from your phone if its app closes or crashes, and on a server keep babysat sessions through SSH drops and reboots. It still says the plugin works only in Claude Code, and now also that, when CC Babysitter isn't installed yet, the plugin gives you the one command to install it.
