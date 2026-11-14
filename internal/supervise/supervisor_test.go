@@ -65,12 +65,22 @@ func newSupWith(t *testing.T, f *fixture, pw *fakePower) (*Supervisor, *fakePowe
 	s := New(*f.d)
 	ctx, cancel := context.WithCancel(context.Background())
 	go s.Run(ctx)
-	// Until Run takes over, an action runs inline, and Run's own first pass,
-	// over whatever the observer holds, would then land after the test's
-	// first steps instead of before them. On a busy machine that pass could
-	// see a session the test had just resumed as gone again. Waiting for the
-	// loop makes every test start the way it does on an idle machine: once
-	// the loop runs, an action waits behind that first pass.
+	// The loop writes to the log and to the state folder, and both live in
+	// temporary directories the fixture had created for it. Waiting for the
+	// loop to finish before those directories are removed is what keeps a
+	// write that lands after the test body from tripping the cleanup up.
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case <-s.done:
+		case <-time.After(10 * time.Second):
+			t.Error("the reconcile loop did not stop")
+		}
+	})
+	// The supervisor is handed over only once Run has made its own first
+	// pass, over whatever the observer holds. Until Run takes over, an
+	// action runs inline; once it has, an action waits behind that pass, so
+	// the empty action below returns only after it.
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		s.mu.Lock()
@@ -84,18 +94,7 @@ func newSupWith(t *testing.T, f *fixture, pw *fakePower) (*Supervisor, *fakePowe
 		}
 		time.Sleep(time.Millisecond)
 	}
-	// The loop writes to the log and to the state folder, and both live in
-	// temporary directories the fixture had created for it. Waiting for the
-	// loop to finish before those directories are removed is what keeps a
-	// write that lands after the test body from tripping the cleanup up.
-	t.Cleanup(func() {
-		cancel()
-		select {
-		case <-s.done:
-		case <-time.After(10 * time.Second):
-			t.Error("the reconcile loop did not stop")
-		}
-	})
+	s.ask(func(context.Context) Result { return Result{OK: true} })
 	return s, pw, cancel
 }
 
