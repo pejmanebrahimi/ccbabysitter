@@ -31,12 +31,15 @@ type fixture struct {
 
 	p *procs.Fake
 	r *claude.FakeRunner
+	// logDir holds log.txt, which has the debugging lines Activity leaves
+	// out.
+	logDir string
 }
 
 func newFixture(t *testing.T, respond func(args []string) (string, error)) *fixture {
-	f := &fixture{p: procs.NewFake()}
+	f := &fixture{p: procs.NewFake(), logDir: t.TempDir()}
 	f.r = claude.NewFakeRunner(respond)
-	log, err := state.NewLog(t.TempDir())
+	log, err := state.NewLog(f.logDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,9 +305,91 @@ func TestResumeBackgroundRemoteControlOn(t *testing.T) {
 	}
 }
 
+// writeJobRecord writes Claude Code's job record for id, with the flags
+// the session saved.
+func writeJobRecord(t *testing.T, jobsDir, id, flags string) {
+	t.Helper()
+	dir := filepath.Join(jobsDir, id[:8])
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "state.json"), []byte(`{"sessionId":"`+id+`","respawnFlags":[`+flags+`]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A watch that already knows its session saved its own options still reads
+// the job record, so a session whose saved options turn Remote Control on
+// is given the longer wait for its bridge, and a bridge that turns up after
+// the short one is not reported off.
+func TestResumeBackgroundWaitsForTheSavedRemoteControl(t *testing.T) {
+	id := "55555555-0000-4000-8000-000000000001"
+	f := newFixture(t, nil)
+	f.r.SetRespond(func([]string) (string, error) {
+		f.p.SetAlive(9, true)
+		f.addFile(bgSession(9, id, ""))
+		go func() {
+			// Later than the first two looks, which are rcPollInterval
+			// apart: the second one is past the short wait.
+			time.Sleep(400 * time.Millisecond)
+			f.setFiles(bgSession(9, id, "bridge-late"))
+		}()
+		return "note: woke session 55555555 with its saved options.\nbackgrounded \u00b7 55555555", nil
+	})
+	f.d.SettleTimeout = 50 * time.Millisecond
+	f.d.RCSettleTimeout = 2 * time.Second
+	writeJobRecord(t, f.d.JobsDir, id, `"--remote-control"`)
+	_, res := f.d.resumeBackground(context.Background(), id, "n", "/home/dev/ws", true)
+	if !res.OK || !strings.HasSuffix(res.Message, "Remote Control is on.") {
+		t.Fatalf("%+v", res)
+	}
+}
+
+// Without a job record nothing says whether the saved options turn Remote
+// Control on, so a session seen without a bridge is not called off.
+func TestResumeBackgroundWithoutAJobRecordNeverSaysOff(t *testing.T) {
+	id := "66666666-0000-4000-8000-000000000001"
+	f := newFixture(t, nil)
+	f.r.SetRespond(func([]string) (string, error) {
+		f.p.SetAlive(10, true)
+		f.addFile(bgSession(10, id, ""))
+		return "note: woke session 66666666 with its saved options.\nbackgrounded \u00b7 66666666", nil
+	})
+	f.d.SettleTimeout = 50 * time.Millisecond
+	_, res := f.d.resumeBackground(context.Background(), id, "n", "/home/dev/ws", true)
+	if !res.OK || !strings.HasSuffix(res.Message, rcNotConnectedYet) {
+		t.Fatalf("%+v", res)
+	}
+}
+
+// A watch that does not know of saved options, such as one handed back to
+// its app, still learns them from the job record, and the resume, which
+// then asks for nothing, says off when they leave Remote Control off.
+func TestResumeBackgroundSaysOffForAFreshWatchWithSavedOptions(t *testing.T) {
+	id := "88888888-0000-4000-8000-000000000001"
+	f := newFixture(t, nil)
+	writeJobRecord(t, f.d.JobsDir, id, `"--model","sonnet"`)
+	f.r.SetRespond(func([]string) (string, error) {
+		f.p.SetAlive(11, true)
+		f.addFile(bgSession(11, id, ""))
+		return "note: woke session 88888888 with its saved options.\nbackgrounded \u00b7 88888888", nil
+	})
+	f.d.SettleTimeout = 50 * time.Millisecond
+	short, res := f.d.resumeBackground(context.Background(), id, "n", "/home/dev/ws", false)
+	if !res.OK || !strings.HasSuffix(res.Message, "Remote Control is off: attach with `claude attach "+short+"` and type /rc.") {
+		t.Fatalf("%+v", res)
+	}
+	if calls := strings.Join(f.r.CallList(), "\n"); strings.Contains(calls, "--remote-control") {
+		t.Fatalf("the resume asked for Remote Control: %s", calls)
+	}
+}
+
+// Off is said only of a session whose job record shows saved options
+// without Remote Control, once it was seen without a bridge.
 func TestResumeBackgroundRemoteControlOff(t *testing.T) {
 	id := "33333333-0000-4000-8000-000000000001"
 	f := newFixture(t, nil)
+	writeJobRecord(t, f.d.JobsDir, id, `"--model","sonnet"`)
 	f.r.SetRespond(func([]string) (string, error) {
 		f.p.SetAlive(8, true)
 		f.addFile(bgSession(8, id, ""))
@@ -381,6 +466,45 @@ func TestResumeBackgroundRefusesCopyThatLooksLikeAnUpperCaseOriginal(t *testing.
 	}
 	if !strings.Contains(res.Message, "claude --bg --resume "+id) {
 		t.Fatalf("%+v", res)
+	}
+}
+
+// When the retry without flags forks a copy too and the session turns out
+// to be running already, Activity names the second copy as well as the
+// first, and both go back with the result.
+func TestResumeBackgroundNamesBothCopies(t *testing.T) {
+	id := "77777777-0000-4000-8000-000000000001"
+	f := newFixture(t, nil)
+	tries := 0
+	f.r.SetRespond(func(args []string) (string, error) {
+		if !strings.HasPrefix(strings.Join(args, " "), "--bg --resume") {
+			return "", nil
+		}
+		tries++
+		if tries == 2 {
+			f.p.SetAlive(7, true)
+			f.addFile(bgSession(7, id, "b"))
+			return "note: started a copy as bbccddee.\nbackgrounded \u00b7 bbccddee", nil
+		}
+		return "note: started a copy as aabbccdd.\nbackgrounded \u00b7 aabbccdd", nil
+	})
+	_, res := f.d.resumeBackground(context.Background(), id, "n", "/home/dev/ws", false)
+	if !res.OK || res.AlreadyLiveIn != claude.HostBackground {
+		t.Fatalf("%+v", res)
+	}
+	if got := strings.Join(res.RemovedCopies, " "); got != "aabbccdd bbccddee" {
+		t.Fatalf("removed copies %q", got)
+	}
+	named := map[string]bool{}
+	for _, e := range f.d.Log.Recent(20, "") {
+		for _, c := range []string{"aabbccdd", "bbccddee"} {
+			if strings.Contains(e.Message, "stopped and removed copy "+c) {
+				named[c] = true
+			}
+		}
+	}
+	if !named["aabbccdd"] || !named["bbccddee"] {
+		t.Fatalf("Activity names %v: %v", named, f.d.Log.Recent(20, ""))
 	}
 }
 

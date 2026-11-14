@@ -84,7 +84,7 @@ func checkGenerated(t *testing.T, path, want, test string) {
 }
 
 // referenceCommands are the commands the reference documents, in order.
-var referenceCommands = []string{"status", "list", "show", "babysit", "unbabysit", "retry", "stop", "start",
+var referenceCommands = []string{"status", "list", "show", "babysit", "unbabysit", "retry", "stop", "start", "trust",
 	"activity", "settings", "open", "quit", "install", "uninstall", "reset", "version", "help"}
 
 // The skill's reference is the CLI's own help, word for word, so it can

@@ -286,6 +286,17 @@ func (c *Client) Start(ctx context.Context, dir string, trust bool) (supervise.R
 	return result(status, data)
 }
 
+// TrustFolder is the page's Allow rescue: it gives the claude CLI its
+// one-time OK to run on its own in dir, so babysat sessions there can be
+// brought back.
+func (c *Client) TrustFolder(ctx context.Context, dir string) (supervise.Result, error) {
+	status, data, err := c.send(ctx, startTimeout, http.MethodPost, "/api/trust?via=cli", map[string]any{"path": dir})
+	if err != nil {
+		return supervise.Result{}, err
+	}
+	return result(status, data)
+}
+
 // olderCopyQuit is quit's refusal when the running copy is from before
 // quit existed, which answers the route with a plain 404 or 405.
 const olderCopyQuit = "The running CC Babysitter is an older version that cannot quit this way. Quit it with Ctrl+C in its window. If it was started at login, stop it on Linux with: systemctl --user stop ccbabysitter, on macOS with: launchctl bootout gui/$(id -u)/com.ccbabysitter, or on Windows by ending ccbabysitter.exe in Task Manager."

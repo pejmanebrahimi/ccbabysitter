@@ -224,18 +224,19 @@ func Sessions(v supervise.View) []Session {
 			also = p.ActivityLabel
 		}
 		out = append(out, Session{
-			ID:           p.ID,
-			ShortID:      short,
-			Name:         p.Name,
-			AlsoCalled:   also,
-			HandedBackTo: string(p.HandedBackTo),
-			Folder:       p.Cwd,
-			Apps:         []string{},
-			LastActivity: activity(p.LastActivity),
-			ResumeCmd:    p.ResumeCmd,
-			AttachCmd:    p.AttachCmd,
-			SSHAttachCmd: p.SSHAttachCmd,
-			NotRunning:   true,
+			ID:            p.ID,
+			ShortID:       short,
+			Name:          p.Name,
+			AlsoCalled:    also,
+			HandedBackTo:  string(p.HandedBackTo),
+			Folder:        p.Cwd,
+			Apps:          []string{},
+			LastActivity:  activity(p.LastActivity),
+			ResumeCmd:     p.ResumeCmd,
+			AttachCmd:     p.AttachCmd,
+			SSHAttachCmd:  p.SSHAttachCmd,
+			ScheduledTask: p.ScheduledTask,
+			NotRunning:    true,
 		})
 	}
 	return out

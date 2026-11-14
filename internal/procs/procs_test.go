@@ -532,3 +532,29 @@ func TestTreeCPUSecondsGrows(t *testing.T) {
 		t.Fatalf("cpu seconds %v then %v", st1.CPUSeconds, st2.CPUSeconds)
 	}
 }
+
+// A terminal attached to a background copy runs `claude attach SHORT`:
+// only that word followed by the copy's short id counts, in any case.
+func TestAttachArgs(t *testing.T) {
+	for _, c := range []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"/home/dev/.local/bin/claude", "attach", "1a2b3c4d"}, true},
+		{[]string{"claude", "attach", "1A2B3C4D"}, true},
+		{[]string{"node", "/usr/lib/claude/cli.js", "attach", "1a2b3c4d"}, true},
+		{[]string{"claude", "attach", "5e6f7a8b"}, false},
+		{[]string{"claude", "--resume", "1a2b3c4d"}, false},
+		{[]string{"claude", "attach"}, false},
+		{[]string{"grep", "1a2b3c4d"}, false},
+	} {
+		if got := attachArgs(c.args, "1a2b3c4d"); got != c.want {
+			t.Errorf("attachArgs(%q) = %v, want %v", c.args, got, c.want)
+		}
+	}
+	f := NewFake()
+	f.SetAttached("1a2b3c4d", true)
+	if !f.Attached("1a2b3c4d") || f.Attached("5e6f7a8b") {
+		t.Fatal("the fake keeps what it is told")
+	}
+}

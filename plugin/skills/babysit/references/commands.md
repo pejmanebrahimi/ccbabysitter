@@ -25,6 +25,7 @@ Control the running copy, for people and AI agents alike:
   ccbabysitter retry S         try again on a babysat session that is stuck
   ccbabysitter stop S --yes    stop the background copy of S and keep the conversation
   ccbabysitter start PATH      on a machine with no display, start a babysat session in PATH
+  ccbabysitter trust PATH      let Claude Code run on its own in PATH, so stuck sessions come back
   ccbabysitter activity [S]    what CC Babysitter did and why, newest first
   ccbabysitter settings        show the settings, or change one with: settings NAME VALUE
   ccbabysitter open            open the page in your browser, printing no key
@@ -66,16 +67,20 @@ Flags:
                      A key given here can be seen by other accounts while the
                      command runs, so leave --url out for your own running copy
 
-Text, two lines:
+Text, three lines:
   CC Babysitter X.Y.Z is running at http://127.0.0.1:47391/?token=KEY
   Sessions: 5, babysat: 2. Keeping the computer awake: yes
+  Machine: build-box (Linux)
 Keeping the computer awake says yes, no, or not supported on this system. Where
 closing the lid would put the computer to sleep, yes adds: while its lid is open.
+Machine is the computer's name and its system, macOS, Linux or Windows, and is left
+out when the name cannot be read.
 On a machine with no display, three more lines give the ssh command to run on
 your computer and the address to open there while it runs.
 
 With --json: {"schema":1,"running":true,"version":"...","url":"...","headless":false,
-"sessions":5,"babysat":2,"keepAwake":{"held":true,"supported":true}}.
+"sessions":5,"babysat":2,"keepAwake":{"held":true,"supported":true},
+"machine":"build-box","system":"Linux"}.
 When it is not running, the sentence says so on stderr, the exit code is 3 and
 stdout is {"schema":1,"running":false} with --json. That is the answer, not an error.
 
@@ -102,8 +107,9 @@ ccbabysitter list
 Lists every Claude Code session on this machine, babysat or not, running or not.
 Sessions that are not babysat come first, then the babysat ones. Runs of a Claude
 Desktop scheduled task follow, under their own heading, since they are never
-babysat: Desktop starts the task again on its schedule. Last come the page's Not
-running conversations from the last two weeks, under their own heading. show gives
+babysat: Desktop starts the task again on its schedule. Then come the page's Not
+running conversations from the last two weeks, under their own heading, and last the
+runs that are not running, under theirs. show gives
 the commands that start one again: Attach for a background session that was
 stopped, which is the one the page offers, and Resume.
 
@@ -129,12 +135,14 @@ Text: a header, then one line per session, columns separated by two spaces:
   FOLDER   the folder it works in
 Scheduled task runs follow, after an empty line when other sessions come first,
 under the line "Scheduled task runs, never babysat:", with the same columns, then the
-conversations that are not running, under the line "Not running:". With no sessions
+conversations that are not running, under the line "Not running:", then the runs that
+are not running, under "Scheduled task runs, not running:". With no sessions
 running it says: No Claude Code sessions are running.
 
 With --json: {"schema":1,"sessions":[...]}, an empty array when there are none.
 A scheduled task's run is in the same array, with scheduledTask true, and so is a
-conversation that is not running, with notRunning true.
+conversation that is not running, with notRunning true. A run that is not running
+has both.
 Each session has the fields shown by ccbabysitter help show, and the same names.
 In JSON, state is watching, background, starting or stuck, and is left out when the
 session is not babysat. The text says in background for background.
@@ -451,6 +459,50 @@ A control command never starts CC Babysitter. Start it with ccbabysitter.
 
 Example:
   ccbabysitter start /srv/shop-api --trust
+```
+
+## trust
+
+```
+ccbabysitter trust PATH
+
+Gives Claude Code its one-time OK to run on its own in the folder PATH, as the
+page's Allow rescue does. A babysat session there that could not be brought back
+because Claude Code does not trust the folder comes back by itself soon after.
+PATH is read as start reads it. When Claude Code trusts PATH already, trust says
+so and does nothing. On a machine with a display, trust opens a terminal in PATH
+with Claude Code running: answer Yes to its question, then type /exit. On a
+machine with no display, trust answers that question with Yes itself; this works
+on Linux, and elsewhere trust gives the one-time command to run instead.
+
+Flags:
+  --json             print one JSON document on stdout instead of text
+  --url URL          talk to the copy at this page address instead of the saved one:
+                     http://127.0.0.1:PORT/?token=KEY as CC Babysitter prints it, or
+                     http://127.0.0.1:PORT without a key, which is only for your own
+                     running copy: the key saved on this machine goes only to the
+                     address that copy saved. To talk to another copy, such as a
+                     demo, pass the full address it printed, with ?token=.
+                     A key given here can be seen by other accounts while the
+                     command runs, so leave --url out for your own running copy
+
+Text: the answer on stdout and exit code 0, or the reason on stderr and exit code 1.
+
+With --json: {"schema":1,"ok":true,"message":"..."}. ok is false when it was
+refused, with exit code 1 and the reason in message.
+
+Exit codes: 0 done, 1 refused, 2 wrong usage, 3 CC Babysitter is not running,
+4 no such session or more than one.
+On an error with --json, stdout is {"schema":1,"ok":false,"error":"...","code":"..."}
+where code is not-running, usage, not-found, ambiguous, not-in-session, no-key,
+no-answer or failed. no-key, with exit code 1, means CC Babysitter is running but the
+page's key was missing or wrong. no-answer, with exit code 1, means CC Babysitter did
+not answer in time, and the action may still finish.
+
+A control command never starts CC Babysitter. Start it with ccbabysitter.
+
+Example:
+  ccbabysitter trust /srv/shop-api
 ```
 
 ## activity

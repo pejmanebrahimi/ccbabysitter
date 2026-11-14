@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"hash/fnv"
+	"strings"
 	"sync"
 	"time"
 
@@ -47,6 +48,9 @@ type demoItem struct {
 	id      string
 	shortID string
 	name    string
+	// attached says the demo opened a terminal on the item's background
+	// copy, which the card then says.
+	attached bool
 	// alsoCalled is the name in the session's own record when name, the
 	// one its app shows, is a different one.
 	alsoCalled string
@@ -258,7 +262,7 @@ func (d *DemoEngine) seed(now time.Time) {
 			id: demoStuckID, name: "data-sync", cwd: "~/projects/data-sync",
 			host: claude.HostTerminal, entrypoint: "cli", status: "idle", warning: supervise.UntrustedWarning("~/projects/data-sync"),
 			watched: true, originHost: claude.HostTerminal, promiseState: "paused", watchedSince: now.Add(-90 * time.Minute),
-			paused: true, pauseReason: "three failed resumes in five minutes: Resume did not start: Workspace not trusted",
+			paused: true, pauseReason: supervise.UntrustedPause + ": Resume did not start: Workspace not trusted.",
 			stats: claude.Stats{Model: "claude-haiku-4-5", Turns: 4, InputTokens: 5_200, OutputTokens: 800},
 		},
 		{
@@ -307,17 +311,19 @@ func (d *DemoEngine) seed(now time.Time) {
 		name, cwd string
 		handed    claude.Host
 		stopped   bool
+		scheduled bool
 	}{
-		{"landing-page", "~/projects/landing-page", claude.HostVSCode, false},
-		{"nightly-etl", "~/projects/etl", "", true},
-		{"", "~/scratch", "", false},
-		{"billing-fix", "~/projects/billing", "", false},
+		{"landing-page", "~/projects/landing-page", claude.HostVSCode, false, false},
+		{"nightly-etl", "~/projects/etl", "", true, false},
+		{"", "~/scratch", "", false, false},
+		{"billing-fix", "~/projects/billing", "", false, false},
+		{"daily-digest", "~/projects/notes", "", false, true},
 	} {
 		id := demoNewID(900 + i)
 		pv := supervise.PastView{
 			ID: id, ShortID: demoShortID(id), Name: p.name, Cwd: p.cwd,
 			LastActivity: now.Add(-time.Duration(2+i*30) * time.Hour), ResumeCmd: hosts.ResumeCommandIn(p.cwd, id),
-			HandedBackTo: p.handed,
+			HandedBackTo: p.handed, ScheduledTask: p.scheduled,
 		}
 		// A background session whose copy was stopped from the page is
 		// started again with its attach command, as the real engine says.
@@ -399,6 +405,8 @@ func (d *DemoEngine) View() supervise.View {
 			Platform: "demo", CLIFound: true, CLIPresent: true, CLIVersion: "2.1.280", CLILoggedIn: hosts.LoginYes,
 			DesktopInstalled: true, DesktopRunning: true, DesktopVersion: "2.7032.0",
 			VSCodeInstalled: true, VSCodeExtVersion: "2.1.280",
+			// A made-up name, so the docs screenshots never show a real one.
+			Hostname: "example-laptop",
 		},
 		Settings:           d.settings,
 		Sessions:           []supervise.SessionView{},
@@ -477,6 +485,7 @@ func (d *DemoEngine) watchView(it *demoItem) supervise.WatchView {
 		if it.host == claude.HostBackground {
 			wv.AttachCmd = hosts.AttachCommand(it.shortID)
 			wv.RemoteURL = claude.RemoteURL(it.bridgeID)
+			wv.Attached = it.attached
 		}
 	}
 	if wv.State != supervise.StateInBackground {
@@ -669,6 +678,19 @@ func (d *DemoEngine) Start(string, bool, supervise.Via) supervise.Result {
 	return supervise.Result{Message: supervise.StartRefusedWithDisplay}
 }
 
+// TrustFolder answers as the real engine does on a Mac, opening a terminal
+// in the folder for the person to answer Claude Code there, and opens
+// nothing.
+func (d *DemoEngine) TrustFolder(dir string, _ supervise.Via) supervise.Result {
+	// The demo's folders are written from the home folder, as its cards
+	// show them.
+	if !strings.HasPrefix(dir, "/") && !strings.HasPrefix(dir, "~/") {
+		return supervise.Result{Message: "Give the folder's full path, starting with /."}
+	}
+	d.log.Info(dir, "opened Terminal with Claude Code running, to give it its one-time OK for this folder")
+	return supervise.Result{OK: true, Message: "Opened Terminal in " + dir + " with Claude Code running. Answer Yes to its question, then type /exit. Sessions stuck there come back by themselves."}
+}
+
 // OpenTerminal answers as the real engine does on a Mac for a session with
 // a background copy running, and opens nothing.
 func (d *DemoEngine) OpenTerminal(id string) supervise.Result {
@@ -679,7 +701,10 @@ func (d *DemoEngine) OpenTerminal(id string) supervise.Result {
 		return supervise.Result{Message: "That session has no background copy running."}
 	}
 	label, short := demoLabel(it), it.shortID
+	it.attached = true
+	notify := d.notify
 	d.mu.Unlock()
+	d.changed(notify)
 
 	d.log.Info(label, "opened Terminal attached to background copy "+short)
 	return supervise.Result{OK: true, Message: "Opened Terminal on " + label + ".", ShortID: short}

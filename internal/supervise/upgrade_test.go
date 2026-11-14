@@ -147,6 +147,67 @@ func TestABackgroundSessionClaudeCodeBringsBackIsNotResumed(t *testing.T) {
 	}
 }
 
+// The wait for Claude Code to start a session again after an update counts
+// only time the computer is awake: a computer that sleeps through it has
+// given Claude Code no time at all. After the wake the session is left for
+// what remains of the wait, and at least for wakeHold.
+func TestTheUpdateWaitCountsOnlyAwakeTime(t *testing.T) {
+	u := newUpgradeFixture(t, outdated)
+	u.goneFor(4)
+	wake := 2 * time.Hour
+	for _, after := range []time.Duration{wake, wake + 10*time.Second, wake + 40*time.Second} {
+		u.s.reconcileForTest(u.snap(after, false))
+		if n := u.resumes(); n != 0 {
+			t.Fatalf("resumed %v after the wake: %v", after-wake, u.f.r.CallList())
+		}
+	}
+	u.s.reconcileForTest(u.snap(wake+wakeHold+2*time.Second, false))
+	if n := u.resumes(); n != 1 {
+		t.Fatalf("not resumed once the wait was over: %v", u.f.r.CallList())
+	}
+	// The sleep does not count toward how recent the exit was either, so
+	// the rescue still names the update.
+	if u.lines(func(e state.Entry) bool {
+		return e.Automatic && e.Reason == "Claude Code updated from 2.1.295 to 2.1.296" && strings.HasPrefix(e.Message, "resumed as background")
+	}) != 1 {
+		t.Fatalf("the rescue after the sleep does not give the update: %v", u.f.d.Log.Recent(20, ""))
+	}
+}
+
+// A session first seen gone after a long sleep went during or after it:
+// only the sleep after it went counts as not awake, so the wait is a
+// minute of being awake, not the length of the sleep.
+func TestASessionGoneAfterASleepWaitsOnlyAMinute(t *testing.T) {
+	u := newUpgradeFixture(t, outdated)
+	wake := 8 * time.Hour
+	for at := wake; at <= wake+wakeHold+upgradeWait+20*time.Second; at += 10 * time.Second {
+		u.s.reconcileForTest(u.snap(at, false))
+	}
+	// The snapshots never show it back, so it may be resumed more than once.
+	if n := u.resumes(); n == 0 {
+		t.Fatalf("not resumed a minute or two after the wake: %v", u.f.r.CallList())
+	}
+}
+
+// Just after the computer wakes, Claude Code may not list a session that
+// runs yet, so a session that seems gone then is not resumed until the
+// computer has been awake for wakeHold.
+func TestNothingIsResumedJustAfterAWake(t *testing.T) {
+	u := newUpgradeFixture(t, upgradeCase{host: claude.HostBackground, session: "2.1.296", cached: "2.1.296", current: "2.1.296"})
+	u.s.reconcileForTest(u.snap(time.Second, true))
+	wake := 2 * time.Hour
+	for _, after := range []time.Duration{wake, wake + time.Second, wake + 2*time.Second, wake + 30*time.Second} {
+		u.s.reconcileForTest(u.snap(after, false))
+		if n := u.resumes(); n != 0 {
+			t.Fatalf("resumed %v after the wake: %v", after-wake, u.f.r.CallList())
+		}
+	}
+	u.s.reconcileForTest(u.snap(wake+wakeHold+time.Second, false))
+	if n := u.resumes(); n != 1 {
+		t.Fatalf("not resumed once the computer had been awake a while: %v", u.f.r.CallList())
+	}
+}
+
 // The installed version CC Babysitter keeps can be a minute old, and
 // Claude Code can replace a process sooner than that after updating. When
 // the version kept is the session's own, the CLI is asked, once.
@@ -217,7 +278,10 @@ func TestTheUpdateReasonIsOnlyForARecentExit(t *testing.T) {
 	u := newUpgradeFixture(t, outdated)
 	u.goneFor(2)
 	got := ""
-	u.s.reconcileForTest(u.snap(retireWindow+time.Minute, false))
+	// Awake all along: passes closer together than sleptAfter.
+	for at := 30 * time.Second; at <= retireWindow+time.Minute; at += 30 * time.Second {
+		u.s.reconcileForTest(u.snap(at, false))
+	}
 	u.s.ask(func(context.Context) Result {
 		got = u.s.exitReason(u.id, "1a2b3c4d", time.Time{})
 		return Result{OK: true}

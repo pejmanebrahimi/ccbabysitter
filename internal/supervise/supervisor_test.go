@@ -220,7 +220,8 @@ func TestRescueAfterAnIdleRetireSaysSo(t *testing.T) {
 	if res := s.Babysit(id, false, ViaPage); !res.OK {
 		t.Fatal(res.Message)
 	}
-	line := "[" + time.Now().UTC().Add(-2*time.Second).Format(time.RFC3339Nano) + "] [bg] bg retire bbbbbbbb: settled, idle 8h\n"
+	line := "[" + time.Now().UTC().Add(-2*time.Second).Format(time.RFC3339Nano) + "] [bg] bg retire bbbbbbbb: settled, idle 8h\n" +
+		"[" + time.Now().UTC().Add(-time.Second).Format(time.RFC3339Nano) + "] [bg] bg settled bbbbbbbb (done)\n"
 	if err := os.WriteFile(f.d.DaemonLog, []byte(line), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -235,6 +236,58 @@ func TestRescueAfterAnIdleRetireSaysSo(t *testing.T) {
 		return false
 	}) {
 		t.Fatalf("the rescue does not give the idle reason: %v", f.d.Log.Recent(20, ""))
+	}
+}
+
+// While Claude Code's daemon is still stopping the session's job, a resume
+// would start a copy instead of waking it, so the rescue waits until the
+// daemon says the job settled.
+func TestRescueWaitsWhileTheDaemonIsStillStoppingTheJob(t *testing.T) {
+	id := "bbbbbbbb-0000-4000-8000-000000000003"
+	f := newFixture(t, nil)
+	var mu sync.Mutex
+	resumes := 0
+	f.r.SetRespond(func(args []string) (string, error) {
+		a := strings.Join(args, " ")
+		switch {
+		case a == "agents --json":
+			return "[]", nil
+		case strings.HasPrefix(a, "--bg --resume"):
+			mu.Lock()
+			resumes++
+			mu.Unlock()
+			f.p.SetAlive(9, true)
+			f.setFiles(sess(9, id, "bg", "cli", "bbbbbbbb"))
+			return "backgrounded \u00b7 bbbbbbbb \u00b7 demo-a1", nil
+		}
+		return "", nil
+	})
+	f.writeTranscript(t, "/home/dev/ws", id)
+	f.p.SetAlive(7, true)
+	f.setFiles(sess(7, id, "bg", "cli", "bbbbbbbb"))
+	f.d.Obs.RefreshNow()
+	s, _, cancel := newSup(t, f)
+	defer cancel()
+
+	if res := s.Babysit(id, false, ViaPage); !res.OK {
+		t.Fatal(res.Message)
+	}
+	retire := "[" + time.Now().UTC().Add(-time.Second).Format(time.RFC3339Nano) + "] [bg] bg retire bbbbbbbb: settled, idle 8h\n"
+	if err := os.WriteFile(f.d.DaemonLog, []byte(retire), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.p.SetAlive(7, false)
+	f.setFiles()
+	f.d.Obs.RefreshNow()
+	if waitFor(t, f, func() bool { mu.Lock(); defer mu.Unlock(); return resumes > 0 }) {
+		t.Fatal("resumed while the daemon was still stopping the job")
+	}
+	settled := "[" + time.Now().UTC().Format(time.RFC3339Nano) + "] [bg] bg settled bbbbbbbb (done)\n"
+	if err := os.WriteFile(f.d.DaemonLog, []byte(retire+settled), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !waitFor(t, f, func() bool { mu.Lock(); defer mu.Unlock(); return resumes == 1 }) {
+		t.Fatalf("no resume once the job settled: %v", f.d.Log.Recent(20, ""))
 	}
 }
 

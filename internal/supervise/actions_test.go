@@ -342,6 +342,54 @@ func TestTheFallbackWarning(t *testing.T) {
 	}
 }
 
+// A Claude Desktop scheduled task's run that runs nowhere is listed as one,
+// so the page can keep the runs apart from the conversations.
+func TestNotRunningMarksAScheduledTaskRun(t *testing.T) {
+	run := "22222222-2222-4333-8444-5555555555b2"
+	f := newFixture(t, func([]string) (string, error) { return "[]", nil })
+	dir := filepath.Join(f.d.ProjectsDir, claude.Slug("/home/dev/api"))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := `{"type":"user","cwd":"/home/dev/api","message":{"role":"user","content":"<scheduled-task name=\"daily\">x</scheduled-task>"}}` + "\n"
+	if err := os.WriteFile(filepath.Join(dir, run+".jsonl"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.d.Obs.RefreshNow()
+	s, _, cancel := newSup(t, f)
+	defer cancel()
+	if !waitFor(t, f, func() bool { return len(s.View().NotRunning) == 1 }) {
+		t.Fatalf("%+v", s.View().NotRunning)
+	}
+	if p := s.View().NotRunning[0]; p.ID != run || !p.ScheduledTask {
+		t.Fatalf("%+v", p)
+	}
+}
+
+// The Not running list caps the conversations and the scheduled task runs
+// apart, so many runs never push the conversations off it.
+func TestNotRunningCapsRunsApart(t *testing.T) {
+	f := newFixture(t, nil)
+	s := New(*f.d)
+	for i := 0; i < pastMax+5; i++ {
+		s.past = append(s.past, claude.PastSession{ID: fmt.Sprintf("aaaaaaaa-0000-4000-8000-%012d", i), ScheduledTask: true})
+	}
+	for i := 0; i < 3; i++ {
+		s.past = append(s.past, claude.PastSession{ID: fmt.Sprintf("bbbbbbbb-0000-4000-8000-%012d", i)})
+	}
+	runs, talks := 0, 0
+	for _, p := range s.pastViews(map[string]bool{}) {
+		if p.ScheduledTask {
+			runs++
+		} else {
+			talks++
+		}
+	}
+	if runs != pastMax || talks != 3 {
+		t.Fatalf("want %d runs and 3 conversations, got %d and %d", pastMax, runs, talks)
+	}
+}
+
 // Conversations from the last two weeks that run nowhere are listed, with
 // the command that picks one up again; a live one is not.
 func TestNotRunningListsRecentConversations(t *testing.T) {
@@ -566,6 +614,28 @@ func TestAttachCommandsForBackgroundSessions(t *testing.T) {
 				t.Fatalf("server %v, %s: %q %q", onServer, sn.ShortID, sn.AttachCmd, sn.SSHAttachCmd)
 			}
 		}
+	}
+}
+
+// A watch carried by its background copy says when a terminal is attached
+// to that copy, as Open in Terminal leaves one, and not otherwise.
+func TestAWatchSaysATerminalIsAttached(t *testing.T) {
+	watched := "11111111-2222-4333-8444-5555555555a7"
+	f := newFixture(t, func([]string) (string, error) { return "[]", nil })
+	f.p.SetAlive(7, true)
+	f.setFiles(bgSession(7, watched, "b"))
+	f.d.Obs.RefreshNow()
+	s := New(*f.d)
+	s.addWatchForTest(state.Watch{SessionID: watched, ShortID: "11111111", Cwd: "/home/dev/ws",
+		OriginHost: claude.HostTerminal, PromiseState: "fallback", HasSavedOptions: true})
+	s.reconcileForTest(f.d.Obs.Current())
+	if s.View().Watches[0].Attached {
+		t.Fatal("nothing is attached yet")
+	}
+	f.p.SetAttached("11111111", true)
+	s.reconcileForTest(f.d.Obs.Current())
+	if !s.View().Watches[0].Attached {
+		t.Fatal("the attached terminal is not shown")
 	}
 }
 

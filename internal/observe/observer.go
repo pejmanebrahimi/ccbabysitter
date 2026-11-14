@@ -24,11 +24,6 @@ const (
 	// CrossCheckInterval is how often the observer compares its own view of
 	// live sessions against the CLI's own list.
 	CrossCheckInterval = time.Minute
-	// silenceReportEvery is how often a CLI that will not answer is worth
-	// saying so about. The check runs before every resume and on a timer,
-	// so a CLI that is slow to start, or missing entirely, would otherwise
-	// fill the activity feed with the same line and bury everything else.
-	silenceReportEvery = time.Minute
 	// debounce absorbs the burst of file system events a single session
 	// write can produce before the observer rebuilds a snapshot.
 	debounce = 300 * time.Millisecond
@@ -73,11 +68,13 @@ type Observer struct {
 	stampMu   sync.Mutex
 	lastStamp time.Time
 
-	// silenceMu guards lastSilenceLog, which is when the observer last
-	// wrote down that the CLI would not answer. Agents can be called from
-	// the supervisor loop and from a test at the same time.
-	silenceMu      sync.Mutex
-	lastSilenceLog time.Time
+	// silenceMu guards silent, which says the CLI's list did not answer the
+	// last time it was asked. The check runs before every resume and on a
+	// timer, so a silence is said once rather than on every look. Agents
+	// can be called from the supervisor loop and from a test at the same
+	// time.
+	silenceMu sync.Mutex
+	silent    bool
 	// cliMissing is true once the CLI was found not to be installed, until
 	// it next answers. silenceMu guards it too.
 	cliMissing bool
@@ -302,17 +299,37 @@ func (o *Observer) Agents(ctx context.Context) ([]claude.AgentEntry, bool) {
 			}
 			return nil, false
 		}
-		if o.shouldReportSilence() {
+		if o.setSilent(true) {
 			reason := strings.TrimSpace(firstLine(out))
 			if reason == "" && runErr != nil {
 				reason = runErr.Error()
 			}
-			o.log.Error("", "agents --json did not answer: "+reason)
+			o.log.Error("", "agents --json did not answer: "+reason+". Nothing is brought back until it answers again.")
 		}
 		return nil, false
 	}
 	o.setMissing(false)
+	if o.setSilent(false) {
+		o.log.Info("", agentsAnswerAgain)
+	}
 	return list, true
+}
+
+// agentsAnswerAgain is said once when the CLI's list answers again after
+// it did not.
+const agentsAnswerAgain = "agents --json answers again."
+
+// setSilent records whether the CLI's list did not answer the last time it
+// was asked, and reports whether that changed: a silence is said once,
+// and once more when it ends.
+func (o *Observer) setSilent(silent bool) bool {
+	o.silenceMu.Lock()
+	defer o.silenceMu.Unlock()
+	if o.silent == silent {
+		return false
+	}
+	o.silent = silent
+	return true
 }
 
 // firstMissing records that the CLI is not installed and reports whether
@@ -333,20 +350,6 @@ func (o *Observer) setMissing(missing bool) {
 	o.silenceMu.Lock()
 	defer o.silenceMu.Unlock()
 	o.cliMissing = missing
-}
-
-// shouldReportSilence reports whether enough time has passed since the
-// last "did not answer" line to write another one. The first one always
-// goes through: it is the one that tells the user something is wrong.
-func (o *Observer) shouldReportSilence() bool {
-	o.silenceMu.Lock()
-	defer o.silenceMu.Unlock()
-	now := o.now()
-	if !o.lastSilenceLog.IsZero() && now.Sub(o.lastSilenceLog) < silenceReportEvery {
-		return false
-	}
-	o.lastSilenceLog = now
-	return true
 }
 
 // crossCheck compares the CLI's own list of sessions against the current
@@ -377,7 +380,7 @@ func (o *Observer) crossCheck(ctx context.Context) {
 		}
 	}
 	if len(onlyAgents)+len(onlyFiles) > 0 {
-		o.log.Info("", "cross-check disagreement: only in agents "+join(onlyAgents)+", only in files "+join(onlyFiles))
+		o.log.Debug("", "cross-check disagreement: only in agents "+join(onlyAgents)+", only in files "+join(onlyFiles))
 	}
 }
 

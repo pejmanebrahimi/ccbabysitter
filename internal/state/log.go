@@ -49,6 +49,13 @@ func (l *Log) Info(session, msg string) {
 	l.write(Entry{Level: "INFO", Session: session, Message: msg})
 }
 
+// Debug records a line for whoever reads log.txt to find out what
+// happened, and nothing a person using the page can act on: Activity and
+// its subscribers never see it.
+func (l *Log) Debug(session, msg string) {
+	l.write(Entry{Level: "DEBUG", Session: session, Message: msg})
+}
+
 // Error records a failure.
 func (l *Log) Error(session, msg string) {
 	l.write(Entry{Level: "ERROR", Session: session, Message: msg})
@@ -74,6 +81,10 @@ func (l *Log) write(e Entry) {
 				_ = os.WriteFile(l.path, []byte(strings.Join(lines[len(lines)/2:], "\n")), fileMode)
 			}
 		}
+	}
+	if e.Level == "DEBUG" {
+		l.mu.Unlock()
+		return
 	}
 	l.ring = append(l.ring, e)
 	if len(l.ring) > 500 {

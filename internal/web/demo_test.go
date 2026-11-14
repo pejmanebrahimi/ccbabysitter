@@ -48,6 +48,11 @@ func TestDemoShowsEveryState(t *testing.T) {
 	d, _ := newTestDemo(t)
 	v := d.View()
 
+	// The demo's machine has a made-up name, never the real one.
+	if v.Env.Hostname != "example-laptop" {
+		t.Fatalf("demo machine: %q", v.Env.Hostname)
+	}
+
 	states := map[supervise.WatchState]bool{}
 	for _, w := range v.Watches {
 		states[w.State] = true
@@ -73,7 +78,8 @@ func TestDemoShowsEveryState(t *testing.T) {
 	if byID[demoOtherID].Actionable {
 		t.Fatal("the other program's session must not be actionable")
 	}
-	if len(v.NotRunning) != 4 {
+	// The last is a scheduled task's run, which the page lists apart.
+	if len(v.NotRunning) != 5 || !v.NotRunning[4].ScheduledTask {
 		t.Fatalf("%+v", v.NotRunning)
 	}
 	attach := 0
@@ -165,7 +171,7 @@ func TestDemoActionsFollowTheState(t *testing.T) {
 		t.Fatalf("%+v", res)
 	}
 	v := d.View()
-	if len(v.NotRunning) != 5 || v.NotRunning[0].ID != demoCarriedID {
+	if len(v.NotRunning) != 6 || v.NotRunning[0].ID != demoCarriedID {
 		t.Fatalf("a stopped session goes to the top of Not running: %+v", v.NotRunning)
 	}
 	if res := d.Unbabysit(demoStuckID, supervise.ViaPage); !res.OK {
@@ -332,14 +338,47 @@ func TestDemoShowsOneBackgroundCardPerOrigin(t *testing.T) {
 	}
 }
 
+// The stuck card is stuck on the trust as the engine says it now, and its
+// Allow rescue works for the folder the card shows.
+func TestDemoAllowRescue(t *testing.T) {
+	d, _ := newTestDemo(t)
+	var stuck supervise.WatchView
+	for _, w := range d.View().Watches {
+		if w.SessionID == demoStuckID {
+			stuck = w
+		}
+	}
+	if !strings.HasPrefix(stuck.PauseReason, supervise.UntrustedPause+": ") {
+		t.Fatalf("the stuck card's reason: %q", stuck.PauseReason)
+	}
+	if res := d.TrustFolder(stuck.Cwd, supervise.ViaPage); !res.OK {
+		t.Fatalf("Allow rescue on the stuck card: %+v", res)
+	}
+}
+
 // Open in a terminal answers as the real engine would, and opens nothing.
 func TestDemoOpenTerminal(t *testing.T) {
 	d, _ := newTestDemo(t)
 	if got := d.View().TerminalLabel; got != "Open in Terminal" {
 		t.Fatalf("the button names what the message says opened: %q", got)
 	}
+	attached := func() bool {
+		for _, w := range d.View().Watches {
+			if w.SessionID == demoCarriedID {
+				return w.Attached
+			}
+		}
+		t.Fatal("the carried session is not babysat")
+		return false
+	}
+	if attached() {
+		t.Fatal("attached before any terminal was opened")
+	}
 	if res := d.OpenTerminal(demoCarriedID); !res.OK || res.Message != "Opened Terminal on api-gateway." {
 		t.Fatalf("%+v", res)
+	}
+	if !attached() {
+		t.Fatal("the card does not say a terminal is attached")
 	}
 	if res := d.OpenTerminal(demoDesktopID); res.OK || res.Message != "That session has no background copy running." {
 		t.Fatalf("%+v", res)

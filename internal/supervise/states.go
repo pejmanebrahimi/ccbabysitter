@@ -20,9 +20,11 @@ const (
 	// StateStarting means the session is running nowhere and the watch is
 	// about to start, or start again, its background copy.
 	StateStarting WatchState = "starting"
-	// StateStuck means three starts failed within five minutes, or its
-	// background copy froze three times within two hours. Nothing is tried
-	// again until the person asks.
+	// StateStuck means three starts failed within five minutes, its
+	// background copy froze three times within two hours, or the claude CLI
+	// refused to start it in a folder it does not trust. Nothing is tried
+	// again until the person asks, except that a session stuck on the trust
+	// comes back by itself once its folder is trusted or it runs again.
 	StateStuck WatchState = "stuck"
 )
 

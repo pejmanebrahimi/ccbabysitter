@@ -14,6 +14,19 @@ func withTargetOS(t *testing.T, goos string) {
 	t.Cleanup(func() { targetOS = old })
 }
 
+// The trust command Activity gives quotes the folder for the shell it will
+// be pasted into.
+func TestTrustFolderCommand(t *testing.T) {
+	withTargetOS(t, "linux")
+	if got := TrustFolderCommand("/home/dev/my project"); got != "ccbabysitter trust '/home/dev/my project'" {
+		t.Errorf("linux: %q", got)
+	}
+	withTargetOS(t, "windows")
+	if got := TrustFolderCommand(`C:\Users\dev\my project`); got != `ccbabysitter trust 'C:\Users\dev\my project'` {
+		t.Errorf("windows: %q", got)
+	}
+}
+
 func TestBackgroundResumeArgs(t *testing.T) {
 	id := "11111111-2222-4333-8444-555555555502"
 	// A resume never names the session: its transcript already carries its

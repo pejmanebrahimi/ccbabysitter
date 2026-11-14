@@ -65,6 +65,13 @@ func TestSleepCause(t *testing.T) {
 2026-10-05 11:00:00 +0300 Wake                	Wake from Deep Idle [CDNVA] : due to HID Activity
 `, at(10, 31, 0), at(11, 0, 20), "lid", at(10, 30, 0)},
 		{"in another zone, the same moments", powerLog, at(8, 53, 29).UTC(), at(9, 4, 20).UTC(), "lid", at(8, 52, 13)},
+		// Seen again during a maintenance wake, the computer is still
+		// asleep for anyone using it: the sleep is not over, and there is
+		// nothing to name yet.
+		{"seen during a maintenance wake", nightLog, night(1, 22, 31, 19), night(1, 22, 47, 0), "", time.Time{}},
+		// The log can write the full wake a moment after CC Babysitter
+		// already runs again.
+		{"a full wake written just after it was seen", nightLog, night(1, 22, 31, 19), night(2, 6, 59, 50), "lid", night(1, 22, 30, 0)},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			cause, start := sleepCause(strings.NewReader(c.log), c.from, c.to)

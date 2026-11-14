@@ -519,14 +519,28 @@
        a section that only shows when there is one. */
     var sessions = listed.filter(function (s) { return !s.scheduledTask; });
     var scheduled = listed.filter(function (s) { return !!s.scheduledTask; });
-    var past = (view.notRunning || []).filter(function (p) { return matches(p.name, p.cwd, p.shortId); });
+    var allPast = (view.notRunning || []).filter(function (p) { return matches(p.name, p.cwd, p.shortId); });
+    /* So are the runs that are not running, which would otherwise push
+       the conversations down. */
+    var past = allPast.filter(function (p) { return !p.scheduledTask; });
+    var pastScheduled = allPast.filter(function (p) { return !!p.scheduledTask; });
 
     renderBabysatEmpty(view, view.watches || [], watches);
+    $("#sessions-empty").dataset.none = view.env && view.env.headless
+      ? "No Claude Code sessions are running. Press New session above to start one."
+      : "No Claude Code sessions are running.";
     section("#running-count", "#sessions-empty", sessions.length);
     if (!state.search && sessions.length === 0 && scheduled.length > 0) {
       setText($("#sessions-empty"), "Only scheduled task runs are running.");
     }
     section("#past-count", "#past-empty", past.length);
+    if (!state.search && past.length === 0 && pastScheduled.length > 0) {
+      setText($("#past-empty"), "Only scheduled task runs are not running.");
+    }
+    show($("#sect-past-scheduled"), pastScheduled.length > 0);
+    /* A search that matches nothing anywhere offers to clear it. */
+    show($("#clear-search"), !!state.search && watches.length + sessions.length + scheduled.length + past.length + pastScheduled.length === 0);
+    setText($("#past-scheduled-count"), String(pastScheduled.length));
     show($("#sect-scheduled"), scheduled.length > 0);
     setText($("#scheduled-count"), String(scheduled.length));
     /* The section stays as the person left it, closed at first, and its
@@ -544,6 +558,8 @@
     sync($("#scheduled"), scheduled, function (s) { return s.id; },
       function () { return clone("#tpl-session"); }, fillSession);
     sync($("#past"), past, function (p) { return p.id; },
+      function () { return clone("#tpl-past"); }, fillPast);
+    sync($("#past-scheduled"), pastScheduled, function (p) { return p.id; },
       function () { return clone("#tpl-past"); }, fillPast);
     state.firstRender = false;
 
@@ -573,11 +589,13 @@
      nothing out of an otherwise non-empty list still just says so. */
   function renderBabysatEmpty(view, all, watches) {
     setText($("#babysat-count"), watches.length);
-    var none = all.length === 0;
-    show($("#watches-empty"), !none && watches.length === 0);
+    /* While searching, the hero's next step would be about sessions the
+       search hides, so the area says what the other lists say. */
+    var hero = all.length === 0 && !state.search;
+    show($("#watches-empty"), !hero && watches.length === 0);
     setText($("#watches-empty"), "Nothing matches.");
-    show($("#watches-hero"), none);
-    if (none) { fillBabysatHero(view); }
+    show($("#watches-hero"), hero);
+    if (hero) { fillBabysatHero(view); }
   }
 
   /* The command that starts a background session on a server, with Remote
@@ -590,23 +608,37 @@
      follow only whether another program owns the session. */
   function canBabysit(s) { return !!s.actionable && !s.scheduledTask; }
 
-  /* heroSteps is what the empty hero asks the person to do next, which
-     follows what is running: press Babysit when there is something to
+  /* heroSteps is what the empty hero asks the person to do next. A Claude
+     Code CLI that is missing or not logged in comes first, and is the only
+     thing said, since nothing else can work until it is fixed. Otherwise
+     it follows what is running: press Babysit when there is something to
      press it on, and otherwise start a session first, on a server with
-     the command to do it. A word to be shown bold is written as {b: word}. */
+     the command to do it. A word to be shown bold is written as {b: word};
+     command is the command to show and copy, or nothing, and link
+     says to show the hero's link to what to do. */
   function heroSteps(view) {
     view = view || {};
-    var headless = !!(view.env || {}).headless;
+    var env = view.env || {};
+    var headless = !!env.headless;
+    if (env.cliFound === false) {
+      return {
+        next: ["Install Claude Code first. CC Babysitter brings sessions back with it."], command: "", after: [], blocked: true,
+        link: true
+      };
+    }
+    if (env.cliLoggedIn === "no") {
+      return { next: ["Log in to Claude Code first. Run this on this machine:"], command: "claude auth login", after: [], blocked: true };
+    }
     if ((view.sessions || []).some(canBabysit)) {
-      return { next: ["Press ", { b: "Babysit" }, " on a session below to start."], command: false, after: [] };
+      return { next: ["Press ", { b: "Babysit" }, " on a session below to start."], command: "", after: [] };
     }
     if (!headless) {
-      return { next: ["Start a Claude Code session, then press ", { b: "Babysit" }, " on it here."], command: false, after: [] };
+      return { next: ["Start a Claude Code session, then press ", { b: "Babysit" }, " on it here."], command: "", after: [] };
     }
     var auto = !!(view.settings || {}).autoBabysit;
     return {
       next: ["Press ", { b: "New session" }, " above, or start a background session in a project folder:"],
-      command: true,
+      command: START_CMD,
       after: auto ? ["It is babysat as soon as it starts."] : ["A session started that way needs ", { b: "Babysit" }, " on it here."]
     };
   }
@@ -636,11 +668,14 @@
       : "A babysat session comes back on its own. If its app crashes or closes, it carries on in the background, reachable from your other devices.");
 
     var steps = heroSteps(view);
+    show(f(hero, "promise"), !steps.blocked);
     fillParts(f(hero, "next"), steps.next);
-    show(el(hero, "startbox"), steps.command);
-    setText(f(hero, "startcmd"), START_CMD);
+    show(el(hero, "startbox"), !!steps.command);
+    setText(f(hero, "startcmd"), steps.command);
     show(f(hero, "after"), steps.after.length > 0);
     fillParts(f(hero, "after"), steps.after);
+    /* The link to what to do, written in the page itself. */
+    show(el(hero, "link"), !!steps.link);
   }
 
   /* boldWord returns a new <b> element holding the given text, for a
@@ -666,6 +701,22 @@
     var env = view.env || {};
     setTitle($("#awake"), keep.supported === false ? "This system cannot hold the keep-awake request" :
       on && env.lidSleeps ? "The computer does not sleep while it is idle. Closing its lid still puts it to sleep." : "");
+
+    /* The page names its machine, in the header and the tab, so a page
+       for a laptop and one for a server cannot be mixed up. */
+    var machine = machineLabel(env);
+    setText($("#machine"), machine);
+    show($("#machine"), machine !== "");
+    document.title = machine ? machine + " - CC Babysitter" : "CC Babysitter";
+  }
+
+  /* machineLabel is the computer's name and its system, as in
+     "build-box (Linux)", or nothing when the name is not known. */
+  function machineLabel(env) {
+    env = env || {};
+    if (!env.hostname) { return ""; }
+    var system = { darwin: "macOS", linux: "Linux", windows: "Windows" }[env.platform] || env.platform || "";
+    return system ? env.hostname + " (" + system + ")" : env.hostname;
   }
 
   /* versionsLine lists what is installed: the Claude Code CLI always, with
@@ -716,6 +767,21 @@
        stat is left out rather than shown empty. */
     setText(f(node, "model"), stats.model || "");
     show(f(node, "model").parentNode, !!stats.model);
+  }
+
+  /* stuckOnTrust reports whether a babysat session is stuck because Claude
+     Code does not trust its folder. Its card offers Allow rescue first,
+     before Try again: once the folder is trusted, the session comes back
+     by itself. */
+  function stuckOnTrust(w) {
+    return w.state === "stuck" && (w.pauseReason || "").indexOf("Claude Code does not trust this folder") === 0;
+  }
+
+  /* allowRescue reports whether a card offers Allow rescue: its session is
+     stuck on the trust, or its warning says it would be if its app
+     closed. */
+  function allowRescue(w) {
+    return stuckOnTrust(w) || (w.fallbackWarning || "").indexOf("Won't come back if its app closes. Claude Code needs") === 0;
   }
 
   /* stateLines is what a card says about where its session is, in words. */
@@ -789,10 +855,17 @@
 
     fillStats(node, w.stats, w.tree);
     fillWaysOn(node, w, rescued);
+    /* Open in Terminal leaves the copy running where it is, so the card
+       would look unchanged; it says a terminal is attached instead. */
+    show(f(node, "attachednote"), rescued && !!w.attached);
 
     show(node.querySelector('[data-act="unbabysit"]'), !!w.canUnbabysit && w.state !== "stuck");
     show(node.querySelector('[data-act="stop"]'), !!w.canStop && !rescued);
+    show(node.querySelector('[data-act="trust"]'), allowRescue(w));
+    /* Try again stays on every stuck card, as ccbabysitter retry does; on
+       one stuck on the trust, Allow rescue is the main button. */
     show(node.querySelector('[data-act="resume"]'), w.state === "stuck");
+    node.querySelector('[data-act="resume"]').classList.toggle("primary", !stuckOnTrust(w));
     show(node.querySelector('[data-act="forget"]'), !!w.canUnbabysit && w.state === "stuck");
     markBusy(node, w.sessionId);
   }
@@ -1056,7 +1129,7 @@
   function pastCommand(p) { return p.attachCmd || p.resumeCmd || ""; }
 
   function tickTimes() {
-    $$("#past [data-when]").forEach(function (node) { setText(f(node, "when"), fmtAgo(node.dataset.when)); });
+    $$("#past [data-when], #past-scheduled [data-when]").forEach(function (node) { setText(f(node, "when"), fmtAgo(node.dataset.when)); });
     window.setTimeout(tickTimes, 30000);
   }
 
@@ -1119,15 +1192,32 @@
     return seq === latest && open;
   }
 
+  /* LOGIN_FIRST is what New session says while Claude Code is not logged
+     in, before a folder is typed: a session could not start. */
+  var LOGIN_FIRST = "Claude Code is not logged in on this machine, so a session could not start. Run claude auth login here first.";
+
   function openStart() {
     var go = $('[data-act="go"]', $("#dlg-start"));
+    var loggedOut = ((state.view || {}).env || {}).cliLoggedIn === "no";
     state.startSeq++;
     go.classList.remove("busy");
-    go.disabled = false;
-    $("#start-path").disabled = false;
-    showStartStep("path", "");
+    go.disabled = loggedOut;
+    $("#start-path").disabled = loggedOut;
+    showStartStep("path", loggedOut ? LOGIN_FIRST : "");
     openDialog($("#dlg-start"));
-    $("#start-path").focus();
+    if (loggedOut) {
+      $('[data-act="cancel"]', $("#dlg-start")).focus();
+    } else {
+      $("#start-path").focus();
+    }
+  }
+
+  /* clearSearch empties the search, so every list shows again. */
+  function clearSearch() {
+    $("#search").value = "";
+    state.search = "";
+    render();
+    $("#search").focus();
   }
 
   /* showStartStep shows the folder field, with message as the reason it
@@ -1803,6 +1893,9 @@
       if (act === "resume") {
         run(id, act, function () { return send("POST", "/api/sessions/" + id + "/resume-watch", {}); });
       }
+      if (act === "trust") {
+        run(id, act, function () { return send("POST", "/api/trust", { path: w.cwd }); });
+      }
       if (act === "stop") { openStop(id); }
       if (act === "back") { openBack(id); }
       if (act === "open-terminal") {
@@ -1830,20 +1923,23 @@
     }
     onAction($("#sessions"), onSessionAction);
     onAction($("#scheduled"), onSessionAction);
-    onAction($("#past"), function (act, id) {
+    function onPastAction(act, id) {
       var p = pastById(id);
       if (!p) { return; }
       if (act === "copy-cmd") { copyText(pastCommand(p)); }
       if (act === "copy-ssh") { copyText(p.sshAttachCmd || ""); }
-    });
+    }
+    onAction($("#past"), onPastAction);
+    onAction($("#past-scheduled"), onPastAction);
     $('[data-act="copy-start"]', $("#watches-hero")).addEventListener("click", function () {
-      copyText(START_CMD);
+      copyText(f($("#watches-hero"), "startcmd").textContent);
     });
 
     $("#search").addEventListener("input", function (event) {
       state.search = event.target.value.trim().toLowerCase();
       render();
     });
+    $("#clear-search").addEventListener("click", clearSearch);
 
     $("#toggle-activity").addEventListener("click", function () { setActivity($("#activity").hidden); });
     $("#close-activity").addEventListener("click", function () { setActivity(false); });

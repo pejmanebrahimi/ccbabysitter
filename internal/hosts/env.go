@@ -56,6 +56,10 @@ type Env struct {
 	// it closes. A Mac on an external display, a laptop set to do nothing,
 	// and a computer with no lid are all false.
 	LidSleeps bool `json:"lidSleeps"`
+	// Hostname is the computer's own name, up to its first dot, so the
+	// pages of two machines can be told apart. It is empty when the name
+	// could not be read.
+	Hostname string `json:"hostname"`
 }
 
 // LoginState is what the CLI said about being logged in.
@@ -90,6 +94,9 @@ type Probes struct {
 	// LidSleeps reports whether closing this computer's lid now puts it to
 	// sleep. A nil func counts as "no".
 	LidSleeps func() bool
+	// Hostname is the name the system gives this computer, "" when it
+	// could not be read.
+	Hostname string
 }
 
 // cliLocator finds the claude CLI through these probes.
@@ -128,7 +135,7 @@ func DetectWithoutLogin(ctx context.Context, p Probes, runner claude.Runner, sna
 }
 
 func detect(ctx context.Context, p Probes, runner claude.Runner, snapshotHasDesktop, askLogin bool) Env {
-	env := Env{Platform: p.Platform, CLILoggedIn: LoginUnknown}
+	env := Env{Platform: p.Platform, CLILoggedIn: LoginUnknown, Hostname: machineName(p.Hostname)}
 
 	if cli, ok := p.cliLocator().Find(); ok {
 		env.CLIFound, env.CLIPath = true, cli
@@ -187,6 +194,23 @@ func desktopInstall(p Probes) (bool, string) {
 		}
 	}
 	return false, ""
+}
+
+// maxHostname bounds the machine's name as the page shows it.
+const maxHostname = 63
+
+// machineName is a host name as the page shows it: up to its first dot, as
+// a Mac's "Studio-Mac.local" or a server's full domain name, and only its
+// printable ASCII characters, at most maxHostname of them.
+func machineName(host string) string {
+	host, _, _ = strings.Cut(host, ".")
+	var b strings.Builder
+	for _, r := range host {
+		if r > ' ' && r < 0x7f && b.Len() < maxHostname {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // DesktopNow reads the desktop app's part of the environment and nothing
@@ -330,7 +354,9 @@ func RealProbes(desktopProcess func(substr string) bool) Probes {
 		marker = "/Claude.app/Contents/MacOS/Claude"
 	}
 
+	host, _ := os.Hostname()
 	return Probes{
+		Hostname:  host,
 		LidSleeps: lidSleeps,
 		Arch:      runtime.GOARCH,
 		Platform:  platform,

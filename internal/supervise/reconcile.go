@@ -57,6 +57,7 @@ func (s *Supervisor) reconcile(ctx context.Context, snap observe.Snapshot) {
 	// result as a failure of the session rather than of the timing.
 	resumesLeft := 1
 	waiting := 0
+	changed = s.unstickTrusted() || changed
 	// The list is copied because acting on a watch can change the list, and
 	// an action reads the watch back out of the live state by id.
 	for _, w := range append([]state.Watch(nil), s.st.Watches...) {
@@ -174,6 +175,17 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if until, ok := s.backoffUntil[w.SessionID]; ok && s.deps.Now().Before(until) {
 		return false, false
 	}
+	// Just after the computer wakes, Claude Code's list can miss a session
+	// that runs, and Claude Code may still be starting sessions again
+	// itself, so a resume would fork a copy. It waits a moment.
+	if s.justWoke() {
+		return false, false
+	}
+	// Claude Desktop may still be quitting to update, or coming back, and
+	// what it does next is the reason the rescue gives.
+	if s.settlingDesktop(w) {
+		return false, false
+	}
 	// Claude saves a conversation only once something has been said in it,
 	// so a session closed before that has nothing to start again from, and
 	// no amount of trying would change it. Its babysitting ends here rather
@@ -196,13 +208,26 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	if !answered {
 		return false, false
 	}
-	if running, ok := claude.RunningCopy(list, w.SessionID, w.ShortID); ok {
+	if running, ok := claude.RunningCopy(list, w.SessionID); ok {
 		return s.adoptRunningCopy(w, running), false
+	}
+	// The job the watch knew runs another conversation now. Resuming the
+	// watched one beside it forks a copy every time, and it is not the one
+	// the person is using.
+	if job, ok := claude.JobOnAnother(list, w.SessionID, w.ShortID); ok {
+		return s.followJob(w, job), false
 	}
 	if claude.Listed(list, w.SessionID) {
 		return false, false
 	}
-	s.logInfo(label, "resuming: "+agentsSeen(list, w.SessionID, w.ShortID))
+	// While Claude Code's daemon is still stopping the job, or has only just
+	// started and not loaded its jobs yet, a resume starts a copy instead of
+	// waking the job. The daemon is done within seconds, so the watch waits
+	// for a later pass.
+	if s.daemonBusy(w) {
+		return false, false
+	}
+	s.deps.Log.Debug(label, "resuming: "+agentsSeen(list, w.SessionID, w.ShortID))
 	// A shutdown between the check above and the resume below would leave a
 	// resume that was cut short looking exactly like a session that refused
 	// to come back. Nothing is recorded in that case, so a service that is
@@ -212,9 +237,11 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 		return false, false
 	}
 
+	s.decideDesktopCause(w.SessionID)
 	reason := s.exitReason(w.SessionID, w.ShortID, w.LastResume)
 	s.announce(w.SessionID, reason)
 	short, res := s.deps.resumeBackground(ctx, w.SessionID, w.Name, w.Cwd, w.HasSavedOptions)
+	s.noteRemovedCopies(res.RemovedCopies)
 	cur := s.find(w.SessionID)
 	if cur == nil {
 		return false, true
@@ -274,6 +301,15 @@ func (s *Supervisor) fallback(ctx context.Context, w state.Watch) (changed, atte
 	s.backoffUntil[w.SessionID] = now.Add(s.deps.Backoff)
 	s.logAuto(label, reason, res.Message)
 	s.toldCause(reason)
+	// A folder the CLI does not trust stays untrusted until the person
+	// gives the one-time OK, so trying again changes nothing. The session
+	// is stuck at once, and Activity says it runs nowhere now.
+	if trustRefused(res.Message) {
+		cur.Paused = true
+		cur.PauseReason = UntrustedPause + ": " + res.Message
+		s.logAuto(label, UntrustedPause, "it could not be brought back and is not running anywhere. Press Allow rescue on its card, or run "+hosts.TrustFolderCommand(w.Cwd)+", and it comes back by itself.")
+		return true, true
+	}
 	if ShouldPauseForFailures(cur.Failures, now) {
 		cur.Paused = true
 		cur.PauseReason = "three failed resumes in five minutes: " + res.Message
@@ -361,6 +397,113 @@ func (s *Supervisor) adoptRunningCopy(w state.Watch, row claude.AgentEntry) bool
 	}
 	s.notedAlreadyLive(w.SessionID, res)
 	s.logAuto(sessionLabel(w.Name, w.SessionID), "session found running elsewhere", res.Message)
+	return true
+}
+
+// UntrustedPause is the reason a watch is stuck when the claude CLI refused
+// to resume it because it does not trust the session's folder.
+const UntrustedPause = "Claude Code does not trust this folder"
+
+// trustRecheck is how often the trust of the folders of watches stuck for
+// it is read again, to bring them back once the person gave the OK.
+const trustRecheck = 10 * time.Second
+
+// unstickTrusted brings back the watches stuck because the claude CLI did
+// not trust their folder, once it does: the person answered Yes in a
+// terminal, or with Allow rescue. Each is let go of its pause and its
+// failures, so this pass resumes it, and Activity says why.
+func (s *Supervisor) unstickTrusted() bool {
+	// A session stuck on the trust that runs again, as when the person
+	// opened it in its app, is watched there as before, on every pass.
+	changed := false
+	var stuck []*state.Watch
+	for i := range s.st.Watches {
+		w := &s.st.Watches[i]
+		if !w.Paused || !strings.HasPrefix(w.PauseReason, UntrustedPause) {
+			continue
+		}
+		if len(s.snap.All(w.SessionID)) > 0 {
+			w.Paused, w.PauseReason, w.Failures = false, "", nil
+			delete(s.backoffUntil, w.SessionID)
+			s.logAuto(sessionLabel(w.Name, w.SessionID), "its session runs again", "babysitting it where it runs")
+			changed = true
+			continue
+		}
+		stuck = append(stuck, w)
+	}
+	now := s.deps.Now()
+	if len(stuck) == 0 || (!s.trustRecheckAt.IsZero() && now.Sub(s.trustRecheckAt) < trustRecheck) {
+		return changed
+	}
+	s.trustRecheckAt = now
+	trust := s.trustNow()
+	for _, w := range stuck {
+		if trusted, known := trust.Trusted(w.Cwd); !known || !trusted {
+			continue
+		}
+		w.Paused, w.PauseReason, w.Failures = false, "", nil
+		delete(s.backoffUntil, w.SessionID)
+		s.absent[w.SessionID] = AbsentSweepsRequired
+		s.logAuto(sessionLabel(w.Name, w.SessionID), "its folder is trusted now", "bringing it back in the background")
+		changed = true
+	}
+	return changed
+}
+
+// trustRefused reports whether a resume's answer is the CLI refusing to run
+// in a folder it does not trust.
+func trustRefused(msg string) bool {
+	return strings.Contains(strings.ToLower(msg), "workspace not trusted")
+}
+
+// removedCopyMemory is how long a copy a resume forked and removed is
+// remembered, so it is not adopted while it still shows as a session.
+const removedCopyMemory = 10 * time.Minute
+
+// noteRemovedCopies remembers the copies a resume forked and then stopped
+// and removed, by short id.
+func (s *Supervisor) noteRemovedCopies(shorts []string) {
+	for _, short := range shorts {
+		s.removedCopies[strings.ToLower(short)] = s.deps.Now()
+	}
+}
+
+// jobMovedOn is the reason given when a babysat conversation's background
+// job runs another conversation now.
+const jobMovedOn = "the background job runs another conversation now"
+
+// followJob deals with a watch whose background job runs another
+// conversation now, job: babysitting follows the job to that conversation,
+// which is the one the person is using, unless it is babysat already, and
+// then this watch is let go. Either way the watched conversation is not
+// resumed, and Activity says what happened.
+func (s *Supervisor) followJob(w state.Watch, job claude.AgentEntry) bool {
+	cur := s.find(w.SessionID)
+	if cur == nil {
+		return false
+	}
+	label := sessionLabel(w.Name, w.SessionID)
+	short := strings.ToLower(job.ID)
+	if s.find(job.SessionID) != nil {
+		s.removeWatch(w.SessionID)
+		s.logAuto(label, jobMovedOn, "its background job "+short+" now runs another conversation, which is babysat already, so this one is no longer babysat")
+		return true
+	}
+	next := *cur
+	next.SessionID = job.SessionID
+	// The job's own name and folder are the conversation's now; one the
+	// list leaves out keeps what the watch knew.
+	if name := claude.SessionName(job.Name); name != "" {
+		next.Name = name
+	}
+	if job.Cwd != "" {
+		next.Cwd = job.Cwd
+	}
+	next.Failures = nil
+	s.removeWatch(w.SessionID)
+	s.st.Watches = append(s.st.Watches, next)
+	s.seen[job.SessionID] = true
+	s.logAuto(label, jobMovedOn, "its background job "+short+" now runs another conversation, so babysitting follows it there")
 	return true
 }
 
@@ -644,12 +787,20 @@ func (s *Supervisor) autoBabysit(snap observe.Snapshot) bool {
 			delete(s.started, short)
 		}
 	}
+	for short, at := range s.removedCopies {
+		if s.deps.Now().Sub(at) > removedCopyMemory {
+			delete(s.removedCopies, short)
+		}
+	}
 	if s.firstPass && s.st.Settings.AutoBabysit && s.env.Headless {
 		for _, sn := range snap.Sessions {
 			if sn.Host != claude.HostBackground || s.seen[sn.ID] || s.find(sn.ID) != nil {
 				continue
 			}
 			if _, mine := s.started[sn.ShortID]; mine {
+				continue
+			}
+			if _, leftover := s.removedCopies[sn.ShortID]; leftover {
 				continue
 			}
 			s.st.Watches = append(s.st.Watches, newWatch(sn, s.deps.Now()))
@@ -904,6 +1055,22 @@ func (s *Supervisor) exitReason(id, short string, lastResume time.Time) string {
 		}
 	}
 	return s.knownCause(id)
+}
+
+// daemonBusy reports whether the CLI daemon's log says it is, right now,
+// still stopping the job of w's session, under the short id the watch
+// knows or the session's own, or has only just started.
+func (s *Supervisor) daemonBusy(w state.Watch) bool {
+	if s.deps.DaemonLog == "" {
+		return false
+	}
+	now := s.deps.Now()
+	for _, sh := range []string{strings.ToLower(w.ShortID), strings.ToLower(shortOf(w.SessionID))} {
+		if claude.DaemonBusy(s.deps.DaemonLog, sh, now) {
+			return true
+		}
+	}
+	return false
 }
 
 // idleWords says a duration the way a person would: whole hours as hours,

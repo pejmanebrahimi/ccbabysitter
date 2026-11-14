@@ -56,6 +56,11 @@ func (e *ctlEngine) ResumeWatch(id string, v supervise.Via) supervise.Result {
 	return e.act("retry", id, v)
 }
 func (e *ctlEngine) OpenTerminal(string) supervise.Result { return supervise.Result{} }
+func (e *ctlEngine) TrustFolder(dir string, v supervise.Via) supervise.Result {
+	e.calls = append(e.calls, fmt.Sprintf("trust %s %s", dir, v))
+	return supervise.Result{OK: true, Message: "Claude Code trusts " + dir + " now."}
+}
+
 func (e *ctlEngine) Start(dir string, trust bool, v supervise.Via) supervise.Result {
 	e.calls = append(e.calls, fmt.Sprintf("start %s trust=%v %s", dir, trust, v))
 	if dir == fullPath("/srv/new") && !trust {
@@ -212,6 +217,22 @@ func TestStopNeedsYes(t *testing.T) {
 	}
 	if e.calls[0] != "stop "+cID4+" cli" {
 		t.Fatalf("calls = %q", e.calls)
+	}
+}
+
+// trust takes one folder and sends it as a full path, as the page's Allow
+// rescue does.
+func TestTrustCommand(t *testing.T) {
+	env, e, _ := testEnv(t)
+	dir := fullPath("/srv/shop-api")
+	if code, out, _ := runCmd(t, env, "trust", "/srv/shop-api"); code != 0 || !strings.Contains(out, "Claude Code trusts "+dir+" now.") {
+		t.Fatalf("trust = %d, %q", code, out)
+	}
+	if got := strings.Join(e.calls, "|"); got != "trust "+dir+" cli" {
+		t.Fatalf("calls %q", got)
+	}
+	if code, _, errOut := runCmd(t, env, "trust"); code != exitUsage || !strings.Contains(errOut, "trust needs one folder") {
+		t.Fatalf("trust with no folder = %d, %q", code, errOut)
 	}
 }
 
@@ -563,7 +584,7 @@ func TestJSONKeysArePinned(t *testing.T) {
 
 	_, out, _ := runCmd(t, env, "status", "--json")
 	doc := oneJSON(t, out)
-	check("status", doc, "babysat,headless,keepAwake,running,schema,sessions,url,version")
+	check("status", doc, "babysat,headless,keepAwake,machine,running,schema,sessions,system,url,version")
 	check("status keepAwake", child(doc, "keepAwake"), "held,supported")
 
 	_, out, _ = runCmd(t, env, "show", "api", "--json")
@@ -605,6 +626,20 @@ func TestStatusShowsTheKeyedAddress(t *testing.T) {
 	code, out, _ = runCmd(t, env, "status", "--json")
 	if doc := oneJSON(t, out); code != 0 || doc["url"] != keyed {
 		t.Fatalf("status --json = %d %v", code, doc)
+	}
+}
+
+// status names the machine it reports on, as the page does, so the answers
+// of two machines can be told apart.
+func TestStatusNamesTheMachine(t *testing.T) {
+	env, e, _ := testEnv(t)
+	e.view.Env.Hostname, e.view.Env.Platform = "build-box", "linux"
+	if code, out, _ := runCmd(t, env, "status"); code != 0 || !strings.Contains(out, "Machine: build-box (Linux)\n") {
+		t.Fatalf("status = %d\n%s", code, out)
+	}
+	_, out, _ := runCmd(t, env, "status", "--json")
+	if doc := oneJSON(t, out); doc["machine"] != "build-box" || doc["system"] != "Linux" {
+		t.Fatalf("status --json: %v", doc)
 	}
 }
 
@@ -973,6 +1008,24 @@ func TestNotRunningSessionsAreListedAndShown(t *testing.T) {
 	}
 	if code, _, errOut := runCmd(t, env, "activity", "old"); code != 0 {
 		t.Fatalf("activity old = %d %s", code, errOut)
+	}
+}
+
+// Scheduled task runs that are not running are listed last, apart from the
+// conversations that are not running, as on the page.
+func TestListKeepsScheduledRunsOutOfNotRunning(t *testing.T) {
+	env, e, _ := testEnv(t)
+	idE := "eeeeeeee-5555-4555-8555-eeeeeeeeeeee"
+	idF := "ffffffff-6666-4666-8666-ffffffffffff"
+	e.view.NotRunning = []supervise.PastView{
+		{ID: idE, ShortID: "eeeeeeee", Name: "old", Cwd: "/srv/old"},
+		{ID: idF, ShortID: "ffffffff", Name: "daily-report", Cwd: "/srv/old", ScheduledTask: true},
+	}
+	_, out, _ := runCmd(t, env, "list")
+	i := strings.Index(out, "Not running:\n")
+	j := strings.Index(out, "Scheduled task runs, not running:\n")
+	if i < 0 || j < i || !strings.Contains(out[i:j], "eeeeeeee") || strings.Contains(out[i:j], "ffffffff") || !strings.Contains(out[j:], "ffffffff") {
+		t.Fatalf("list:\n%s", out)
 	}
 }
 

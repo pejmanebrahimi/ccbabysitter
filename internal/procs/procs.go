@@ -302,4 +302,18 @@ type Procs interface {
 	CreateTime(pid int) (int64, bool)
 	// Exists reports whether pid is running with the given creation time.
 	Exists(pid int, createMs int64) bool
+	// Attached reports whether a terminal is attached to the background
+	// session short: a `claude attach SHORT` process is running.
+	Attached(short string) bool
+}
+
+// attachArgs reports whether a process's arguments are those of
+// `claude attach SHORT` for short, in any case.
+func attachArgs(args []string, short string) bool {
+	for i := 0; i+1 < len(args); i++ {
+		if args[i] == "attach" && strings.EqualFold(args[i+1], short) {
+			return true
+		}
+	}
+	return false
 }

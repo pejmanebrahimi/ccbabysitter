@@ -26,14 +26,16 @@ const versionAskTimeout = 5 * time.Second
 // versionNote is what the loop remembers about a babysat session's
 // version: the Claude Code version its process ran when last seen, when it
 // was first seen gone since, the version the CLI gave when asked while it
-// was gone, whether it was asked, and whether Activity has said the
-// session is left to Claude Code.
+// was gone, whether it was asked, whether Activity has said the session is
+// left to Claude Code, and how long the computer slept since it went, which
+// the wait for Claude Code does not count.
 type versionNote struct {
 	version   string
 	goneAt    time.Time
 	installed string
 	asked     bool
 	said      bool
+	asleep    time.Duration
 }
 
 // cliVersion matches a version in what claude --version prints.
@@ -76,7 +78,7 @@ func (s *Supervisor) outdatedBy(w state.Watch, installed string) (was, now strin
 		return "", "", false
 	}
 	note := s.versions[w.SessionID]
-	if note.goneAt.IsZero() || s.deps.Now().Sub(note.goneAt) > retireWindow {
+	if note.goneAt.IsZero() || s.deps.Now().Sub(note.goneAt)-note.asleep > retireWindow {
 		return "", "", false
 	}
 	if !olderVersion(note.version, installed) {
@@ -95,8 +97,9 @@ func specificCause(cause string) bool {
 // leftToClaudeCode reports whether w, a babysat session that is gone, is
 // left for now to Claude Code to start again: it ran in the background on
 // an older version than the one installed, and it has been gone for less
-// than upgradeWait. Resuming it then would race Claude Code starting the
-// same session on the new version, and fork a copy. Activity says so once.
+// than upgradeWait of time the computer was awake. Resuming it then would
+// race Claude Code starting the same session on the new version, and fork
+// a copy. Activity says so once.
 func (s *Supervisor) leftToClaudeCode(ctx context.Context, w state.Watch) bool {
 	if s.hostOf(w) != claude.HostBackground || specificCause(s.causes[w.SessionID]) {
 		return false
@@ -106,7 +109,7 @@ func (s *Supervisor) leftToClaudeCode(ctx context.Context, w state.Watch) bool {
 		return false
 	}
 	note := s.versions[w.SessionID]
-	if !s.deps.Now().Before(note.goneAt.Add(upgradeWait)) {
+	if !s.deps.Now().Before(note.goneAt.Add(upgradeWait + note.asleep)) {
 		return false
 	}
 	if !note.said {
@@ -182,7 +185,7 @@ func (s *Supervisor) noteVersions(snap observe.Snapshot) {
 		if len(snap.All(w.SessionID)) > 0 {
 			note = versionNote{version: running[w.SessionID]}
 		} else if note.goneAt.IsZero() {
-			note.goneAt = s.deps.Now()
+			note.goneAt = s.deps.Now().Round(0)
 		}
 		s.versions[w.SessionID] = note
 	}

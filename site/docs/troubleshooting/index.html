@@ -74,6 +74,7 @@
         <li><a href="#desktop-says-background">Claude Desktop says the session is running in the background</a></li>
         <li><a href="#phone-title">The phone shows another name for the session</a></li>
         <li><a href="#found-elsewhere">The session is running in an app again</a></li>
+        <li><a href="#job-moved-on">A background session now runs another conversation</a></li>
         <li><a href="#extra-copies">More than one background copy</a></li>
         <li><a href="#adopted">Babysat on its own on a server</a></li>
         <li><a href="#nothing-to-bring-back">Nothing to bring back</a></li>
@@ -83,6 +84,7 @@
         <li><a href="#page-not-running">The page lost CC Babysitter</a></li>
         <li><a href="#state">Saved state could not be read or saved</a></li>
         <li><a href="#keep-awake">The computer may sleep</a></li>
+        <li><a href="#macos-notices">macOS names ccbabysitter in a notice</a></li>
         <li><a href="#file-watcher">Sessions are noticed more slowly</a></li>
         <li><a href="#page-stopped">The page stopped updating</a></li>
       </ul>
@@ -101,7 +103,7 @@
       <li><code>Background can't start in the home folder.</code></li>
     </ul>
     <p>CC Babysitter brings a session back in the background with the <code>claude</code> CLI, which runs on its own only in a folder it trusts. Inside a git repository the CLI takes that trust only from the repository's own folder. Claude Desktop also accepts a trusted folder above it, so a session that works in Desktop can still be refused in the background. A git worktree takes the trust from any folder above it. The CLI never starts a background session in your home folder.</p>
-    <p>For the trust, run the command the card shows in a terminal and answer Yes before you exit, and the warning goes away within seconds. For the home folder, start the session in a project folder instead.</p>
+    <p>For the trust, press <strong>Allow rescue</strong> on the card, or run <code>ccbabysitter trust</code> with the folder. On a computer with a display, it opens a terminal in the folder with Claude Code running: answer Yes, then type <code>/exit</code>. On a server, CC Babysitter answers Yes for you. You can also run the command the card shows in a terminal yourself. The warning goes away within seconds. For the home folder, start the session in a project folder instead.</p>
 
     <h2 id="remote-control-off">Remote Control is off</h2>
     <ul class="msgs">
@@ -155,7 +157,7 @@
       <li><code>the process running it exited</code></li>
     </ul>
     <p>When a babysat session's app goes away, CC Babysitter starts the same session again in the background, under the same id. When that can be told, the Activity line says why the session went down. For example, Claude Desktop closed or updated, the computer restarted, or Claude Code ended it after it sat idle. When nothing tells, the line says only that its process exited.</p>
-    <p>After Claude Code updates itself, it moves each background session from a process on the old version to one on the new version. The session is gone for a moment. CC Babysitter leaves that to Claude Code for a minute, and says so in Activity. A session still gone after that is brought back as usual.</p>
+    <p>After Claude Code updates itself, it moves each background session from a process on the old version to one on the new version. The session is gone for a moment. CC Babysitter leaves that to Claude Code for a minute, and says so in Activity. The minute counts only while the computer is awake. A session still gone after that is brought back as usual.</p>
     <p>Nothing needs doing. Reach the session from your phone. To go back to its app, use the card's <strong>Back to Desktop</strong>, <strong>Back to VS Code</strong> or <strong>End background copy</strong>. Some lines give one of these reasons but do not say the session was resumed. Those mean it could not be brought back: see the next entry.</p>
 
     <h2 id="could-not-bring-back">A session could not be brought back</h2>
@@ -169,8 +171,14 @@
       <li><code>Claude reported a copy with the same short id ...</code></li>
       <li><code>resume forked a copy</code></li>
       <li><code>stopped and removed copy ...</code></li>
+      <li><code>Claude Code does not trust this folder</code></li>
+      <li><code>it could not be brought back and is not running anywhere. Press Allow rescue on its card, or run ...</code></li>
+      <li><code>its folder is trusted now</code></li>
+      <li><code>bringing it back in the background</code></li>
+      <li><code>its session runs again</code></li>
+      <li><code>babysitting it where it runs</code></li>
     </ul>
-    <p>Starting the session again in the background failed. The line says why. Where it can, it ends with "Run by hand:" and the command to start the session yourself. For the usual reasons, see the entries on <a href="#wont-come-back">a folder that is not trusted</a>, <a href="#not-logged-in">logging in</a> and <a href="#no-cli">the CLI</a>.</p>
+    <p>Starting the session again in the background failed, and the line says why. A folder Claude Code does not trust stays that way until you give the OK, so CC Babysitter stops at the first refusal. Until then the session is stuck and runs nowhere. Press <strong>Allow rescue</strong> on its card, or run <code>ccbabysitter trust</code> with the folder, and the session comes back by itself within seconds. If you open the session in its app instead, it is babysat there again as before. Where it can, it ends with "Run by hand:" and the command to start the session yourself. For the usual reasons, see the entries on <a href="#wont-come-back">a folder that is not trusted</a>, <a href="#not-logged-in">logging in</a> and <a href="#no-cli">the CLI</a>.</p>
     <p>Claude Code sometimes starts a resume as a new copy of the session instead. CC Babysitter stops and removes that copy with <code>claude stop</code> and <code>claude rm</code>, and tries once more without flags. When it cannot, the line gives the commands to run by hand. After three failures in five minutes the session is <a href="#stuck">stuck</a>.</p>
 
     <h2 id="desktop-says-background">Claude Desktop says the session is running in the background</h2>
@@ -192,6 +200,13 @@
     </ul>
     <p>CC Babysitter was about to bring a session back and found it already running, in an app or as a background copy. It never starts a second copy of a session, so it went back to watching it where it runs.</p>
     <p>"Session open in" is the other way round. The background copy is gone, and the session is open in an app again, after <strong>Back to Desktop</strong> or because the app restored it. It is babysat there. Nothing needs doing in either case.</p>
+
+    <h2 id="job-moved-on">A background session now runs another conversation</h2>
+    <ul class="msgs">
+      <li><code>the background job runs another conversation now</code></li>
+      <li><code>its background job ...</code></li>
+    </ul>
+    <p>A background session goes on under the same short id when you start a new conversation in it, for example with <code>/clear</code>. CC Babysitter then babysits the conversation the session runs now, the one you are using, and lets the earlier one go. When the new conversation is babysat already, the earlier one is simply let go. Nothing is resumed, so no copy is forked. To babysit the earlier conversation again, resume it and press <strong>Babysit</strong>.</p>
 
     <h2 id="extra-copies">More than one background copy</h2>
     <ul class="msgs">
@@ -224,7 +239,7 @@
     <ul class="msgs">
       <li><code>Claude Code is not logged in on this machine ...</code></li>
     </ul>
-    <p>A Claude Code CLI that is not logged in reaches neither the model nor Remote Control, so a session started now could do nothing. The page shows this note, and <strong>New session</strong> and <code>ccbabysitter start</code> start nothing. Run <code>claude</code> once on this machine and log in, then try again.</p>
+    <p>A Claude Code CLI that is not logged in reaches neither the model nor Remote Control, so a session started now could do nothing. The page shows this note, and <strong>New session</strong> and <code>ccbabysitter start</code> start nothing. Run <code>claude auth login</code> on this machine, then try again.</p>
 
     <h2 id="no-cli">The Claude Code CLI cannot be used</h2>
     <ul class="msgs">
@@ -232,7 +247,7 @@
       <li><code>agents --json did not answer ...</code></li>
     </ul>
     <p>CC Babysitter brings sessions back with the <code>claude</code> CLI. Install Claude Code, or make sure <code>claude</code> runs in a terminal of the same account.</p>
-    <p>Before it brings a session back, CC Babysitter asks <code>claude agents</code> whether the session is running, so it never starts a second copy. An answer it cannot use counts as none: it starts nothing, and asks again on its next look.</p>
+    <p>Before it brings a session back, CC Babysitter asks <code>claude agents</code> whether the session is running, so it never starts a second copy. An answer it cannot use counts as none: it starts nothing, and asks again on its next look. Activity says so once, however long the CLI goes without answering, and says <code>agents --json answers again.</code> when it answers.</p>
 
     <h2 id="page-key">The page needs its key</h2>
     <ul class="msgs">
@@ -271,6 +286,14 @@
       <li><code>the system refused the keep-awake request</code></li>
     </ul>
     <p>CC Babysitter asks the system to stay awake while a session is babysat. The system said no. Babysat sessions are still brought back when their app closes. But the computer may sleep, and nobody can reach a sleeping computer. CC Babysitter asks again each time it looks, and Activity says it is keeping the computer awake once the system agrees.</p>
+
+    <h2 id="macos-notices">macOS names ccbabysitter in a notice</h2>
+    <ul class="msgs">
+      <li><code>"ccbabysitter" wants access to control ...</code></li>
+      <li><code>"ccbabysitter" was prevented from modifying apps on your Mac</code></li>
+    </ul>
+    <p>These come from macOS, not from CC Babysitter, and they are about what a session did. macOS charges what a program does to the app at the top of the chain that started it. When CC Babysitter brings a session back, it starts Claude Code's background service. So that service counts as ccbabysitter, and so do the sessions it runs and every program they start. A session that runs a tool driving another app asks for Automation. A program a session started that tries to update an app, such as a browser updating itself, is stopped by App Management.</p>
+    <p>Allowing a notice gives the permission to ccbabysitter, and through it to every session it brought back. Leaving it off is safe: only that session's tool fails, and CC Babysitter itself works as before. You can change your answer later in System Settings, under Privacy &amp; Security.</p>
 
     <h2 id="file-watcher">Sessions are noticed more slowly</h2>
     <ul class="msgs">

@@ -18,6 +18,9 @@ type PastSession struct {
 	Name         string
 	Cwd          string
 	LastActivity time.Time
+	// ScheduledTask reports whether the conversation is a run of a Claude
+	// Desktop scheduled task, by its first prompt.
+	ScheduledTask bool
 }
 
 // pastEdgeBytes is how much of each end of a transcript is read for its
@@ -34,7 +37,8 @@ type pastRecord struct {
 
 // ListPast finds the transcripts directly inside the project folders under
 // projectsDir that were written to at or after since and hold a message,
-// leaves out the ids in skip, and returns at most max of them, newest first. A session whose
+// leaves out the ids in skip, and returns at most max conversations and
+// max scheduled task runs, newest first. A session whose
 // transcript sits in two project folders is listed once, by its newest.
 func ListPast(projectsDir string, since time.Time, max int, skip map[string]bool) []PastSession {
 	type found struct {
@@ -84,9 +88,12 @@ func ListPast(projectsDir string, since time.Time, max int, skip map[string]bool
 		}
 		return list[i].id < list[j].id
 	})
+	// Conversations and scheduled task runs are counted apart, so runs
+	// never take a conversation's place on the list.
 	out := make([]PastSession, 0, max)
+	talks, runs := 0, 0
 	for _, f := range list {
-		if len(out) == max {
+		if talks == max && runs == max {
 			break
 		}
 		// A transcript with no message in it, such as an empty file, has
@@ -95,7 +102,19 @@ func ListPast(projectsDir string, since time.Time, max int, skip map[string]bool
 		if !said {
 			continue
 		}
-		out = append(out, PastSession{ID: f.id, Name: name, Cwd: cwd, LastActivity: f.mod})
+		run, _ := ScheduledRun(f.path)
+		if run {
+			if runs == max {
+				continue
+			}
+			runs++
+		} else {
+			if talks == max {
+				continue
+			}
+			talks++
+		}
+		out = append(out, PastSession{ID: f.id, Name: name, Cwd: cwd, LastActivity: f.mod, ScheduledTask: run})
 	}
 	return out
 }

@@ -1,6 +1,9 @@
 package claude
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 const agentsOut = `[
   {"pid": 120, "cwd": "C:\\a", "kind": "interactive", "startedAt": 1, "sessionId": "11111111-2222-4333-8444-555555555501", "name": "demo-a1"},
@@ -67,26 +70,47 @@ func TestRunningCopy(t *testing.T) {
 		{"another session", AgentEntry{PID: 9, ID: "4d4d4d4d", SessionID: "11111111-2222-4333-8444-555555555501", Kind: "background"}, false},
 	}
 	for _, c := range cases {
-		row, ok := RunningCopy([]AgentEntry{c.row}, id, "")
+		row, ok := RunningCopy([]AgentEntry{c.row}, id)
 		if ok != c.want || (ok && row != c.row) {
 			t.Errorf("%s: got %+v %v, want %v", c.name, row, ok, c.want)
 		}
 	}
-	// A running copy is also known by the short id the watch already
-	// holds, whatever session id it reports, in either case.
+	// A job that runs another session is that session's, even under the
+	// short id the watch knew: a background job keeps its id when the
+	// conversation in it changes.
 	other := AgentEntry{PID: 9, ID: "4D4D4D4D", SessionID: "11111111-2222-4333-8444-555555555501", Kind: "background", Status: "idle"}
-	if _, ok := RunningCopy([]AgentEntry{other}, id, "4d4d4d4d"); !ok {
-		t.Error("a running copy with the watch's short id is the watch's copy")
-	}
-	if _, ok := RunningCopy([]AgentEntry{other}, id, "5e5e5e5e"); ok {
-		t.Error("a copy with another short id and another session is not")
-	}
-	stopped := other
-	stopped.Status = "stopped"
-	if _, ok := RunningCopy([]AgentEntry{stopped}, id, "4d4d4d4d"); ok {
-		t.Error("a stopped copy is not running")
+	if _, ok := RunningCopy([]AgentEntry{other}, id); ok {
+		t.Error("a job that runs another session is not the watch's copy")
 	}
 	if Listed(nil, id) || !Listed([]AgentEntry{{SessionID: id, Kind: "interactive"}}, id) {
 		t.Error("Listed reports whether any row names the session")
+	}
+}
+
+// JobOnAnother finds the job a watch knew, by its short id in any case,
+// when it runs another conversation, and not when it runs the watch's own,
+// however the session id is written.
+func TestJobOnAnother(t *testing.T) {
+	id := "22222222-2222-4333-8444-5555555555bb"
+	other := "33333333-2222-4333-8444-5555555555cc"
+	row := AgentEntry{PID: 9, ID: "4D4D4D4D", SessionID: other, Kind: "background", Status: "idle"}
+	if got, ok := JobOnAnother([]AgentEntry{row}, id, "4d4d4d4d"); !ok || got != row {
+		t.Fatal("the job runs another conversation")
+	}
+	same := row
+	same.SessionID = strings.ToUpper(id)
+	if _, ok := JobOnAnother([]AgentEntry{same}, id, "4d4d4d4d"); ok {
+		t.Fatal("the job runs the watch's own conversation, written in upper case")
+	}
+	if _, ok := JobOnAnother([]AgentEntry{row}, id, ""); ok {
+		t.Fatal("no short id finds nothing")
+	}
+	// RunningCopy and Listed read a session id in any case too, so they
+	// and JobOnAnother never disagree about which session a row runs.
+	if _, ok := RunningCopy([]AgentEntry{same}, id); !ok {
+		t.Fatal("RunningCopy misses the watch's own session written in upper case")
+	}
+	if !Listed([]AgentEntry{same}, id) {
+		t.Fatal("Listed misses the session written in upper case")
 	}
 }

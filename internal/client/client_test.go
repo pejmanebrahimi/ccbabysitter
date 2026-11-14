@@ -46,6 +46,10 @@ func (e *engine) OpenTerminal(string) supervise.Result { return supervise.Result
 func (e *engine) Start(dir string, trust bool, v supervise.Via) supervise.Result {
 	return supervise.Result{}
 }
+func (e *engine) TrustFolder(dir string, v supervise.Via) supervise.Result {
+	e.calls = append(e.calls, "trust "+dir+" "+string(v))
+	return supervise.Result{OK: true, Message: "Claude Code trusts " + dir + " now."}
+}
 func (e *engine) SetSettings(s state.Settings, v supervise.Via) supervise.Result {
 	e.view.Settings = s
 	return supervise.Result{OK: true}

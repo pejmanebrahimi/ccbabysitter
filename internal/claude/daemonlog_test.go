@@ -72,3 +72,57 @@ func TestRetiredReadsTheEndOfALargeLog(t *testing.T) {
 		t.Fatalf("the last line of a %d-byte log: %v %v", len(filler)+len(line), idle, ok)
 	}
 }
+
+// The daemon is busy with a job while it is retiring it and has not yet
+// written that the job settled, and with every job for a moment after it
+// starts, before it has loaded them: a resume in either moment starts a
+// copy instead of waking the job. Old lines never count, so a log that
+// stops mid-retire cannot hold a resume back for long.
+func TestDaemonBusy(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "daemon.log")
+	at := func(s string) time.Time {
+		v, err := time.Parse(time.RFC3339Nano, s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	if DaemonBusy(path, "304152c6", at("2026-10-16T11:34:31.400Z")) {
+		t.Fatal("no log: not busy")
+	}
+	write := func(log string) {
+		if err := os.WriteFile(path, []byte(log), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	retire := "[2026-10-16T11:34:30.874Z] [bg] bg retire 304152c6: settled, idle 8h\n"
+	write(retire)
+	for _, c := range []struct {
+		short, now string
+		want       bool
+	}{
+		{"304152c6", "2026-10-16T11:34:31.400Z", true},
+		{"aaaaaaaa", "2026-10-16T11:34:31.400Z", false},
+		{"304152c6", "2026-10-16T11:35:30.000Z", false},
+		{"not-hex!", "2026-10-16T11:34:31.400Z", false},
+	} {
+		if got := DaemonBusy(path, c.short, at(c.now)); got != c.want {
+			t.Errorf("mid-retire, %s at %s: %v, want %v", c.short, c.now, got, c.want)
+		}
+	}
+	write(retire + "[2026-10-16T11:34:31.527Z] [bg] bg settled 304152c6 (done)\n")
+	if DaemonBusy(path, "304152c6", at("2026-10-16T11:34:31.600Z")) {
+		t.Fatal("settled: not busy")
+	}
+	// The daemon draws its start line with box characters, written here
+	// as escapes to keep this file plain ASCII.
+	start := "[2026-10-06T21:17:05.472Z] [supervisor] \u2500\u2500\u2500 daemon start \u2500\u2500\u2500 version=2.1.292 pid=60148 origin=transient\n" +
+		"[2026-10-06T21:17:06.906Z] [supervisor] workers=0\n"
+	write(start)
+	if !DaemonBusy(path, "304152c6", at("2026-10-06T21:17:07.100Z")) {
+		t.Fatal("just started: busy")
+	}
+	if DaemonBusy(path, "304152c6", at("2026-10-06T21:17:20.000Z")) {
+		t.Fatal("started a while ago: not busy")
+	}
+}

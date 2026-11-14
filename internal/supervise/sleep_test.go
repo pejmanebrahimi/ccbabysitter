@@ -106,6 +106,46 @@ func TestShortWakesArePartOfTheSleep(t *testing.T) {
 	}
 }
 
+// A Mac asleep for the night wakes in the dark now and then, for minutes
+// at a time. The power log says such a wake is not the end of the sleep,
+// so nothing is said then, and one line covers the whole night once the
+// computer is really awake, even with the lid seen closed during a wake.
+func TestMaintenanceWakesGiveOneLine(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-000000000022"
+	start := time.Date(2026, 10, 8, 3, 0, 0, 0, time.UTC)
+	morning := start.Add(3 * time.Hour)
+	var mu sync.Mutex
+	lid := false
+	f, s, clock := sleepFixtureWith(t, func(_ context.Context, _, to time.Time) (string, time.Time, bool) {
+		if to.Before(morning) {
+			return "", time.Time{}, true
+		}
+		return "asked", start, true
+	}, func() bool { mu.Lock(); defer mu.Unlock(); return lid }, a)
+	awake(s, clock, 1, a)
+	for i := 0; i < 3; i++ {
+		*clock = clock.Add(time.Hour)
+		mu.Lock()
+		lid = i == 1
+		mu.Unlock()
+		awake(s, clock, 1, a)
+		mu.Lock()
+		lid = false
+		mu.Unlock()
+		awake(s, clock, 15, a)
+		if i < 2 {
+			time.Sleep(100 * time.Millisecond)
+			if lines := sleepLines(t, f, 0); len(lines) != 0 {
+				t.Fatalf("named during a maintenance wake: %v", lines)
+			}
+		}
+	}
+	lines := sleepLines(t, f, 1)
+	if len(lines) != 1 || !strings.HasPrefix(lines[0], "The computer was put to sleep. Babysat sessions could not be reached from 03:00 to 06:0") {
+		t.Fatalf("want one line for the night, got %v", lines)
+	}
+}
+
 // With nothing babysat, the computer is free to sleep, and nothing is said.
 func TestASleepWithNothingBabysatIsNotNamed(t *testing.T) {
 	f, s, clock := sleepFixture(t, "lid")

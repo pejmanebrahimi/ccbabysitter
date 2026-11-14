@@ -117,6 +117,11 @@ type Deps struct {
 	// to it. The CLI records the trust itself. It may be nil where there is
 	// no way to answer it.
 	AcceptTrust func(ctx context.Context, dir string) error
+	// OpenTrustTerminal opens the system's own terminal in dir with the
+	// claude CLI running, for the person to answer its question whether to
+	// trust the folder, as hosts.TerminalLauncher.OpenTrust does, and
+	// returns the name of what it opened. Nil where none can be opened.
+	OpenTrustTerminal func(dir string) (string, error)
 
 	// URL is the address this program is serving its page on, passed
 	// straight through to the view for display. The layer that owns the
@@ -142,6 +147,12 @@ type Deps struct {
 	// and getting it are seconds apart, and a card that already shows it on
 	// makes a message that says otherwise look like a bug in this program.
 	RCSettleTimeout time.Duration
+	// DesktopSettle is how long a session that went down in Claude Desktop
+	// is left before it is brought back, unless Desktop is already known to
+	// have restarted for an update. Desktop ends its sessions a moment
+	// before it quits to update and runs again a few seconds later, so an
+	// earlier look can find it still running the old version.
+	DesktopSettle time.Duration
 
 	// readStats reads one session's running token counts out of its
 	// transcript, and forgetStats drops what was remembered about a session
@@ -212,6 +223,10 @@ type Result struct {
 	// claude CLI does not trust its folder yet, and the person has not said
 	// to trust it. Asking again with trust set answers the CLI's question.
 	NeedsTrust bool `json:"needsTrust,omitempty"`
+	// RemovedCopies are the short ids of the copies a resume forked and
+	// then stopped and removed. They are this program's own leftovers, not
+	// sessions someone started, so nothing adopts them. Never sent out.
+	RemovedCopies []string `json:"-"`
 }
 
 // defaults fills in every duration and the clock that was left at its zero
@@ -228,6 +243,9 @@ func (d *Deps) defaults() {
 	}
 	if d.RCSettleTimeout == 0 {
 		d.RCSettleTimeout = 10 * time.Second
+	}
+	if d.DesktopSettle == 0 {
+		d.DesktopSettle = 10 * time.Second
 	}
 	if d.Now == nil {
 		d.Now = time.Now

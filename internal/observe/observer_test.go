@@ -94,15 +94,17 @@ func TestAgentsIsUnansweredWhenCLIDoesNotAnswer(t *testing.T) {
 }
 
 // The authority check runs before every resume and on a timer. A CLI that
-// is slow to start, or missing, would otherwise write the same line into
-// the activity feed over and over and bury everything worth reading; the
-// first one still goes through, since that is the one that says something
-// is wrong.
-func TestSilentCLIIsReportedAtMostOncePerMinute(t *testing.T) {
+// stops answering is said once, however long it stays silent, and once
+// more when it answers again; a new silence after that is said again.
+func TestSilentCLIIsSaidOnceAndAgainWhenItAnswers(t *testing.T) {
 	files := [][]byte{}
 	p := procs.NewFake()
+	silent := true
 	r := claude.NewFakeRunner(func([]string) (string, error) {
-		return "error: could not start background service", errors.New("exit 1")
+		if silent {
+			return "error: could not start background service", errors.New("exit 1")
+		}
+		return "[]", nil
 	})
 	log, err := state.NewLog(t.TempDir())
 	if err != nil {
@@ -114,23 +116,34 @@ func TestSilentCLIIsReportedAtMostOncePerMinute(t *testing.T) {
 	o.now = func() time.Time { return clock }
 
 	ctx := context.Background()
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 20; i++ {
 		if _, ok := o.Agents(ctx); ok {
 			t.Fatal("a silent CLI never answers")
 		}
-		clock = clock.Add(10 * time.Second)
+		clock = clock.Add(2 * time.Minute)
 	}
 	if n := countSilenceLines(log); n != 1 {
-		t.Fatalf("inside one minute the line is written once, got %d", n)
+		t.Fatalf("a silence is said once, got %d", n)
 	}
-
-	// Past the minute it is worth saying again.
-	clock = clock.Add(time.Minute)
-	if _, ok := o.Agents(ctx); ok {
-		t.Fatal("still silent")
+	answers := func() int {
+		n := 0
+		for _, e := range log.Recent(100, "") {
+			if e.Message == agentsAnswerAgain {
+				n++
+			}
+		}
+		return n
 	}
+	silent = false
+	o.Agents(ctx)
+	o.Agents(ctx)
+	if n := answers(); n != 1 {
+		t.Fatalf("answering again is said once, got %d", n)
+	}
+	silent = true
+	o.Agents(ctx)
 	if n := countSilenceLines(log); n != 2 {
-		t.Fatalf("after a minute the line is written again, got %d", n)
+		t.Fatalf("a new silence is said again, got %d", n)
 	}
 }
 
@@ -201,7 +214,7 @@ func TestSilentCLIGivesItsReason(t *testing.T) {
 		for _, e := range log.Recent(10, "") {
 			if strings.Contains(e.Message, "did not answer") {
 				written = true
-				if !strings.HasSuffix(e.Message, "did not answer: exit status 2") {
+				if !strings.Contains(e.Message, "did not answer: exit status 2. ") {
 					t.Fatalf("output %q: the reason is missing: %q", out, e.Message)
 				}
 			}

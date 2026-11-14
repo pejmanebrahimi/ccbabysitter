@@ -319,14 +319,15 @@ func TestSessionsIncludeNotRunning(t *testing.T) {
 	at := time.Date(2026, 10, 9, 13, 0, 0, 0, time.UTC)
 	v.NotRunning = []supervise.PastView{
 		{ID: idE, ShortID: "eeeeeeee", Name: "old", Cwd: "/srv/old", LastActivity: at,
-			ResumeCmd: "cd /srv/old && claude --resume " + idE, AttachCmd: "claude attach eeeeeeee"},
+			ResumeCmd: "cd /srv/old && claude --resume " + idE, AttachCmd: "claude attach eeeeeeee", ScheduledTask: true},
 		{ID: idC, ShortID: "cccccccc", Name: "nightly"},
 	}
 	all := Sessions(v)
 	last := all[len(all)-1]
 	if last.ID != idE || !last.NotRunning || last.Running || last.Babysat || last.App != "" ||
 		last.Folder != "/srv/old" || last.LastActivity != "2026-10-09T13:00:00Z" ||
-		last.ResumeCmd != "cd /srv/old && claude --resume "+idE || last.AttachCmd != "claude attach eeeeeeee" || last.Apps == nil {
+		last.ResumeCmd != "cd /srv/old && claude --resume "+idE || last.AttachCmd != "claude attach eeeeeeee" || last.Apps == nil ||
+		!last.ScheduledTask {
 		t.Fatalf("last %+v", last)
 	}
 	n := 0

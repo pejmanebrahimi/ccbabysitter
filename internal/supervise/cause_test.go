@@ -83,6 +83,9 @@ func desktopFixture(t *testing.T, ids ...string) (*fixture, *Supervisor, *fakeAp
 	}
 	apps := &fakeApps{now: AppsNow{DesktopKnown: true, DesktopRunning: true, DesktopVersion: "2.1.0"}}
 	f.d.Apps = apps.get
+	// These tests run on the real clock, so Desktop is given a moment to
+	// come back rather than the usual seconds.
+	f.d.DesktopSettle = 200 * time.Millisecond
 	var files [][]byte
 	for i, id := range ids {
 		f.writeTranscript(t, "/home/dev/ws", id)
@@ -216,6 +219,56 @@ func inDesktop(id string) claude.Session { return claude.Session{ID: id, Host: c
 
 func inBackground(id string) claude.Session {
 	return claude.Session{ID: id, Host: claude.HostBackground}
+}
+
+// Claude Desktop ends its sessions a moment before it quits to update, and
+// can be running the new version again a few seconds later. Sessions that
+// went down together are brought back once it has had time to do either,
+// all with the reason the last look gives, under one line.
+func TestSessionsDesktopEndsToUpdateShareOneReason(t *testing.T) {
+	a := "aaaaaaaa-0000-4000-8000-000000000009"
+	b := "bbbbbbbb-0000-4000-8000-000000000009"
+	c := "cccccccc-0000-4000-8000-000000000009"
+	f, s, apps, clock := handDesktop(t, a, b, c)
+	pass(s, clock, inDesktop(a), inDesktop(b), inDesktop(c))
+	// step runs a pass d later, with every session brought back so far
+	// running in the background.
+	step := func(d time.Duration) {
+		*clock = clock.Add(d)
+		var running []claude.Session
+		for _, id := range []string{a, b, c} {
+			if countCalls(f, "--bg --resume "+id) > 0 {
+				running = append(running, inBackground(id))
+			}
+		}
+		s.reconcileForTest(observe.Snapshot{At: *clock, Sessions: running})
+	}
+	// The sessions end while the old version still runs, then it quits,
+	// then the new version runs.
+	step(time.Second)
+	step(time.Second)
+	apps.set(AppsNow{DesktopKnown: true, DesktopVersion: "2.2.0"})
+	step(time.Second)
+	apps.set(AppsNow{DesktopKnown: true, DesktopRunning: true, DesktopVersion: "2.2.0"})
+	for i := 0; i < 12; i++ {
+		step(time.Second)
+	}
+	reason := "Claude Desktop restarted for an update from 2.1.0 to 2.2.0"
+	rescues, groups := 0, 0
+	for _, e := range activity(f) {
+		if e.Automatic && strings.HasPrefix(e.Message, "resumed as background") {
+			if e.Reason != reason {
+				t.Errorf("rescue of %s says %q", e.Session, e.Reason)
+			}
+			rescues++
+		}
+		if e.Message == reason+": 3 babysat sessions went down." {
+			groups++
+		}
+	}
+	if rescues != 3 || groups != 1 {
+		t.Fatalf("want 3 rescues under one line, got %d and %d: %v", rescues, groups, activity(f))
+	}
 }
 
 // Claude Desktop that closes and opens its own sessions again before any is

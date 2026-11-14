@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"regexp"
@@ -1472,7 +1473,7 @@ func TestHandedBackRowsAreBadgedAndCounted(t *testing.T) {
 			t.Errorf("app.js does not contain %s", want)
 		}
 	}
-	if strings.Contains(app, "sect-past") {
+	if strings.Contains(app, `"#sect-past"`) {
 		t.Error("the page must never open or close the Not running section itself")
 	}
 	css := readUI(t, "ui/app.css")
@@ -1517,6 +1518,7 @@ func TestTheEmptyBabysatHero(t *testing.T) {
 		`<code class="mono" data-f="startcmd"></code>`,
 		`<button class="b small" data-act="copy-start">Copy</button>`,
 		`<p class="next" data-f="after" hidden></p>`,
+		`<a class="next link" data-el="link" href="https://ccbabysitter.dev/docs/troubleshooting/#no-cli" target="_blank" rel="noopener noreferrer" hidden>What to do<span class="ext"></span></a>`,
 	} {
 		if !strings.Contains(hero, want) {
 			t.Errorf("the hero does not contain %s", want)
@@ -1547,7 +1549,10 @@ func TestTheEmptyBabysatHero(t *testing.T) {
 		`"A babysat session stays on your remote list. If it stops or the server reboots, it comes back in the background with Remote Control on."`,
 		`var START_CMD = "claude --bg --remote-control";`,
 		`show(node.querySelector('[data-act="babysit"]'), canBabysit(s));`,
-		`copyText(START_CMD);`,
+		// The Copy button copies the command the hero shows.
+		`copyText(f($("#watches-hero"), "startcmd").textContent);`,
+		// A state that blocks everything is the only thing shown.
+		`show(f(hero, "promise"), !steps.blocked);`,
 	} {
 		if !strings.Contains(app, want) {
 			t.Errorf("app.js does not contain %s", want)
@@ -1556,23 +1561,31 @@ func TestTheEmptyBabysatHero(t *testing.T) {
 
 	// The next step follows what is running and, on a server, whether new
 	// background sessions are babysat on their own. A session that belongs
-	// to another program has no Babysit button, so it does not count.
-	script := "(function () {\n" + jsFunction(t, app, "canBabysit") + jsFunction(t, app, "heroSteps") +
-		`function say(v) { var s = heroSteps(v); console.log(JSON.stringify([s.next, s.command, s.after])); }` + "\n" +
+	// to another program has no Babysit button, so it does not count. A
+	// CLI that is missing or not logged in comes first: nothing else can
+	// work until it is fixed.
+	script := "(function () {\n" + `var START_CMD = "claude --bg --remote-control";` + "\n" + jsFunction(t, app, "canBabysit") + jsFunction(t, app, "heroSteps") +
+		`function say(v) { var s = heroSteps(v); console.log(JSON.stringify([s.next, s.command, s.after, !!s.blocked, s.link || null])); }` + "\n" +
 		`say({env: {}, sessions: [{actionable: true}]});` + "\n" +
 		`say({env: {headless: true}, sessions: [{actionable: false}, {actionable: true}], settings: {autoBabysit: true}});` + "\n" +
 		`say({env: {}, sessions: [{actionable: false}]});` + "\n" +
 		`say({env: {}});` + "\n" +
 		`say({env: {headless: true}, sessions: [], settings: {autoBabysit: true}});` + "\n" +
 		`say({env: {headless: true}, sessions: [{actionable: false}], settings: {autoBabysit: false}});` + "\n" +
+		`say({env: {cliFound: false, headless: true}, sessions: [{actionable: true}]});` + "\n" +
+		`say({env: {cliFound: true, cliLoggedIn: "no", headless: true}, sessions: [{actionable: true}]});` + "\n" +
+		`say({env: {cliFound: true, cliLoggedIn: "unknown"}});` + "\n" +
 		"})();\n"
 	want := []string{
-		`[["Press ",{"b":"Babysit"}," on a session below to start."],false,[]]`,
-		`[["Press ",{"b":"Babysit"}," on a session below to start."],false,[]]`,
-		`[["Start a Claude Code session, then press ",{"b":"Babysit"}," on it here."],false,[]]`,
-		`[["Start a Claude Code session, then press ",{"b":"Babysit"}," on it here."],false,[]]`,
-		`[["Press ",{"b":"New session"}," above, or start a background session in a project folder:"],true,["It is babysat as soon as it starts."]]`,
-		`[["Press ",{"b":"New session"}," above, or start a background session in a project folder:"],true,["A session started that way needs ",{"b":"Babysit"}," on it here."]]`,
+		`[["Press ",{"b":"Babysit"}," on a session below to start."],"",[],false,null]`,
+		`[["Press ",{"b":"Babysit"}," on a session below to start."],"",[],false,null]`,
+		`[["Start a Claude Code session, then press ",{"b":"Babysit"}," on it here."],"",[],false,null]`,
+		`[["Start a Claude Code session, then press ",{"b":"Babysit"}," on it here."],"",[],false,null]`,
+		`[["Press ",{"b":"New session"}," above, or start a background session in a project folder:"],"claude --bg --remote-control",["It is babysat as soon as it starts."],false,null]`,
+		`[["Press ",{"b":"New session"}," above, or start a background session in a project folder:"],"claude --bg --remote-control",["A session started that way needs ",{"b":"Babysit"}," on it here."],false,null]`,
+		`[["Install Claude Code first. CC Babysitter brings sessions back with it."],"",[],true,true]`,
+		`[["Log in to Claude Code first. Run this on this machine:"],"claude auth login",[],true,null]`,
+		`[["Start a Claude Code session, then press ",{"b":"Babysit"}," on it here."],"",[],false,null]`,
 	}
 	got := runNode(t, script)
 	if len(got) != len(want) {
@@ -1755,7 +1768,7 @@ func jsFunction(t *testing.T, app, name string) string {
 // nothing.
 func TestTheNotLoggedInLine(t *testing.T) {
 	index := readUI(t, "ui/index.html")
-	want := `<p class="info warn" id="login-note" hidden>Claude Code is not logged in on this machine. Run <code class="mono">claude</code> once and log in.</p>`
+	want := `<p class="info warn" id="login-note" hidden>Claude Code is not logged in on this machine. Run <code class="mono">claude auth login</code> here.</p>`
 	if !strings.Contains(index, want) {
 		t.Errorf("index.html does not contain, word for word:\n%s", want)
 	}
@@ -1987,6 +2000,125 @@ func TestThePageCanQuit(t *testing.T) {
 	}
 }
 
+// A search that matches nothing anywhere offers to clear it, and the
+// Running list on a server says how to start a session.
+func TestASearchThatMatchesNothingCanBeCleared(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	if want := `<button class="b small" id="clear-search" hidden>Clear search</button>`; !strings.Contains(index, want) {
+		t.Errorf("index.html does not contain %s", want)
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`show($("#clear-search"), !!state.search && watches.length + sessions.length + scheduled.length + past.length + pastScheduled.length === 0);`,
+		`$("#clear-search").addEventListener("click", clearSearch);`,
+		`"No Claude Code sessions are running. Press New session above to start one."`,
+		// While searching, the Babysat area says the same, never the
+		// hero's next step about sessions the search hides.
+		`var hero = all.length === 0 && !state.search;`,
+		`show($("#watches-empty"), !hero && watches.length === 0);`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+}
+
+// While Claude Code is not logged in, New session says why nothing can
+// start before a folder is typed, and its Start button is off.
+func TestNewSessionSaysToLogInFirst(t *testing.T) {
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`var loggedOut = ((state.view || {}).env || {}).cliLoggedIn === "no";`,
+		`showStartStep("path", loggedOut ? LOGIN_FIRST : "");`,
+		`go.disabled = loggedOut;`,
+		`var LOGIN_FIRST = "Claude Code is not logged in on this machine, so a session could not start. Run claude auth login here first.";`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+}
+
+// While a terminal is attached to the background copy, as Open in Terminal
+// leaves one, the In background card says so, and that the copy keeps
+// running after that terminal closes.
+func TestTheCardSaysATerminalIsAttached(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	if want := `<p class="sub attached" data-f="attachednote" hidden>Attached in a terminal. The background copy keeps running after that terminal closes.</p>`; !strings.Contains(index, want) {
+		t.Errorf("index.html does not contain %s", want)
+	}
+	app := readUI(t, "ui/app.js")
+	if want := `show(f(node, "attachednote"), rescued && !!w.attached);`; !strings.Contains(app, want) {
+		t.Errorf("app.js does not contain %s", want)
+	}
+}
+
+// The page names its machine in the header and in the tab's title, so the
+// pages of a laptop and a server can be told apart, and the name is cut
+// short rather than pushing the header off a phone's screen.
+func TestThePageNamesItsMachine(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	if want := `<span class="machine" id="machine" hidden></span>`; !strings.Contains(index, want) {
+		t.Errorf("index.html does not contain %s", want)
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`setText($("#machine"), machine);`,
+		`show($("#machine"), machine !== "");`,
+		`document.title = machine ? machine + " - CC Babysitter" : "CC Babysitter";`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+	css := readUI(t, "ui/app.css")
+	rule := regexp.MustCompile(`\.machine \{[^}]*\}`).FindString(css)
+	if !strings.Contains(rule, "text-overflow: ellipsis") || !strings.Contains(rule, "max-width") {
+		t.Errorf("the machine's name is not cut short: %q", rule)
+	}
+	script := "(function () {\n" + jsFunction(t, app, "machineLabel") +
+		`console.log(JSON.stringify([machineLabel({hostname: "build-box", platform: "linux"}), machineLabel({hostname: "Studio-Mac", platform: "darwin"}), machineLabel({hostname: "pc", platform: "windows"}), machineLabel({platform: "linux"}), machineLabel(undefined)]));` + "\n" +
+		"})();\n"
+	got := runNode(t, script)
+	if want := `["build-box (Linux)","Studio-Mac (macOS)","pc (Windows)","",""]`; len(got) != 1 || got[0] != want {
+		t.Fatalf("machineLabel: %q, want %s", got, want)
+	}
+}
+
+// Scheduled task runs that run nowhere are kept out of Not running too, in
+// a folded section of their own after it that only shows when there is
+// one, with the same row and buttons.
+func TestScheduledTaskRunsAreKeptOutOfNotRunning(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	for _, want := range []string{
+		`<details class="sect" id="sect-past-scheduled" hidden>`,
+		`<summary><h2>Scheduled task runs, not running</h2><span class="n" id="past-scheduled-count">0</span></summary>`,
+		`<div class="rows" id="past-scheduled"></div>`,
+	} {
+		if !strings.Contains(index, want) {
+			t.Errorf("index.html does not contain %s", want)
+		}
+	}
+	if strings.Index(index, `id="sect-past-scheduled"`) < strings.Index(index, `id="sect-past"`) {
+		t.Error("the runs that are not running come after Not running")
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`var past = allPast.filter(function (p) { return !p.scheduledTask; });`,
+		`var pastScheduled = allPast.filter(function (p) { return !!p.scheduledTask; });`,
+		`show($("#sect-past-scheduled"), pastScheduled.length > 0);`,
+		`sync($("#past-scheduled"), pastScheduled, function (p) { return p.id; },`,
+		`onAction($("#past-scheduled"), onPastAction);`,
+		// With only runs not running, Not running does not claim nothing.
+		`"Only scheduled task runs are not running."`,
+		`$$("#past [data-when], #past-scheduled [data-when]")`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+}
+
 // Claude Desktop scheduled task runs are listed apart from the running
 // sessions, in a section of their own that starts folded and only shows
 // when there is a run, and a run never gets a Babysit button nor counts
@@ -2077,7 +2209,7 @@ func TestTheNewSessionDialog(t *testing.T) {
 		// Reopening the dialog wakes its button, and an answer to an older
 		// request or to a closed dialog is not shown in it.
 		`go.classList.remove("busy");
-    go.disabled = false;`,
+    go.disabled = loggedOut;`,
 		`if (!startAnswerFits(seq, state.startSeq, dialog.open)) {`,
 		// A held Enter starts one request, and only from the folder step;
 		// the trust step takes the focus to its question, not its button,
@@ -2126,7 +2258,7 @@ console.log([startAnswerFits(3, 3, true), startAnswerFits(2, 3, true), startAnsw
 // so the dialog and the note say the same thing.
 func TestTheLoginRefusalIsThePagesNote(t *testing.T) {
 	index := readUI(t, "ui/index.html")
-	note := strings.ReplaceAll(strings.ReplaceAll(supervise.StartNotLoggedIn, "`claude`", `<code class="mono">claude</code>`), "\n", "")
+	note := strings.ReplaceAll(strings.ReplaceAll(supervise.StartNotLoggedIn, "`claude auth login`", `<code class="mono">claude auth login</code>`), "\n", "")
 	if !strings.Contains(index, `<p class="info warn" id="login-note" hidden>`+note+`</p>`) {
 		t.Fatalf("the page's note is not %q", supervise.StartNotLoggedIn)
 	}
@@ -2153,5 +2285,65 @@ func TestTheCardSaysNotResponding(t *testing.T) {
 	// The card says the wait the engine uses.
 	if !strings.Contains(app, "for "+strconv.Itoa(int(supervise.FrozenAfter/time.Minute))+" minutes") {
 		t.Fatalf("app.js does not say %v", supervise.FrozenAfter)
+	}
+}
+
+// A card whose folder Claude Code does not trust offers Allow rescue, when
+// it is stuck there or would be if its app closed. The button posts the
+// folder to /api/trust, and on a stuck card it comes first, before Try again.
+// The check is run as the page runs it, when node is there to run it.
+func TestAllowRescueOnlyWhereTheFolderIsNotTrusted(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	if want := `<button class="b primary" data-act="trust" hidden>Allow rescue</button>`; !strings.Contains(index, want) {
+		t.Errorf("index.html does not contain %s", want)
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`show(node.querySelector('[data-act="trust"]'), allowRescue(w));`,
+		// Try again stays, as ccbabysitter retry does, behind Allow rescue.
+		`show(node.querySelector('[data-act="resume"]'), w.state === "stuck");`,
+		`node.querySelector('[data-act="resume"]').classList.toggle("primary", !stuckOnTrust(w));`,
+		`send("POST", "/api/trust", { path: w.cwd })`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	fns := "function stuckOnTrust(w) {" + between(t, app, "function stuckOnTrust(w) {", "\n  }") + "\n}\n" +
+		"function allowRescue(w) {" + between(t, app, "function allowRescue(w) {", "\n  }") + "\n}\n"
+	warning, _ := json.Marshal(supervise.UntrustedWarning("/srv/shop-api"))
+	home, _ := json.Marshal(supervise.FallbackHome)
+	cases := []struct {
+		watch string
+		want  bool
+	}{
+		{`{state: "stuck", pauseReason: "` + supervise.UntrustedPause + `: Workspace not trusted"}`, true},
+		{`{state: "watching", fallbackWarning: ` + string(warning) + `}`, true},
+		{`{state: "watching", fallbackWarning: ` + string(home) + `}`, false},
+		{`{state: "stuck", pauseReason: "three starts failed in five minutes"}`, false},
+		{`{state: "stuck"}`, false},
+		{`{state: "watching", pauseReason: "` + supervise.UntrustedPause + `: x"}`, false},
+	}
+	var script strings.Builder
+	script.WriteString(fns)
+	for _, c := range cases {
+		fmt.Fprintf(&script, "console.log(allowRescue(%s));\n", c.watch)
+	}
+	out, err := exec.Command(node, "-e", script.String()).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	got := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(got) != len(cases) {
+		t.Fatalf("want %d lines from node, got %q", len(cases), out)
+	}
+	for i, c := range cases {
+		if got[i] != strconv.FormatBool(c.want) {
+			t.Errorf("allowRescue(%s) = %s, want %v", c.watch, got[i], c.want)
+		}
 	}
 }

@@ -256,6 +256,7 @@ func (s *Supervisor) noteBoot() {
 func (s *Supervisor) explainExits(gone []state.Watch) {
 	apps := s.appsOnce()
 	for _, w := range gone {
+		s.wentAt[w.SessionID] = s.deps.Now()
 		if at, ok := s.frozeStopped[w.SessionID]; ok {
 			delete(s.frozeStopped, w.SessionID)
 			if s.deps.Now().Sub(at) <= frozeCauseFor {
@@ -294,6 +295,47 @@ func (s *Supervisor) lookAgain(again []state.Watch) {
 		}
 		if reason := causeFor(claude.HostDesktop, apps(), s.desktopVersion); desktopRank(reason) > desktopRank(old) {
 			s.setCause(w.SessionID, reason)
+		}
+	}
+}
+
+// settlingDesktop reports whether w went down in Claude Desktop less than
+// Deps.DesktopSettle ago, for a reason a later look could still change.
+func (s *Supervisor) settlingDesktop(w state.Watch) bool {
+	rank := desktopRank(s.causes[w.SessionID])
+	at, ok := s.wentAt[w.SessionID]
+	return ok && rank > 0 && rank < rankRestarted && s.deps.Now().Sub(at) < s.deps.DesktopSettle
+}
+
+// decideDesktopCause looks at Claude Desktop once more before a session that
+// went down in it is brought back, and gives every session that went down
+// in it within Deps.DesktopSettle of this one the reason that explains the most,
+// so the sessions one quit took down are all told the same reason.
+func (s *Supervisor) decideDesktopCause(id string) {
+	rank := desktopRank(s.causes[id])
+	if rank == 0 {
+		return
+	}
+	if rank < rankRestarted {
+		if reason := causeFor(claude.HostDesktop, s.appsNow(), s.desktopVersion); desktopRank(reason) > rank {
+			s.setCause(id, reason)
+		}
+	}
+	at := s.wentAt[id]
+	together := func(other string) bool {
+		t, ok := s.wentAt[other]
+		d := t.Sub(at)
+		return ok && desktopRank(s.causes[other]) > 0 && d < s.deps.DesktopSettle && d > -s.deps.DesktopSettle
+	}
+	best := s.causes[id]
+	for other, reason := range s.causes {
+		if together(other) && desktopRank(reason) > desktopRank(best) {
+			best = reason
+		}
+	}
+	for other := range s.causes {
+		if together(other) && s.causes[other] != best {
+			s.setCause(other, best)
 		}
 	}
 }
@@ -342,6 +384,7 @@ func (s *Supervisor) announce(id, reason string) {
 func (s *Supervisor) rescued(id, reason string) {
 	s.lastHost[id] = claude.HostBackground
 	delete(s.causes, id)
+	delete(s.wentAt, id)
 	delete(s.announced, id)
 	s.toldCause(reason)
 }
@@ -360,6 +403,7 @@ func (s *Supervisor) forget(id string) {
 	delete(s.absent, id)
 	delete(s.lastHost, id)
 	delete(s.causes, id)
+	delete(s.wentAt, id)
 	delete(s.announced, id)
 }
 
@@ -379,6 +423,11 @@ func (s *Supervisor) forgetGone() {
 	for id := range s.causes {
 		if s.find(id) == nil {
 			delete(s.causes, id)
+		}
+	}
+	for id := range s.wentAt {
+		if s.find(id) == nil {
+			delete(s.wentAt, id)
 		}
 	}
 	for id := range s.announced {

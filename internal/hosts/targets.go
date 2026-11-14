@@ -97,6 +97,16 @@ func inFolder(cwd, command string) string {
 	return "cd " + ShellQuote(cwd) + " && " + command
 }
 
+// TrustFolderCommand renders the command that gives Claude Code its
+// one-time OK for dir through CC Babysitter, with dir quoted for
+// PowerShell on Windows and for a POSIX shell everywhere else.
+func TrustFolderCommand(dir string) string {
+	if targetOS == "windows" {
+		return "ccbabysitter trust " + PowerShellQuote(dir)
+	}
+	return "ccbabysitter trust " + ShellQuote(dir)
+}
+
 // PowerShellQuote returns s single-quoted for PowerShell. PowerShell ends
 // a single-quoted string on the typographic single quotes as well as on
 // the plain one, so each of them inside the string is escaped by doubling

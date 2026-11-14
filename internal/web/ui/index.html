@@ -17,10 +17,12 @@
 <header class="bar">
   <span class="logo" id="logo" title="Shows every Claude Code session, and keeps the ones you choose alive, awake and reachable."></span>
   <h1 class="brand">CC Babysitter</h1>
+  <span class="machine" id="machine" hidden></span>
   <span class="pill awake" id="awake"><i class="held" id="awake-held"></i><span id="awake-text">Computer not kept awake</span></span>
   <span class="pill reconnecting" id="reconnect" hidden><span id="reconnect-text">Reconnecting</span><span class="pdots" id="reconnect-dots"></span></span>
   <div class="grow"></div>
   <input class="search" id="search" type="search" placeholder="Search" aria-label="Search by name, folder or id" spellcheck="false" autocomplete="off">
+  <button class="b small" id="clear-search" hidden>Clear search</button>
   <button class="b primary" id="open-start" aria-haspopup="dialog" hidden>New session</button>
   <button class="b" id="toggle-activity" aria-pressed="false" aria-controls="activity">Activity</button>
   <button class="b" id="open-settings" aria-controls="drawer-settings" aria-expanded="false">Settings</button>
@@ -28,7 +30,7 @@
 </header>
 
 <p class="info" id="info"></p>
-<p class="info warn" id="login-note" hidden>Claude Code is not logged in on this machine. Run <code class="mono">claude</code> once and log in.</p>
+<p class="info warn" id="login-note" hidden>Claude Code is not logged in on this machine. Run <code class="mono">claude auth login</code> here.</p>
 
 <div class="layout" id="layout">
   <main class="main">
@@ -48,6 +50,7 @@
             <button class="b small" data-act="copy-start">Copy</button>
           </div>
           <p class="next" data-f="after" hidden></p>
+          <a class="next link" data-el="link" href="https://ccbabysitter.dev/docs/troubleshooting/#no-cli" target="_blank" rel="noopener noreferrer" hidden>What to do<span class="ext"></span></a>
         </div>
       </div>
     </details>
@@ -67,6 +70,11 @@
       <summary><h2>Not running</h2><span class="n" id="past-count">0</span><span class="tag handed" id="past-handed" hidden></span></summary>
       <div class="rows" id="past"></div>
       <p class="empty" id="past-empty" data-none="Nothing from the last 14 days."></p>
+    </details>
+
+    <details class="sect" id="sect-past-scheduled" hidden>
+      <summary><h2>Scheduled task runs, not running</h2><span class="n" id="past-scheduled-count">0</span></summary>
+      <div class="rows" id="past-scheduled"></div>
     </details>
 
   </main>
@@ -277,6 +285,7 @@
         <p class="head">Kept alive while you were away</p>
         <p class="sub" data-f="rescue"></p>
         <p class="sub crash" data-f="crashnote" hidden></p>
+        <p class="sub attached" data-f="attachednote" hidden>Attached in a terminal. The background copy keeps running after that terminal closes.</p>
         <div class="journey">
           <span class="hop from" data-el="from"></span>
           <span class="arrow"></span>
@@ -322,6 +331,7 @@
       </div>
       <button class="b" data-act="unbabysit" hidden>Unbabysit</button>
       <button class="b danger" data-act="stop" hidden>Stop background copy</button>
+      <button class="b primary" data-act="trust" hidden>Allow rescue</button>
       <button class="b primary" data-act="resume" hidden>Try again</button>
       <button class="b" data-act="forget" hidden>Stop watching</button>
     </div>

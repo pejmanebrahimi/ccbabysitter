@@ -135,6 +135,7 @@ type Supervisor struct {
 	// computer restarted since the run before this one.
 	lastHost         map[string]claude.Host
 	causes           map[string]string
+	wentAt           map[string]time.Time // when each was first seen gone, for causes
 	announced        map[string]bool
 	desktopVersion   string
 	desktopVersionAt time.Time
@@ -144,8 +145,11 @@ type Supervisor struct {
 	// slept a sleep of the computer not yet named in Activity, and sleepers
 	// the lines about sleeps still being written.
 	idleSince time.Time
-	slept     *sleepSpan
-	sleepers  sync.WaitGroup
+	// wokeAt is when the computer last woke from a sleep, seen as a long
+	// wait between passes. Nothing is resumed for wakeHold after it.
+	wokeAt   time.Time
+	slept    *sleepSpan
+	sleepers sync.WaitGroup
 	// statsInFlight names the sessions the worker has been asked about and
 	// has not answered for yet, so the same read is never queued twice.
 	statsInFlight map[string]bool
@@ -171,7 +175,10 @@ type Supervisor struct {
 	trust         claude.Trust
 	trustAt       time.Time
 	trustInFlight bool
-	lastCounted   time.Time
+	// trustRecheckAt is when the folders of watches stuck for trust were
+	// last looked at again.
+	trustRecheckAt time.Time
+	lastCounted    time.Time
 	// autostartAt is when the login item was last looked at.
 	autostartAt time.Time
 	firstPass   bool
@@ -188,6 +195,9 @@ type Supervisor struct {
 	// babysat session's Claude Code version, to leave a background session
 	// to Claude Code while it starts it again on a new version.
 	versions map[string]versionNote
+	// removedCopies are the copies resumes forked and then stopped and
+	// removed, by short id, with when, so auto-babysit never adopts one.
+	removedCopies map[string]time.Time
 	// stopped is every background session whose copy Stop ended without
 	// handing it back to an app, by session id, so its Not running row can
 	// offer the command that starts it again. It is only kept in memory.
@@ -229,6 +239,7 @@ func New(d Deps) *Supervisor {
 		absent:        map[string]int{},
 		lastHost:      map[string]claude.Host{},
 		causes:        map[string]string{},
+		wentAt:        map[string]time.Time{},
 		liveness:      map[string]Liveness{},
 		livenessAt:    map[string]time.Time{},
 		notResponding: map[string]bool{},
@@ -246,6 +257,7 @@ func New(d Deps) *Supervisor {
 		trouble:       newCopyTrouble(),
 		handedBack:    map[string]handBack{},
 		versions:      map[string]versionNote{},
+		removedCopies: map[string]time.Time{},
 		stopped:       map[string]stoppedCopy{},
 		startedAt:     d.Now(),
 	}

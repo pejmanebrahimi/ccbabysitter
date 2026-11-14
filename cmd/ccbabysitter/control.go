@@ -78,6 +78,8 @@ type (
 		Sessions  int       `json:"sessions"`
 		Babysat   int       `json:"babysat"`
 		KeepAwake keepAwake `json:"keepAwake"`
+		Machine   string    `json:"machine"`
+		System    string    `json:"system"`
 	}
 	keepAwake struct {
 		Held      bool `json:"held"`
@@ -136,7 +138,7 @@ type controlArgs struct {
 var controlCommands = map[string]bool{
 	"status": true, "list": true, "show": true, "babysit": true, "unbabysit": true,
 	"retry": true, "stop": true, "activity": true, "settings": true, "quit": true,
-	"open": true, "start": true,
+	"open": true, "start": true, "trust": true,
 }
 
 func isControlCommand(name string) bool { return controlCommands[name] }
@@ -220,9 +222,9 @@ func parseControlArgs(name string, args []string) (controlArgs, error) {
 		if len(pos) != 1 {
 			return controlArgs{}, fmt.Errorf("%s needs one session", name)
 		}
-	case "start":
+	case "start", "trust":
 		if len(pos) != 1 {
-			return controlArgs{}, errors.New("start needs one folder")
+			return controlArgs{}, fmt.Errorf("%s needs one folder", name)
 		}
 	case "activity":
 		if len(pos) > 1 {
@@ -318,6 +320,16 @@ func runControl(name string, args []string, env controlEnv) int {
 			res.Message += " Run it again with --trust to trust it."
 		}
 		return env.printResult(a.json, res, res.ShortID)
+	}
+
+	// trust needs no session either: it names the folder Claude Code is
+	// asked to trust, so sessions stuck there can be brought back.
+	if name == "trust" {
+		res, err := c.TrustFolder(ctx, fullPath(a.pos[0]))
+		if err != nil {
+			return env.failErr(a.json, false, "", err)
+		}
+		return env.printResult(a.json, res, "")
 	}
 
 	// open decides whether there is a display where it runs, as a plain
@@ -550,6 +562,7 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 			Schema: 1, Running: true, Version: v.Version, URL: url, Headless: v.Env.Headless,
 			Sessions: len(sessions), Babysat: babysat,
 			KeepAwake: keepAwake{Held: v.KeepAwake.Held, Supported: v.KeepAwake.Supported},
+			Machine:   v.Env.Hostname, System: systemName(v.Env.Platform),
 		})
 		return 0
 	}
@@ -564,6 +577,9 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 	}
 	fmt.Fprintf(env.stdout, "CC Babysitter %s is running at %s\n", v.Version, url)
 	fmt.Fprintf(env.stdout, "Sessions: %d, babysat: %d. Keeping the computer awake: %s\n", len(sessions), babysat, awake)
+	if v.Env.Hostname != "" {
+		fmt.Fprintf(env.stdout, "Machine: %s (%s)\n", v.Env.Hostname, systemName(v.Env.Platform))
+	}
 	// Run over ssh on a machine with no display, as open decides it, the
 	// address above only works here, so status also says how to reach the
 	// page from the computer the person is at, as the banner does.
@@ -572,6 +588,20 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 		fmt.Fprint(env.stdout, tunnelLines(url, user, address))
 	}
 	return 0
+}
+
+// systemName is the name people know an operating system by, as Go's
+// GOOS spells it.
+func systemName(goos string) string {
+	switch goos {
+	case "darwin":
+		return "macOS"
+	case "linux":
+		return "Linux"
+	case "windows":
+		return "Windows"
+	}
+	return goos
 }
 
 // showTokens is show's Tokens line, left out for a conversation that is
@@ -658,10 +688,13 @@ func (env controlEnv) printList(asJSON bool, v supervise.View) int {
 	}
 	// A Claude Desktop scheduled task's run is never babysat, so runs are
 	// listed apart, after the other sessions, and the conversations that
-	// are not running come last, as on the page.
-	var others, runs, past []client.Session
+	// are not running come after them, then the runs that are not running,
+	// as on the page.
+	var others, runs, past, pastRuns []client.Session
 	for _, s := range sessions {
 		switch {
+		case s.NotRunning && s.ScheduledTask:
+			pastRuns = append(pastRuns, s)
 		case s.NotRunning:
 			past = append(past, s)
 		case s.ScheduledTask:
@@ -691,6 +724,7 @@ func (env controlEnv) printList(asJSON bool, v supervise.View) int {
 	section("", others)
 	section("Scheduled task runs, never babysat:", runs)
 	section("Not running:", past)
+	section("Scheduled task runs, not running:", pastRuns)
 	return 0
 }
 

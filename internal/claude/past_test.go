@@ -64,6 +64,53 @@ func TestListPastFindsRecentTranscriptsNewestFirst(t *testing.T) {
 	}
 }
 
+// A conversation that is a Claude Desktop scheduled task's run says so, by
+// its first prompt, so the Not running list can keep the runs apart.
+func TestListPastTellsAScheduledTaskRun(t *testing.T) {
+	projects := t.TempDir()
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	const (
+		run   = "11111111-2222-4333-8444-555555555511"
+		plain = "22222222-2222-4333-8444-555555555512"
+	)
+	writeTranscriptAt(t, projects, "-home-dev-ws", run,
+		`{"type":"user","cwd":"/home/dev/ws","message":{"role":"user","content":"<scheduled-task name=\"daily-report\">\nWrite the report.\n</scheduled-task>"}}`+"\n", now.Add(-time.Hour))
+	writeTranscriptAt(t, projects, "-home-dev-ws", plain,
+		`{"type":"user","cwd":"/home/dev/ws","message":{"role":"user","content":"hi"}}`+"\n", now.Add(-time.Minute))
+	got := ListPast(projects, now.Add(-14*24*time.Hour), 30, nil)
+	if len(got) != 2 || got[0].ID != plain || got[0].ScheduledTask || got[1].ID != run || !got[1].ScheduledTask {
+		t.Fatalf("%+v", got)
+	}
+}
+
+// Scheduled task runs never take a conversation's place: max counts the
+// conversations and the runs apart, so runs newer than every conversation
+// do not push the conversations off the list.
+func TestListPastCountsRunsApart(t *testing.T) {
+	projects := t.TempDir()
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	run := `{"type":"user","cwd":"/home/dev/ws","message":{"role":"user","content":"<scheduled-task name=\"daily\">x</scheduled-task>"}}` + "\n"
+	plain := `{"type":"user","cwd":"/home/dev/ws","message":{"role":"user","content":"hi"}}` + "\n"
+	for i, id := range []string{"11111111-2222-4333-8444-555555555521", "11111111-2222-4333-8444-555555555522", "11111111-2222-4333-8444-555555555523"} {
+		writeTranscriptAt(t, projects, "-home-dev-ws", id, run, now.Add(-time.Duration(i+1)*time.Minute))
+	}
+	for i, id := range []string{"22222222-2222-4333-8444-555555555531", "22222222-2222-4333-8444-555555555532"} {
+		writeTranscriptAt(t, projects, "-home-dev-ws", id, plain, now.Add(-time.Duration(i+1)*time.Hour))
+	}
+	got := ListPast(projects, now.Add(-14*24*time.Hour), 2, nil)
+	runs, talks := 0, 0
+	for _, p := range got {
+		if p.ScheduledTask {
+			runs++
+		} else {
+			talks++
+		}
+	}
+	if runs != 2 || talks != 2 {
+		t.Fatalf("want 2 runs and 2 conversations, got %d and %d: %+v", runs, talks, got)
+	}
+}
+
 // A transcript with no conversation in it, an empty file or one with no
 // message, has nothing to resume, so it is left out, and it does not take
 // a place from one that does.

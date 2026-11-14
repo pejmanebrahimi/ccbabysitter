@@ -22,12 +22,25 @@ const (
 	// the sleep is named. A Mac with its lid shut wakes in the dark now and
 	// then, and those wakes are part of the one sleep.
 	awakeFor = 2 * time.Minute
+	// wakeHold is how long nothing is resumed after the computer wakes.
+	// Just after a wake, Claude Code may not list a session that runs, and
+	// may still be starting sessions again itself, as after an update it
+	// installed while the computer slept; a resume then forks a copy.
+	wakeHold = time.Minute
 )
 
 // markIdle notes when the loop finished its work, by the wall clock, which
 // goes on while the computer sleeps. A long wait after it says the computer
-// slept; a long piece of work does not.
-func (s *Supervisor) markIdle() { s.idleSince = s.deps.Now().Round(0) }
+// slept; a long piece of work does not. A wait that long is noted here as a
+// wake, once, whether a pass or an action ends it: until then, justWoke
+// sees the wait itself.
+func (s *Supervisor) markIdle() {
+	now := s.deps.Now().Round(0)
+	if !s.idleSince.IsZero() && now.Sub(s.idleSince) >= sleptAfter {
+		s.woke(now, now.Sub(s.idleSince))
+	}
+	s.idleSince = now
+}
 
 // lidClosed reports whether the lid is closed, putting the computer to
 // sleep, where this system can tell.
@@ -79,11 +92,45 @@ func (s *Supervisor) noteSleep(ctx context.Context) {
 	}
 }
 
+// woke notes that the computer woke at now from a sleep of gap, whether or
+// not it was kept awake: nothing is resumed for wakeHold, and the wait for
+// Claude Code to start a session again after an update, which counts only
+// time awake, is moved on by the part of the sleep after the session went.
+// A session first seen gone in the pass that ends the sleep went during it
+// or after it, and nothing of the sleep counts for it.
+func (s *Supervisor) woke(now time.Time, gap time.Duration) {
+	s.wokeAt = now
+	slept := now.Add(-gap)
+	for id, note := range s.versions {
+		if note.goneAt.IsZero() || !note.goneAt.Before(now) {
+			continue
+		}
+		from := note.goneAt
+		if from.Before(slept) {
+			from = slept
+		}
+		note.asleep += now.Sub(from)
+		s.versions[id] = note
+	}
+}
+
+// justWoke reports whether the computer woke less than wakeHold ago, or
+// slept since the last pass ended, which a sleep in the middle of this pass
+// shows before noteSleep at the start of the next one can.
+func (s *Supervisor) justWoke() bool {
+	now := s.deps.Now()
+	if !s.idleSince.IsZero() && now.Sub(s.idleSince) >= sleptAfter {
+		return true
+	}
+	return !s.wokeAt.IsZero() && now.Before(s.wokeAt.Add(wakeHold))
+}
+
 // tellSleep writes the Activity line for a sleep, with its cause and its
 // start when the system's power log tells. Reading the log can take
 // seconds, so it is done aside, and the loop goes on meanwhile; Run waits
 // for it before it returns. A gap the log shows no sleep in, as when the
-// clock was set forward, is not named.
+// clock was set forward, is not named, and nor is one the computer has
+// only woken from in the dark: a later line covers that sleep whole.
 func (s *Supervisor) tellSleep(ctx context.Context, span sleepSpan) {
 	read := s.deps.SleepCause
 	s.sleepers.Add(1)
@@ -96,11 +143,14 @@ func (s *Supervisor) tellSleep(ctx context.Context, span sleepSpan) {
 		if ctx.Err() != nil {
 			return
 		}
-		if cause == "" && span.lid {
-			cause = "lid"
-		}
+		// The log has the last word: it shows no sleep, or a sleep the
+		// computer has only woken from in the dark, which is not over
+		// yet. The next wake names it, from its start.
 		if known && cause == "" && at.IsZero() {
 			return
+		}
+		if cause == "" && span.lid {
+			cause = "lid"
 		}
 		from := span.from
 		if !at.IsZero() && at.Before(from) {

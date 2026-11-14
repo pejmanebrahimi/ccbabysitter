@@ -548,6 +548,27 @@ func (r *Real) Exe(pid int, createMs int64) (string, bool) {
 	return info.exe, true
 }
 
+// Attached looks for `claude attach SHORT` among the processes whose
+// program is the Claude Code CLI, reading the arguments of those few only:
+// a program with claude in its path, outside an app bundle, which leaves
+// out the many processes of Claude Desktop.
+func (r *Real) Attached(short string) bool {
+	for pid, info := range r.getTable(false) {
+		exe := strings.ToLower(info.exe)
+		if !strings.Contains(exe, "claude") || strings.Contains(exe, ".app/") {
+			continue
+		}
+		p, err := process.NewProcess(int32(pid))
+		if err != nil {
+			continue
+		}
+		if args, err := p.CmdlineSlice(); err == nil && attachArgs(args, short) {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Real) ExeContains(substr string) bool {
 	table := r.getTable(false)
 

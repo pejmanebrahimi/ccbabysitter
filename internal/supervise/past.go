@@ -13,7 +13,8 @@ import (
 const (
 	// pastWindow is how far back the Not running list reaches.
 	pastWindow = 14 * 24 * time.Hour
-	// pastMax is the most conversations the Not running list shows.
+	// pastMax is the most conversations the Not running list shows, and
+	// apart from them the most scheduled task runs.
 	pastMax = 30
 	// pastInterval is how often the list is looked for again while the set
 	// of live sessions stays the same. A change in that set asks at once,
@@ -30,6 +31,9 @@ type PastView struct {
 	Cwd          string    `json:"cwd"`
 	LastActivity time.Time `json:"lastActivity"`
 	ResumeCmd    string    `json:"resumeCmd"`
+	// ScheduledTask reports whether the conversation is a run of a Claude
+	// Desktop scheduled task. The page lists those runs apart.
+	ScheduledTask bool `json:"scheduledTask,omitempty"`
 	// HandedBackTo is the app the session was handed back to from the
 	// background in the last day, desktop, vscode or terminal, and empty
 	// for every other conversation.
@@ -180,6 +184,7 @@ func (s *Supervisor) pastViews(watched map[string]bool) []PastView {
 		pv := PastView{
 			ID: p.ID, ShortID: shortOf(p.ID), Name: p.Name, Cwd: p.Cwd,
 			LastActivity: p.LastActivity, ResumeCmd: hosts.ResumeCommandIn(p.Cwd, p.ID),
+			ScheduledTask: p.ScheduledTask,
 		}
 		if hb, ok := s.handedBack[p.ID]; ok && now.Sub(hb.at) < handBackFor {
 			pv.HandedBackTo = hb.to
@@ -195,8 +200,24 @@ func (s *Supervisor) pastViews(watched map[string]bool) []PastView {
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].HandedBackTo != "" && out[j].HandedBackTo == ""
 	})
-	if len(out) > pastMax {
-		out = out[:pastMax]
+	// Scheduled task runs are counted apart from the conversations, as the
+	// page lists them apart.
+	talks, runs := 0, 0
+	kept := out[:0]
+	for _, pv := range out {
+		if pv.ScheduledTask {
+			if runs == pastMax {
+				continue
+			}
+			runs++
+		} else {
+			if talks == pastMax {
+				continue
+			}
+			talks++
+		}
+		kept = append(kept, pv)
 	}
+	out = kept
 	return out
 }

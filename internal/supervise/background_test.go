@@ -51,8 +51,13 @@ func TestBackgroundSinceIsSetOnceAndKeptAcrossRestarts(t *testing.T) {
 	clock = clock.Add(time.Hour)
 	f.p.SetAlive(11, false)
 	f.setFiles()
+	// An hour with no pass reads as the computer waking from a sleep, so
+	// the passes go on, closer than sleptAfter, until wakeHold is over.
 	pass(3)
+	clock = clock.Add(wakeHold / 2)
 	pass(4)
+	clock = clock.Add(wakeHold/2 + time.Second)
+	pass(5)
 	if n := countCalls(f, "--bg --resume "); n != 2 {
 		t.Fatalf("the copy must be started again: %v", f.r.CallList())
 	}

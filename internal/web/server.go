@@ -29,6 +29,7 @@ type Engine interface {
 	ResumeWatch(id string, via supervise.Via) supervise.Result
 	OpenTerminal(id string) supervise.Result
 	Start(dir string, trust bool, via supervise.Via) supervise.Result
+	TrustFolder(dir string, via supervise.Via) supervise.Result
 	SetSettings(next state.Settings, via supervise.Via) supervise.Result
 }
 
@@ -140,6 +141,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/sessions/{id}/resume-watch", s.withID(s.handleResumeWatch))
 	mux.HandleFunc("POST /api/sessions/{id}/open-terminal", s.withID(s.handleOpenTerminal))
 	mux.HandleFunc("POST /api/start", s.handleStart)
+	mux.HandleFunc("POST /api/trust", s.handleTrust)
 
 	mux.HandleFunc("GET /api/settings", s.handleGetSettings)
 	mux.HandleFunc("PUT /api/settings", s.handlePutSettings)
@@ -275,6 +277,18 @@ func (s *Server) handleStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeResult(w, s.engine.Start(req.Path, req.Trust, viaOf(r)))
+}
+
+// handleTrust gives the claude CLI its one-time OK to run on its own in
+// the folder the request names: Allow rescue.
+func (s *Server) handleTrust(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Path string `json:"path"`
+	}
+	if !decodeRequiredJSON(w, r, &req) {
+		return
+	}
+	writeResult(w, s.engine.TrustFolder(req.Path, viaOf(r)))
 }
 
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
