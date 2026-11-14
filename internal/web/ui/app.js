@@ -828,6 +828,9 @@
 
     fillStats(node, w.stats, w.tree);
     fillWaysOn(node, w, rescued);
+    /* Open in Terminal leaves the copy running where it is, so the card
+       would look unchanged; it says a terminal is attached instead. */
+    show(f(node, "attachednote"), rescued && !!w.attached);
 
     show(node.querySelector('[data-act="unbabysit"]'), !!w.canUnbabysit && w.state !== "stuck");
     show(node.querySelector('[data-act="stop"]'), !!w.canStop && !rescued);

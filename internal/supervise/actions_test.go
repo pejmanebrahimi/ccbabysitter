@@ -593,6 +593,28 @@ func TestAttachCommandsForBackgroundSessions(t *testing.T) {
 	}
 }
 
+// A watch carried by its background copy says when a terminal is attached
+// to that copy, as Open in Terminal leaves one, and not otherwise.
+func TestAWatchSaysATerminalIsAttached(t *testing.T) {
+	watched := "11111111-2222-4333-8444-5555555555a7"
+	f := newFixture(t, func([]string) (string, error) { return "[]", nil })
+	f.p.SetAlive(7, true)
+	f.setFiles(bgSession(7, watched, "b"))
+	f.d.Obs.RefreshNow()
+	s := New(*f.d)
+	s.addWatchForTest(state.Watch{SessionID: watched, ShortID: "11111111", Cwd: "/home/dev/ws",
+		OriginHost: claude.HostTerminal, PromiseState: "fallback", HasSavedOptions: true})
+	s.reconcileForTest(f.d.Obs.Current())
+	if s.View().Watches[0].Attached {
+		t.Fatal("nothing is attached yet")
+	}
+	f.p.SetAttached("11111111", true)
+	s.reconcileForTest(f.d.Obs.Current())
+	if !s.View().Watches[0].Attached {
+		t.Fatal("the attached terminal is not shown")
+	}
+}
+
 // Reading the CLI's settings file is disk work on a file the CLI rewrites
 // often, and it never holds up an action: the warning turns up in a later
 // view.

@@ -344,8 +344,23 @@ func TestDemoOpenTerminal(t *testing.T) {
 	if got := d.View().TerminalLabel; got != "Open in Terminal" {
 		t.Fatalf("the button names what the message says opened: %q", got)
 	}
+	attached := func() bool {
+		for _, w := range d.View().Watches {
+			if w.SessionID == demoCarriedID {
+				return w.Attached
+			}
+		}
+		t.Fatal("the carried session is not babysat")
+		return false
+	}
+	if attached() {
+		t.Fatal("attached before any terminal was opened")
+	}
 	if res := d.OpenTerminal(demoCarriedID); !res.OK || res.Message != "Opened Terminal on api-gateway." {
 		t.Fatalf("%+v", res)
+	}
+	if !attached() {
+		t.Fatal("the card does not say a terminal is attached")
 	}
 	if res := d.OpenTerminal(demoDesktopID); res.OK || res.Message != "That session has no background copy running." {
 		t.Fatalf("%+v", res)

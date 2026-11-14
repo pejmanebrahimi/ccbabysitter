@@ -48,6 +48,9 @@ type demoItem struct {
 	id      string
 	shortID string
 	name    string
+	// attached says the demo opened a terminal on the item's background
+	// copy, which the card then says.
+	attached bool
 	// alsoCalled is the name in the session's own record when name, the
 	// one its app shows, is a different one.
 	alsoCalled string
@@ -482,6 +485,7 @@ func (d *DemoEngine) watchView(it *demoItem) supervise.WatchView {
 		if it.host == claude.HostBackground {
 			wv.AttachCmd = hosts.AttachCommand(it.shortID)
 			wv.RemoteURL = claude.RemoteURL(it.bridgeID)
+			wv.Attached = it.attached
 		}
 	}
 	if wv.State != supervise.StateInBackground {
@@ -695,7 +699,10 @@ func (d *DemoEngine) OpenTerminal(id string) supervise.Result {
 		return supervise.Result{Message: "That session has no background copy running."}
 	}
 	label, short := demoLabel(it), it.shortID
+	it.attached = true
+	notify := d.notify
 	d.mu.Unlock()
+	d.changed(notify)
 
 	d.log.Info(label, "opened Terminal attached to background copy "+short)
 	return supervise.Result{OK: true, Message: "Opened Terminal on " + label + ".", ShortID: short}

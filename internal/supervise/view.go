@@ -103,6 +103,9 @@ type WatchView struct {
 	RCHint       string `json:"rcHint"`
 	AttachCmd    string `json:"attachCmd,omitempty"`
 	SSHAttachCmd string `json:"sshAttachCmd,omitempty"`
+	// Attached says a terminal is attached to the session's background
+	// copy, as Open in Terminal leaves one: a `claude attach` for it runs.
+	Attached bool `json:"attached,omitempty"`
 	// Status is what the session says about itself, busy or idle, in the
 	// host it is actually running in; it is empty when it is not running.
 	Status string `json:"status"`
@@ -286,6 +289,9 @@ func (s *Supervisor) watchView(w state.Watch) WatchView {
 			out.AttachCmd = s.attachCmd(sn)
 			out.SSHAttachCmd = s.sshAttachCmd(sn)
 			out.RemoteURL = claude.RemoteURL(sn.BridgeSessionID)
+			if s.deps.Procs != nil && validShortID(sn.ShortID) {
+				out.Attached = s.deps.Procs.Attached(sn.ShortID)
+			}
 		}
 	}
 	if out.State == StateInBackground && !w.BackgroundSince.IsZero() {

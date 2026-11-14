@@ -1988,6 +1988,20 @@ func TestThePageCanQuit(t *testing.T) {
 	}
 }
 
+// While a terminal is attached to the background copy, as Open in Terminal
+// leaves one, the In background card says so, and that the copy keeps
+// running after that terminal closes.
+func TestTheCardSaysATerminalIsAttached(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	if want := `<p class="sub attached" data-f="attachednote" hidden>Attached in a terminal. The background copy keeps running after that terminal closes.</p>`; !strings.Contains(index, want) {
+		t.Errorf("index.html does not contain %s", want)
+	}
+	app := readUI(t, "ui/app.js")
+	if want := `show(f(node, "attachednote"), rescued && !!w.attached);`; !strings.Contains(app, want) {
+		t.Errorf("app.js does not contain %s", want)
+	}
+}
+
 // The page names its machine in the header and in the tab's title, so the
 // pages of a laptop and a server can be told apart, and the name is cut
 // short rather than pushing the header off a phone's screen.

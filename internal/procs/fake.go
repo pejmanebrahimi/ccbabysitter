@@ -8,13 +8,14 @@ import (
 // Fake is an in-memory Procs for tests that exercise code depending on
 // process identity without touching real operating system processes.
 type Fake struct {
-	mu      sync.Mutex
-	alive   map[int]bool
-	stats   map[int]TreeStats
-	created map[int]int64
-	parents map[int]int
-	calls   []string
-	refuse  bool
+	mu       sync.Mutex
+	alive    map[int]bool
+	stats    map[int]TreeStats
+	created  map[int]int64
+	parents  map[int]int
+	calls    []string
+	refuse   bool
+	attached map[string]bool
 }
 
 // NewFake returns an empty Fake ready to use.
@@ -25,6 +26,24 @@ func NewFake() *Fake {
 		created: make(map[int]int64),
 		parents: make(map[int]int),
 	}
+}
+
+// SetAttached marks a terminal as attached to the background session
+// short, or not.
+func (f *Fake) SetAttached(short string, attached bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.attached == nil {
+		f.attached = map[string]bool{}
+	}
+	f.attached[short] = attached
+}
+
+// Attached reports what SetAttached said for short.
+func (f *Fake) Attached(short string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.attached[short]
 }
 
 // SetAlive marks pid as running or not.
