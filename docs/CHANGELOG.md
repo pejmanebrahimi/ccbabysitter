@@ -2,7 +2,7 @@
 
 Versions follow MAJOR.MINOR.PATCH, with a pre-release such as 0.5.0-rc.1 published as MAJOR.MINOR.PATCH-<pre> under a heading of the same name. Patch for fixes with no visible change, minor for new or visibly changed behaviour, major when the state file or a flow changes so that old state is no longer valid. Bump when a build is handed out or put into use, not on every edit. Changes merged since the last release are listed under Unreleased until the next one.
 
-## Unreleased
+## 0.10.0 (2026-11-14)
 
 - Fixed: a background session goes on under the same short id when a new conversation is started in it, as with /clear. CC Babysitter took the job, now running the new conversation, for the babysat earlier one: each time Claude Code replaced the job's process, it resumed the earlier conversation beside it, which forked two copies it then had to stop and remove, and on a server auto-babysit adopted one of those copies. Now babysitting follows the job to the conversation it runs, or lets the earlier one go when the new one is babysat already, and a copy CC Babysitter removed is never adopted (#130).
 - Fixed: when Claude Code refused to bring a babysat session back because it does not trust the session's folder, CC Babysitter tried twice more within 30 seconds before marking it stuck, and nothing said the session now ran nowhere. It now stops at the first refusal, and Activity says the session could not be brought back, is not running anywhere, and needs Claude Code's one-time OK for its folder (#131).
