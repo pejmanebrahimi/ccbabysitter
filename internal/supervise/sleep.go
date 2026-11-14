@@ -121,7 +121,8 @@ func (s *Supervisor) justWoke() bool {
 // start when the system's power log tells. Reading the log can take
 // seconds, so it is done aside, and the loop goes on meanwhile; Run waits
 // for it before it returns. A gap the log shows no sleep in, as when the
-// clock was set forward, is not named.
+// clock was set forward, is not named, and nor is one the computer has
+// only woken from in the dark: a later line covers that sleep whole.
 func (s *Supervisor) tellSleep(ctx context.Context, span sleepSpan) {
 	read := s.deps.SleepCause
 	s.sleepers.Add(1)
@@ -134,11 +135,14 @@ func (s *Supervisor) tellSleep(ctx context.Context, span sleepSpan) {
 		if ctx.Err() != nil {
 			return
 		}
-		if cause == "" && span.lid {
-			cause = "lid"
-		}
+		// The log has the last word: it shows no sleep, or a sleep the
+		// computer has only woken from in the dark, which is not over
+		// yet. The next wake names it, from its start.
 		if known && cause == "" && at.IsZero() {
 			return
+		}
+		if cause == "" && span.lid {
+			cause = "lid"
 		}
 		from := span.from
 		if !at.IsZero() && at.Before(from) {
