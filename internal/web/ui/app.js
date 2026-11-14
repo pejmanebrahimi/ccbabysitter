@@ -526,12 +526,17 @@
     var pastScheduled = allPast.filter(function (p) { return !!p.scheduledTask; });
 
     renderBabysatEmpty(view, view.watches || [], watches);
+    $("#sessions-empty").dataset.none = view.env && view.env.headless
+      ? "No Claude Code sessions are running. Press New session above to start one."
+      : "No Claude Code sessions are running.";
     section("#running-count", "#sessions-empty", sessions.length);
     if (!state.search && sessions.length === 0 && scheduled.length > 0) {
       setText($("#sessions-empty"), "Only scheduled task runs are running.");
     }
     section("#past-count", "#past-empty", past.length);
     show($("#sect-past-scheduled"), pastScheduled.length > 0);
+    /* A search that matches nothing anywhere offers to clear it. */
+    show($("#clear-search"), !!state.search && watches.length + sessions.length + scheduled.length + past.length + pastScheduled.length === 0);
     setText($("#past-scheduled-count"), String(pastScheduled.length));
     show($("#sect-scheduled"), scheduled.length > 0);
     setText($("#scheduled-count"), String(scheduled.length));
@@ -598,23 +603,37 @@
      follow only whether another program owns the session. */
   function canBabysit(s) { return !!s.actionable && !s.scheduledTask; }
 
-  /* heroSteps is what the empty hero asks the person to do next, which
-     follows what is running: press Babysit when there is something to
+  /* heroSteps is what the empty hero asks the person to do next. A Claude
+     Code CLI that is missing or not logged in comes first, and is the only
+     thing said, since nothing else can work until it is fixed. Otherwise
+     it follows what is running: press Babysit when there is something to
      press it on, and otherwise start a session first, on a server with
-     the command to do it. A word to be shown bold is written as {b: word}. */
+     the command to do it. A word to be shown bold is written as {b: word};
+     command is the command to show and copy, or nothing, and link
+     says to show the hero's link to what to do. */
   function heroSteps(view) {
     view = view || {};
-    var headless = !!(view.env || {}).headless;
+    var env = view.env || {};
+    var headless = !!env.headless;
+    if (env.cliFound === false) {
+      return {
+        next: ["Install Claude Code first. CC Babysitter brings sessions back with it."], command: "", after: [], blocked: true,
+        link: true
+      };
+    }
+    if (env.cliLoggedIn === "no") {
+      return { next: ["Log in to Claude Code first. Run this on this machine:"], command: "claude auth login", after: [], blocked: true };
+    }
     if ((view.sessions || []).some(canBabysit)) {
-      return { next: ["Press ", { b: "Babysit" }, " on a session below to start."], command: false, after: [] };
+      return { next: ["Press ", { b: "Babysit" }, " on a session below to start."], command: "", after: [] };
     }
     if (!headless) {
-      return { next: ["Start a Claude Code session, then press ", { b: "Babysit" }, " on it here."], command: false, after: [] };
+      return { next: ["Start a Claude Code session, then press ", { b: "Babysit" }, " on it here."], command: "", after: [] };
     }
     var auto = !!(view.settings || {}).autoBabysit;
     return {
       next: ["Press ", { b: "New session" }, " above, or start a background session in a project folder:"],
-      command: true,
+      command: START_CMD,
       after: auto ? ["It is babysat as soon as it starts."] : ["A session started that way needs ", { b: "Babysit" }, " on it here."]
     };
   }
@@ -644,11 +663,14 @@
       : "A babysat session comes back on its own. If its app crashes or closes, it carries on in the background, reachable from your other devices.");
 
     var steps = heroSteps(view);
+    show(f(hero, "promise"), !steps.blocked);
     fillParts(f(hero, "next"), steps.next);
-    show(el(hero, "startbox"), steps.command);
-    setText(f(hero, "startcmd"), START_CMD);
+    show(el(hero, "startbox"), !!steps.command);
+    setText(f(hero, "startcmd"), steps.command);
     show(f(hero, "after"), steps.after.length > 0);
     fillParts(f(hero, "after"), steps.after);
+    /* The link to what to do, written in the page itself. */
+    show(el(hero, "link"), !!steps.link);
   }
 
   /* boldWord returns a new <b> element holding the given text, for a
@@ -1162,15 +1184,32 @@
     return seq === latest && open;
   }
 
+  /* LOGIN_FIRST is what New session says while Claude Code is not logged
+     in, before a folder is typed: a session could not start. */
+  var LOGIN_FIRST = "Claude Code is not logged in on this machine, so a session could not start. Run claude auth login here first.";
+
   function openStart() {
     var go = $('[data-act="go"]', $("#dlg-start"));
+    var loggedOut = ((state.view || {}).env || {}).cliLoggedIn === "no";
     state.startSeq++;
     go.classList.remove("busy");
-    go.disabled = false;
-    $("#start-path").disabled = false;
-    showStartStep("path", "");
+    go.disabled = loggedOut;
+    $("#start-path").disabled = loggedOut;
+    showStartStep("path", loggedOut ? LOGIN_FIRST : "");
     openDialog($("#dlg-start"));
-    $("#start-path").focus();
+    if (loggedOut) {
+      $('[data-act="cancel"]', $("#dlg-start")).focus();
+    } else {
+      $("#start-path").focus();
+    }
+  }
+
+  /* clearSearch empties the search, so every list shows again. */
+  function clearSearch() {
+    $("#search").value = "";
+    state.search = "";
+    render();
+    $("#search").focus();
   }
 
   /* showStartStep shows the folder field, with message as the reason it
@@ -1885,13 +1924,14 @@
     onAction($("#past"), onPastAction);
     onAction($("#past-scheduled"), onPastAction);
     $('[data-act="copy-start"]', $("#watches-hero")).addEventListener("click", function () {
-      copyText(START_CMD);
+      copyText(f($("#watches-hero"), "startcmd").textContent);
     });
 
     $("#search").addEventListener("input", function (event) {
       state.search = event.target.value.trim().toLowerCase();
       render();
     });
+    $("#clear-search").addEventListener("click", clearSearch);
 
     $("#toggle-activity").addEventListener("click", function () { setActivity($("#activity").hidden); });
     $("#close-activity").addEventListener("click", function () { setActivity(false); });
