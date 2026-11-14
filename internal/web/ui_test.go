@@ -1988,6 +1988,38 @@ func TestThePageCanQuit(t *testing.T) {
 	}
 }
 
+// The page names its machine in the header and in the tab's title, so the
+// pages of a laptop and a server can be told apart, and the name is cut
+// short rather than pushing the header off a phone's screen.
+func TestThePageNamesItsMachine(t *testing.T) {
+	index := readUI(t, "ui/index.html")
+	if want := `<span class="machine" id="machine" hidden></span>`; !strings.Contains(index, want) {
+		t.Errorf("index.html does not contain %s", want)
+	}
+	app := readUI(t, "ui/app.js")
+	for _, want := range []string{
+		`setText($("#machine"), machine);`,
+		`show($("#machine"), machine !== "");`,
+		`document.title = machine ? machine + " - CC Babysitter" : "CC Babysitter";`,
+	} {
+		if !strings.Contains(app, want) {
+			t.Errorf("app.js does not contain %s", want)
+		}
+	}
+	css := readUI(t, "ui/app.css")
+	rule := regexp.MustCompile(`\.machine \{[^}]*\}`).FindString(css)
+	if !strings.Contains(rule, "text-overflow: ellipsis") || !strings.Contains(rule, "max-width") {
+		t.Errorf("the machine's name is not cut short: %q", rule)
+	}
+	script := "(function () {\n" + jsFunction(t, app, "machineLabel") +
+		`console.log(JSON.stringify([machineLabel({hostname: "build-box", platform: "linux"}), machineLabel({hostname: "Studio-Mac", platform: "darwin"}), machineLabel({hostname: "pc", platform: "windows"}), machineLabel({platform: "linux"}), machineLabel(undefined)]));` + "\n" +
+		"})();\n"
+	got := runNode(t, script)
+	if want := `["build-box (Linux)","Studio-Mac (macOS)","pc (Windows)","",""]`; len(got) != 1 || got[0] != want {
+		t.Fatalf("machineLabel: %q, want %s", got, want)
+	}
+}
+
 // Scheduled task runs that run nowhere are kept out of Not running too, in
 // a folded section of their own after it that only shows when there is
 // one, with the same row and buttons.

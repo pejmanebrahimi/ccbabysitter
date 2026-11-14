@@ -67,16 +67,20 @@ Flags:
                      A key given here can be seen by other accounts while the
                      command runs, so leave --url out for your own running copy
 
-Text, two lines:
+Text, three lines:
   CC Babysitter X.Y.Z is running at http://127.0.0.1:47391/?token=KEY
   Sessions: 5, babysat: 2. Keeping the computer awake: yes
+  Machine: build-box (Linux)
 Keeping the computer awake says yes, no, or not supported on this system. Where
 closing the lid would put the computer to sleep, yes adds: while its lid is open.
+Machine is the computer's name and its system, macOS, Linux or Windows, and is left
+out when the name cannot be read.
 On a machine with no display, three more lines give the ssh command to run on
 your computer and the address to open there while it runs.
 
 With --json: {"schema":1,"running":true,"version":"...","url":"...","headless":false,
-"sessions":5,"babysat":2,"keepAwake":{"held":true,"supported":true}}.
+"sessions":5,"babysat":2,"keepAwake":{"held":true,"supported":true},
+"machine":"build-box","system":"Linux"}.
 When it is not running, the sentence says so on stderr, the exit code is 3 and
 stdout is {"schema":1,"running":false} with --json. That is the answer, not an error.
 

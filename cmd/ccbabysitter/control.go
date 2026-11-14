@@ -78,6 +78,8 @@ type (
 		Sessions  int       `json:"sessions"`
 		Babysat   int       `json:"babysat"`
 		KeepAwake keepAwake `json:"keepAwake"`
+		Machine   string    `json:"machine"`
+		System    string    `json:"system"`
 	}
 	keepAwake struct {
 		Held      bool `json:"held"`
@@ -560,6 +562,7 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 			Schema: 1, Running: true, Version: v.Version, URL: url, Headless: v.Env.Headless,
 			Sessions: len(sessions), Babysat: babysat,
 			KeepAwake: keepAwake{Held: v.KeepAwake.Held, Supported: v.KeepAwake.Supported},
+			Machine:   v.Env.Hostname, System: systemName(v.Env.Platform),
 		})
 		return 0
 	}
@@ -574,6 +577,9 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 	}
 	fmt.Fprintf(env.stdout, "CC Babysitter %s is running at %s\n", v.Version, url)
 	fmt.Fprintf(env.stdout, "Sessions: %d, babysat: %d. Keeping the computer awake: %s\n", len(sessions), babysat, awake)
+	if v.Env.Hostname != "" {
+		fmt.Fprintf(env.stdout, "Machine: %s (%s)\n", v.Env.Hostname, systemName(v.Env.Platform))
+	}
 	// Run over ssh on a machine with no display, as open decides it, the
 	// address above only works here, so status also says how to reach the
 	// page from the computer the person is at, as the banner does.
@@ -582,6 +588,20 @@ func (env controlEnv) printStatus(asJSON bool, url string, v supervise.View) int
 		fmt.Fprint(env.stdout, tunnelLines(url, user, address))
 	}
 	return 0
+}
+
+// systemName is the name people know an operating system by, as Go's
+// GOOS spells it.
+func systemName(goos string) string {
+	switch goos {
+	case "darwin":
+		return "macOS"
+	case "linux":
+		return "Linux"
+	case "windows":
+		return "Windows"
+	}
+	return goos
 }
 
 // showTokens is show's Tokens line, left out for a conversation that is

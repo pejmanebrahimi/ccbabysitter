@@ -584,7 +584,7 @@ func TestJSONKeysArePinned(t *testing.T) {
 
 	_, out, _ := runCmd(t, env, "status", "--json")
 	doc := oneJSON(t, out)
-	check("status", doc, "babysat,headless,keepAwake,running,schema,sessions,url,version")
+	check("status", doc, "babysat,headless,keepAwake,machine,running,schema,sessions,system,url,version")
 	check("status keepAwake", child(doc, "keepAwake"), "held,supported")
 
 	_, out, _ = runCmd(t, env, "show", "api", "--json")
@@ -626,6 +626,20 @@ func TestStatusShowsTheKeyedAddress(t *testing.T) {
 	code, out, _ = runCmd(t, env, "status", "--json")
 	if doc := oneJSON(t, out); code != 0 || doc["url"] != keyed {
 		t.Fatalf("status --json = %d %v", code, doc)
+	}
+}
+
+// status names the machine it reports on, as the page does, so the answers
+// of two machines can be told apart.
+func TestStatusNamesTheMachine(t *testing.T) {
+	env, e, _ := testEnv(t)
+	e.view.Env.Hostname, e.view.Env.Platform = "build-box", "linux"
+	if code, out, _ := runCmd(t, env, "status"); code != 0 || !strings.Contains(out, "Machine: build-box (Linux)\n") {
+		t.Fatalf("status = %d\n%s", code, out)
+	}
+	_, out, _ := runCmd(t, env, "status", "--json")
+	if doc := oneJSON(t, out); doc["machine"] != "build-box" || doc["system"] != "Linux" {
+		t.Fatalf("status --json: %v", doc)
 	}
 }
 

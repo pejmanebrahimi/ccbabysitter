@@ -402,6 +402,8 @@ func (d *DemoEngine) View() supervise.View {
 			Platform: "demo", CLIFound: true, CLIPresent: true, CLIVersion: "2.1.280", CLILoggedIn: hosts.LoginYes,
 			DesktopInstalled: true, DesktopRunning: true, DesktopVersion: "2.7032.0",
 			VSCodeInstalled: true, VSCodeExtVersion: "2.1.280",
+			// A made-up name, so the docs screenshots never show a real one.
+			Hostname: "example-laptop",
 		},
 		Settings:           d.settings,
 		Sessions:           []supervise.SessionView{},

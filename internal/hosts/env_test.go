@@ -46,6 +46,25 @@ func TestDetectWindows(t *testing.T) {
 	}
 }
 
+// The page and status name the machine, so pages of two machines differ.
+// The name is the computer's own, up to its first dot, as printable ASCII;
+// a name that cannot be read is left out.
+func TestDetectNamesTheMachine(t *testing.T) {
+	for _, c := range []struct{ host, want string }{
+		{"build-box", "build-box"},
+		{"Studio-Mac.local", "Studio-Mac"},
+		{"srv1.example.com", "srv1"},
+		{"bad\x1bname", "badname"},
+		{"", ""},
+	} {
+		p := probes("linux")
+		p.Hostname = c.host
+		if got := Detect(context.Background(), p, claude.NewFakeRunner(nil), false).Hostname; got != c.want {
+			t.Errorf("Hostname for %q = %q, want %q", c.host, got, c.want)
+		}
+	}
+}
+
 func TestDetectHeadlessLinux(t *testing.T) {
 	p := probes("linux")
 	p.RegistryHandler = func(string) (string, bool) { return "", false }

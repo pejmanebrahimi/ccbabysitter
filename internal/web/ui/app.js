@@ -674,6 +674,22 @@
     var env = view.env || {};
     setTitle($("#awake"), keep.supported === false ? "This system cannot hold the keep-awake request" :
       on && env.lidSleeps ? "The computer does not sleep while it is idle. Closing its lid still puts it to sleep." : "");
+
+    /* The page names its machine, in the header and the tab, so a page
+       for a laptop and one for a server cannot be mixed up. */
+    var machine = machineLabel(env);
+    setText($("#machine"), machine);
+    show($("#machine"), machine !== "");
+    document.title = machine ? machine + " - CC Babysitter" : "CC Babysitter";
+  }
+
+  /* machineLabel is the computer's name and its system, as in
+     "build-box (Linux)", or nothing when the name is not known. */
+  function machineLabel(env) {
+    env = env || {};
+    if (!env.hostname) { return ""; }
+    var system = { darwin: "macOS", linux: "Linux", windows: "Windows" }[env.platform] || env.platform || "";
+    return system ? env.hostname + " (" + system + ")" : env.hostname;
   }
 
   /* versionsLine lists what is installed: the Claude Code CLI always, with

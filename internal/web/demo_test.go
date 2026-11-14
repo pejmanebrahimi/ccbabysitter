@@ -48,6 +48,11 @@ func TestDemoShowsEveryState(t *testing.T) {
 	d, _ := newTestDemo(t)
 	v := d.View()
 
+	// The demo's machine has a made-up name, never the real one.
+	if v.Env.Hostname != "example-laptop" {
+		t.Fatalf("demo machine: %q", v.Env.Hostname)
+	}
+
 	states := map[supervise.WatchState]bool{}
 	for _, w := range v.Watches {
 		states[w.State] = true
